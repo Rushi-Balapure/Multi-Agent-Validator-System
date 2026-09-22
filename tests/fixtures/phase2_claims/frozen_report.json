@@ -1,0 +1,88 @@
+{
+  "report_id": "agentic:phase2-frozen-report-v1",
+  "question_id": "phase2-fixture-q1",
+  "frozen_conclusion": "In adults aged 65 years and older with hypertension, treatment reduced systolic blood pressure by 12 mmHg versus placebo at 12 weeks. The intervention did not increase all-cause mortality relative to control.",
+  "claim_ids": [
+    "agentic:phase2-numeric-v1",
+    "agentic:phase2-negation-v1",
+    "agentic:phase2-population-v1"
+  ],
+  "claims": [
+    {
+      "claim_id": "agentic:phase2-numeric-v1",
+      "report_id": "agentic:phase2-frozen-report-v1",
+      "exact_source_span": "Treatment reduced systolic blood pressure by 12 mmHg versus placebo at 12 weeks.",
+      "normalized_claim": "Treatment reduced systolic blood pressure by 12 mmHg versus placebo at 12 weeks.",
+      "subject": "treatment",
+      "relation": "reduced",
+      "object": "systolic blood pressure",
+      "population": null,
+      "comparator": "placebo",
+      "time": "12 weeks",
+      "units": "mmHg",
+      "modality": "magnitude",
+      "neutral_question": "What change in systolic blood pressure versus placebo at 12 weeks did abstracts report for the treatment?",
+      "asserted_answer": "12 mmHg reduction versus placebo at 12 weeks",
+      "dependencies": [
+        "agentic:phase2-population-v1"
+      ],
+      "source": {
+        "dataset": "agentic",
+        "native_id": null,
+        "split_role": null
+      }
+    },
+    {
+      "claim_id": "agentic:phase2-negation-v1",
+      "report_id": "agentic:phase2-frozen-report-v1",
+      "exact_source_span": "The intervention did not increase all-cause mortality relative to control.",
+      "normalized_claim": "The intervention did not increase all-cause mortality relative to control.",
+      "subject": "intervention",
+      "relation": "did not increase",
+      "object": "all-cause mortality",
+      "population": null,
+      "comparator": "control",
+      "time": null,
+      "units": null,
+      "modality": "negation",
+      "neutral_question": "What did abstracts report about the intervention and all-cause mortality relative to control?",
+      "asserted_answer": "did not increase all-cause mortality relative to control",
+      "dependencies": [],
+      "source": {
+        "dataset": "agentic",
+        "native_id": null,
+        "split_role": null
+      }
+    },
+    {
+      "claim_id": "agentic:phase2-population-v1",
+      "report_id": "agentic:phase2-frozen-report-v1",
+      "exact_source_span": "In adults aged 65 years and older with hypertension, treatment reduced systolic blood pressure.",
+      "normalized_claim": "In adults aged 65 years and older with hypertension, treatment reduced systolic blood pressure.",
+      "subject": "treatment",
+      "relation": "reduced",
+      "object": "systolic blood pressure",
+      "population": "adults aged 65 years and older with hypertension",
+      "comparator": null,
+      "time": null,
+      "units": null,
+      "modality": "effect",
+      "neutral_question": "What did abstracts report about treatment and systolic blood pressure in adults aged 65 years and older with hypertension?",
+      "asserted_answer": "treatment reduced systolic blood pressure in adults aged 65 years and older with hypertension",
+      "dependencies": [
+        "agentic:phase2-numeric-v1"
+      ],
+      "source": {
+        "dataset": "agentic",
+        "native_id": null,
+        "split_role": null
+      }
+    }
+  ],
+  "generator": {
+    "model_id": "fixture-proposer",
+    "note": "Frozen Phase-2 fixture; not a live run."
+  },
+  "corpus_hash": null,
+  "config_hash": null
+}

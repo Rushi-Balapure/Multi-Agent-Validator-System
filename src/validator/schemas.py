@@ -1,8 +1,8 @@
 """Section-4 records for a validator run.
 
-The research plan names five records: Run, Claim, Evidence, Judgment, and
-ReportVerdict. Field names follow that section and the JSON schemas in
-``schemas/``.
+The research plan names Run, Claim, Evidence, Judgment, ReportVerdict, and a
+frozen Report container for Phase-2 proposer outputs. Field names follow that
+section and the JSON schemas in ``schemas/``.
 
 Execution status is a control field (completed, failed, timeout). It is not a
 scientific label. The four project labels are Supported, Contradicted,
@@ -14,7 +14,7 @@ or ``CONTRADICT``. Empty SciFact evidence is not a four-way label.
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -79,13 +79,24 @@ class GoldProvenance(str, Enum):
 
 
 class ClaimSource(BaseModel):
-    """Dataset identity for a claim loaded from a frozen corpus."""
+    """Dataset identity for a claim.
+
+    SciFact loader claims use ``dataset="scifact"`` and require ``native_id``.
+    Phase-2 proposer fixtures from a frozen conclusion use ``dataset="agentic"``;
+    ``native_id`` is then optional and ``split_role`` is usually unset.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
-    dataset: str = Field(pattern=r"^scifact$")
-    native_id: int
+    dataset: Literal["scifact", "agentic"]
+    native_id: int | None = None
     split_role: SplitRole | None = None
+
+    @model_validator(mode="after")
+    def scifact_requires_native_id(self) -> ClaimSource:
+        if self.dataset == "scifact" and self.native_id is None:
+            raise ValueError('ClaimSource.native_id is required when dataset is "scifact"')
+        return self
 
 
 class EvidenceOffsets(BaseModel):
@@ -126,7 +137,15 @@ class Run(BaseModel):
 
 
 class Claim(BaseModel):
-    """Atomic claim. Decomposition fields stay empty until a later slice fills them."""
+    """Atomic claim (research-plan §4).
+
+    SciFact same-evidence loads typically fill ``claim_id``,
+    ``normalized_claim``, ``exact_source_span``, and ``source`` only.
+    Phase-2 decomposition of a frozen agentic report fills the remaining §4
+    fields: subject/relation/object, population/comparator/time/units/modality,
+    ``neutral_question``, ``asserted_answer``, and ``dependencies``. Do not
+    invent scientific labels on this record.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -146,6 +165,32 @@ class Claim(BaseModel):
     asserted_answer: str | None = None
     dependencies: list[str] = Field(default_factory=list)
     source: ClaimSource
+
+
+class Report(BaseModel):
+    """Frozen agentic report that holds Claims for Phase-2 decomposition.
+
+    Distinct from ``ReportVerdict``, which is the post-judgment outcome record.
+    A report stores the exact frozen conclusion text and either ``claim_ids``,
+    an embedded ``claims`` list, or both.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    report_id: str = Field(min_length=1)
+    question_id: str | None = None
+    frozen_conclusion: str = Field(min_length=1)
+    claim_ids: list[str] = Field(default_factory=list)
+    claims: list[Claim] = Field(default_factory=list)
+    generator: dict[str, Any] | None = None
+    corpus_hash: str | None = Field(default=None, pattern=_SHA256)
+    config_hash: str | None = Field(default=None, pattern=_SHA256)
+
+    @model_validator(mode="after")
+    def require_claim_reference(self) -> Report:
+        if not self.claim_ids and not self.claims:
+            raise ValueError("Report requires claim_ids and/or an embedded claims list")
+        return self
 
 
 class Evidence(BaseModel):

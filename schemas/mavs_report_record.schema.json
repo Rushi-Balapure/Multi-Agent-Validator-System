@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mavs.local/schemas/mavs_report_record.schema.json",
+  "title": "MavsReportRecord",
+  "description": "Frozen agentic report container for Phase-2 proposer outputs. Holds the exact frozen conclusion and references Claims via claim_ids and/or an embedded claims list. Distinct from MavsReportVerdict.",
+  "type": "object",
+  "required": [
+    "report_id",
+    "frozen_conclusion"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "report_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "question_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "frozen_conclusion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "claim_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Embedded Claim objects. Each item must also validate as MavsClaimRecord when present."
+    },
+    "generator": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "corpus_hash": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "config_hash": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  },
+  "anyOf": [
+    {
+      "properties": {
+        "claim_ids": {
+          "type": "array",
+          "minItems": 1
+        }
+      },
+      "required": [
+        "claim_ids"
+      ]
+    },
+    {
+      "properties": {
+        "claims": {
+          "type": "array",
+          "minItems": 1
+        }
+      },
+      "required": [
+        "claims"
+      ]
+    }
+  ]
+}

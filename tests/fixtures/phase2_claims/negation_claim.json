@@ -1,0 +1,22 @@
+{
+  "claim_id": "agentic:phase2-negation-v1",
+  "report_id": "agentic:phase2-frozen-report-v1",
+  "exact_source_span": "The intervention did not increase all-cause mortality relative to control.",
+  "normalized_claim": "The intervention did not increase all-cause mortality relative to control.",
+  "subject": "intervention",
+  "relation": "did not increase",
+  "object": "all-cause mortality",
+  "population": null,
+  "comparator": "control",
+  "time": null,
+  "units": null,
+  "modality": "negation",
+  "neutral_question": "What did abstracts report about the intervention and all-cause mortality relative to control?",
+  "asserted_answer": "did not increase all-cause mortality relative to control",
+  "dependencies": [],
+  "source": {
+    "dataset": "agentic",
+    "native_id": null,
+    "split_role": null
+  }
+}
