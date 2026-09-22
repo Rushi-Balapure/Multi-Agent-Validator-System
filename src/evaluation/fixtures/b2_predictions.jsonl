@@ -1,0 +1,10 @@
+{"claim_id": "scifact:1", "label": "SUPPORT", "label_gold": "SUPPORT", "adaptation": "B2", "inference_mode": "mock", "execution_status": "ok"}
+{"claim_id": "scifact:2", "label": "SUPPORT", "label_gold": "SUPPORT", "adaptation": "B2", "inference_mode": "mock", "execution_status": "ok"}
+{"claim_id": "scifact:3", "label": "SUPPORT", "label_gold": "REFUTE", "adaptation": "B2", "inference_mode": "mock", "execution_status": "ok"}
+{"claim_id": "scifact:4", "label": "REFUTE", "label_gold": "REFUTE", "adaptation": "B2", "inference_mode": "mock", "execution_status": "ok"}
+{"claim_id": "scifact:5", "label": "REFUTE", "label_gold": "NEI", "adaptation": "B2", "inference_mode": "mock", "execution_status": "ok"}
+{"claim_id": "scifact:6", "label_pred": "NEI", "gold_label": "NEI", "method_id": "B2", "inference_mode": "mock", "execution_status": "ok"}
+{"claim_id": "scifact:7", "label": "NEI", "label_gold": "SUPPORT", "adaptation": "B2", "inference_mode": "mock", "execution_status": "completed"}
+{"claim_id": "scifact:8", "label": "SUPPORT", "label_gold": "CONTRADICT", "adaptation": "B2", "inference_mode": "mock", "execution_status": "ok"}
+{"claim_id": "scifact:9", "label": "NEI", "adaptation": "B2", "inference_mode": "mock"}
+{"claim_id": "scifact:10", "label": "SUPPORT", "label_gold": "REFUTE", "adaptation": "B2", "inference_mode": "mock", "execution_status": "fail"}
