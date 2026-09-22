@@ -31,6 +31,7 @@ from jsonschema import Draft202012Validator
 from validator.same_evidence.b2 import (
     BaselineDataError as EndpointPolicyError,
     LabelError,
+    OpenAICompatibleClient,
     _LocalOrPrivateRedirectHandler,
     assert_local_or_private,
     mock_compare_label,
@@ -315,6 +316,19 @@ def test_committed_b2_config_points_at_lm_studio_loopback():
     assert config["dry_run"] is True
     assert_local_or_private(config["base_url"])
     assert_local_or_private("http://192.168.1.10:1234/v1")
+
+
+def test_openai_compatible_client_records_live_inference_mode():
+    """--live invocations must label rows/sidecar as live (not endpoint or mock)."""
+    client = OpenAICompatibleClient(
+        base_url="http://127.0.0.1:1234/v1",
+        model_id="qwen2.5-coder-1.5b-instruct",
+        temperature=0,
+        timeout_seconds=5,
+    )
+    assert client.inference_mode == "live"
+    assert MockClient(0).inference_mode == "mock"
+    assert client.inference_mode != "endpoint"
 
 
 def test_dry_run_refuses_public_endpoint(tmp_path: Path):

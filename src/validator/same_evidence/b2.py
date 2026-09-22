@@ -356,7 +356,7 @@ class OpenAICompatibleClient:
     redirects that would leave the private network.
     """
 
-    inference_mode = "endpoint"
+    inference_mode = "live"
 
     def __init__(self, *, base_url: str, model_id: str, temperature: float, timeout_seconds: float) -> None:
         assert_local_or_private(base_url)
