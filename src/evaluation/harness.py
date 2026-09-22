@@ -1,19 +1,27 @@
 """V versus B2 false-endorsement harness.
 
 Accepts B2 predictions, or a B2 metrics report already scored by
-``evaluation.score_predictions``, plus optional V predictions that use the
-same claim ids. The primary metric is ``F-false-endorsement`` (both
-denominators). ``method_id`` is ``B2`` or ``V`` only.
+``evaluation.score_predictions``, plus optional V predictions. The primary
+metric is ``F-false-endorsement`` (both denominators). ``method_id`` is
+``B2`` or ``V`` only.
 
 When V predictions are missing or empty, the V cell stays pending. Numeric
 fields are ``None`` and the markdown cell is an em dash. This module does
 not copy B2 rates into the V column and does not invent a V run.
 
-The checked-in stub is ``docs/paper-assets/tables/v_vs_b2_false_endorsement.md``.
+Paired mode (B2 prediction rows + V rows) requires the same claim ids.
+Paper-table mode keeps the checked-in live B2 metrics column and scores V
+independently when V rows are present (claim sets need not match). Paired
+bootstrap still requires aligned claim ids.
+
+The checked-in table is ``docs/paper-assets/tables/v_vs_b2_false_endorsement.md``.
 Its B2 column is the live development run already stored in
 ``docs/paper-assets/tables/b2_live_n20_metrics.json``.
 
     PYTHONPATH=src python -m evaluation.harness \\
+        --v-predictions docs/paper-assets/tables/validator_v/predictions.jsonl \\
+        --v-run-sidecar docs/paper-assets/tables/validator_v/run.json \\
+        --attach-v-fixture-gold \\
         --output docs/paper-assets/tables/v_vs_b2_false_endorsement.md
 """
 
@@ -36,6 +44,7 @@ from evaluation.score_predictions import (
     resolve_run_id,
     score_prediction_rows,
 )
+from evaluation.v_fixture_gold import FixtureGoldError, attach_v_fixture_report_gold
 
 FORMULA_ID = "F-false-endorsement"
 V_RUN_ID_PLACEHOLDER = "<V run_id>"
@@ -45,6 +54,8 @@ PENDING = "pending"
 SCORED = "scored"
 EM_DASH = "\u2014"
 LIVE_B2_METRICS = Path("docs/paper-assets/tables/b2_live_n20_metrics.json")
+DEFAULT_V_PREDICTIONS = Path("docs/paper-assets/tables/validator_v/predictions.jsonl")
+DEFAULT_V_SIDECAR = Path("docs/paper-assets/tables/validator_v/run.json")
 
 Status = Literal["scored", "pending"]
 
@@ -120,6 +131,10 @@ class VvsB2FalseEndorsement:
     claim_ids: tuple[str, ...] | None
     b2_source: str
     v_predictions_present: bool
+    paired: bool = False
+    v_predictions_path: str | None = None
+    v_run_sidecar_path: str | None = None
+    v_gold_source: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -130,6 +145,10 @@ class VvsB2FalseEndorsement:
             "claim_ids": list(self.claim_ids) if self.claim_ids is not None else None,
             "b2_source": self.b2_source,
             "v_predictions_present": self.v_predictions_present,
+            "paired": self.paired,
+            "v_predictions_path": self.v_predictions_path,
+            "v_run_sidecar_path": self.v_run_sidecar_path,
+            "v_gold_source": self.v_gold_source,
         }
 
 
@@ -356,13 +375,18 @@ def compare_false_endorsement(
     b2_run_id: str | None = None,
     v_run_id: str | None = None,
     b2_source: str = "predictions",
+    v_predictions_path: str | None = None,
+    v_run_sidecar_path: str | None = None,
+    v_gold_source: str | None = None,
 ) -> VvsB2FalseEndorsement:
-    """Score B2 and, when V rows exist, V on the same claim ids.
+    """Score B2 and, when V rows exist, V.
 
     Pass ``b2_predictions`` or ``b2_report``, not both. An empty V sequence
-    leaves V pending even if ``v_run_id`` is set. A non-empty V sequence
-    requires B2 prediction rows so claim ids can be aligned. V is never
-    scored against an aggregate B2 report.
+    leaves V pending even if ``v_run_id`` is set.
+
+    With B2 prediction rows, a non-empty V sequence must use the same claim
+    ids (paired comparison). With a B2 metrics report, V is scored
+    independently so the paper table can keep the live B2 column.
     """
     if b2_predictions is not None and b2_report is not None:
         raise CompareError("pass B2 predictions or a B2 metrics report, not both")
@@ -373,20 +397,24 @@ def compare_false_endorsement(
 
     present = v_predictions_are_present(v_predictions)
     claim_ids: tuple[str, ...] | None
+    paired = False
     if present:
-        if b2_predictions is None:
-            raise CompareError(
-                "V predictions need B2 predictions with the same claim ids; "
-                "a B2 metrics report has no row alignment. Refusing to score V."
-            )
         assert v_predictions is not None
-        claim_ids = _assert_same_claims(b2_predictions, v_predictions)
-        b2_cell = _score_predictions(b2_predictions, expected_method="B2", run_id=b2_run_id)
-        v_cell = _score_predictions(v_predictions, expected_method="V", run_id=v_run_id)
-        if b2_cell.n_scored != len(claim_ids) or v_cell.n_scored != len(claim_ids):
-            raise CompareError(
-                "paired score dropped claim ids; refusing a partial comparison"
-            )
+        if b2_predictions is not None:
+            claim_ids = _assert_same_claims(b2_predictions, v_predictions)
+            b2_cell = _score_predictions(b2_predictions, expected_method="B2", run_id=b2_run_id)
+            v_cell = _score_predictions(v_predictions, expected_method="V", run_id=v_run_id)
+            if b2_cell.n_scored != len(claim_ids) or v_cell.n_scored != len(claim_ids):
+                raise CompareError(
+                    "paired score dropped claim ids; refusing a partial comparison"
+                )
+            paired = True
+        else:
+            assert b2_report is not None
+            b2_cell = score_from_report(b2_report, expected_method="B2")
+            v_cell = _score_predictions(v_predictions, expected_method="V", run_id=v_run_id)
+            claim_ids = None
+            paired = False
     elif b2_predictions is not None:
         b2_cell = _score_predictions(b2_predictions, expected_method="B2", run_id=b2_run_id)
         v_cell = _pending_v(v_run_id)
@@ -408,6 +436,10 @@ def compare_false_endorsement(
         claim_ids=claim_ids,
         b2_source=b2_source,
         v_predictions_present=present,
+        paired=paired,
+        v_predictions_path=v_predictions_path,
+        v_run_sidecar_path=v_run_sidecar_path,
+        v_gold_source=v_gold_source,
     )
 
 
@@ -453,13 +485,47 @@ def read_optional_predictions(path: Path | None) -> list[dict[str, Any]] | None:
         raise CompareError(str(exc)) from exc
 
 
+def read_run_sidecar(path: Path | None) -> dict[str, Any] | None:
+    if path is None:
+        return None
+    if not path.is_file():
+        raise CompareError(f"run sidecar not found: {path}")
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise CompareError(f"{path}: invalid JSON ({exc})") from exc
+    if not isinstance(payload, dict):
+        raise CompareError(f"{path}: expected a JSON object")
+    return payload
+
+
+def resolve_v_run_id(
+    *,
+    cli_run_id: str | None,
+    sidecar: Mapping[str, Any] | None,
+) -> str | None:
+    if cli_run_id is not None and cli_run_id.strip():
+        return cli_run_id.strip()
+    if sidecar is None:
+        return None
+    run = sidecar.get("run")
+    if isinstance(run, Mapping):
+        run_id = run.get("run_id")
+        if isinstance(run_id, str) and run_id.strip():
+            return run_id.strip()
+    return None
+
+
 def compare_live_b2(
     *,
     v_predictions: Sequence[Mapping[str, Any]] | None = None,
     metrics_path: Path | None = None,
     v_run_id: str | None = None,
+    v_predictions_path: str | None = None,
+    v_run_sidecar_path: str | None = None,
+    v_gold_source: str | None = None,
 ) -> VvsB2FalseEndorsement:
-    """B2 column from the checked-in live metrics. V stays pending when absent."""
+    """B2 column from the checked-in live metrics. Score V independently when present."""
     path = metrics_path if metrics_path is not None else repo_root() / LIVE_B2_METRICS
     report = load_metrics_report(path)
     try:
@@ -471,6 +537,9 @@ def compare_live_b2(
         v_predictions=v_predictions,
         v_run_id=v_run_id,
         b2_source=source,
+        v_predictions_path=v_predictions_path,
+        v_run_sidecar_path=v_run_sidecar_path,
+        v_gold_source=v_gold_source,
     )
 
 
@@ -506,10 +575,16 @@ def render_comparison_markdown(comparison: VvsB2FalseEndorsement) -> str:
             f"An em dash (`{EM_DASH}`) is an absent score. "
             "This table does not invent V numbers."
         )
-    else:
+    elif comparison.paired:
         v_lead = (
             "V and B2 are scored on the same claim ids. "
             "Rates are computed from those predictions."
+        )
+    else:
+        v_lead = (
+            "V is scored from its own predictions (independent of the B2 claim set). "
+            "Rates come from `evaluation.score_predictions` on that run_id. "
+            "This is not yet the paired same-claim-id comparison."
         )
     b2_header = f"B2 (`{_header_run(comparison.b2)}`)"
     v_header = f"V (`{_header_run(comparison.v)}`)"
@@ -539,13 +614,23 @@ def render_comparison_markdown(comparison: VvsB2FalseEndorsement) -> str:
             f"B2 `{HELD_OUT_B2_RUN_ID_PLACEHOLDER}`, "
             f"V `{HELD_OUT_V_RUN_ID_PLACEHOLDER}`"
         ),
-        "",
-        f"| Metric | formula_id | {b2_header} | {v_header} |",
-        "| --- | --- | --- | --- |",
-        (
-            f"| run_id | — | {_run_cell(comparison.b2)} | {_run_cell(comparison.v)} |"
-        ),
     ]
+    if comparison.v_predictions_path:
+        lines.append(f"- V predictions: `{comparison.v_predictions_path}`")
+    if comparison.v_run_sidecar_path:
+        lines.append(f"- V run sidecar: `{comparison.v_run_sidecar_path}`")
+    if comparison.v_gold_source:
+        lines.append(f"- V gold source: `{comparison.v_gold_source}`")
+    lines.extend(
+        [
+            "",
+            f"| Metric | formula_id | {b2_header} | {v_header} |",
+            "| --- | --- | --- | --- |",
+            (
+                f"| run_id | — | {_run_cell(comparison.b2)} | {_run_cell(comparison.v)} |"
+            ),
+        ]
+    )
     for label, attr in _RATE_ROWS:
         b2_text = _format_rate(getattr(comparison.b2, attr), comparison.b2.status)
         v_text = _format_rate(getattr(comparison.v, attr), comparison.v.status)
@@ -575,21 +660,29 @@ def render_comparison_markdown(comparison: VvsB2FalseEndorsement) -> str:
 
 
 def render_live_stub_markdown(comparison: VvsB2FalseEndorsement) -> str:
-    """Paper stub. B2 numbers come from the live report; V stays pending."""
-    if comparison.v.status != PENDING:
-        raise CompareError(
-            "the paper stub is the empty-V path; refusing to write V scores into it"
-        )
-    _assert_pending_has_no_numbers(comparison.v)
+    """Paper table. B2 numbers come from the live report; V may be pending or scored."""
     page = render_comparison_markdown(comparison)
-    note = (
-        "The B2 column is the checked-in live development run "
-        f"`{comparison.b2.run_id}` "
-        f"(n scored = {comparison.b2.n_scored}), the same live column as "
-        "[b2_live_vs_mock.md](b2_live_vs_mock.md). "
-        "It is the development live column. Held-out run ids below are placeholders "
-        "for the preregistered comparison.\n\n"
-    )
+    if comparison.v.status == PENDING:
+        _assert_pending_has_no_numbers(comparison.v)
+        note = (
+            "The B2 column is the checked-in live development run "
+            f"`{comparison.b2.run_id}` "
+            f"(n scored = {comparison.b2.n_scored}), the same live column as "
+            "[b2_live_vs_mock.md](b2_live_vs_mock.md). "
+            "It is the development live column. Held-out run ids below are placeholders "
+            "for the preregistered comparison.\n\n"
+        )
+    else:
+        note = (
+            "The B2 column is the checked-in live development run "
+            f"`{comparison.b2.run_id}` "
+            f"(n scored = {comparison.b2.n_scored}), the same live column as "
+            "[b2_live_vs_mock.md](b2_live_vs_mock.md). "
+            f"The V column is run `{comparison.v.run_id}` "
+            f"(n scored = {comparison.v.n_scored}). "
+            "Held-out run ids below are placeholders "
+            "for the preregistered comparison.\n\n"
+        )
     marker = "B2 source:"
     if marker not in page:
         raise CompareError("stub renderer lost the B2 source line")
@@ -611,6 +704,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="omit, or pass an empty file, to leave V pending",
     )
     parser.add_argument(
+        "--v-run-sidecar",
+        type=Path,
+        default=None,
+        help="optional V run.json; supplies run_id when --v-run-id is omitted",
+    )
+    parser.add_argument(
         "--b2-metrics",
         type=Path,
         default=None,
@@ -618,11 +717,33 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--b2-run-id", default=None)
     parser.add_argument("--v-run-id", default=None)
+    parser.add_argument(
+        "--attach-v-fixture-gold",
+        action="store_true",
+        help=(
+            "attach evaluation smoke gold for Stack V fixture-report claim ids "
+            "(synthetic e2e ids not in the locked development split)"
+        ),
+    )
+    parser.add_argument(
+        "--v-metrics-output",
+        type=Path,
+        default=None,
+        help="optional path to write the scored V metrics JSON",
+    )
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument(
         "--live-stub",
         action="store_true",
-        help="write the paper stub (requires pending V)",
+        help="write the paper table with the live-B2 note (pending or scored V)",
+    )
+    parser.add_argument(
+        "--paper-table",
+        action="store_true",
+        help=(
+            "fill the paper table from the checked-in live B2 metrics and the "
+            "default validator_v dry-run artifacts under docs/paper-assets/tables/"
+        ),
     )
     return parser.parse_args(argv)
 
@@ -630,15 +751,53 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 def main(argv: Sequence[str] | None = None) -> None:
     args = parse_args(argv)
     try:
-        v_rows = read_optional_predictions(args.v_predictions)
+        v_pred_path = args.v_predictions
+        v_sidecar_path = args.v_run_sidecar
+        attach_gold = args.attach_v_fixture_gold
+        if args.paper_table:
+            root = repo_root()
+            if v_pred_path is None:
+                v_pred_path = root / DEFAULT_V_PREDICTIONS
+            if v_sidecar_path is None:
+                v_sidecar_path = root / DEFAULT_V_SIDECAR
+            attach_gold = True
+            args.live_stub = True
+
+        v_rows = read_optional_predictions(v_pred_path)
+        sidecar = read_run_sidecar(v_sidecar_path)
+        v_run_id = resolve_v_run_id(cli_run_id=args.v_run_id, sidecar=sidecar)
+        v_gold_source = None
+        if v_rows is not None and attach_gold and v_predictions_are_present(v_rows):
+            try:
+                v_rows, gold_meta = attach_v_fixture_report_gold(v_rows)
+            except FixtureGoldError as exc:
+                raise CompareError(str(exc)) from exc
+            v_gold_source = gold_meta["source"]
+
+        v_pred_cite = None
+        v_side_cite = None
+        if v_pred_path is not None:
+            try:
+                v_pred_cite = str(v_pred_path.relative_to(repo_root()))
+            except ValueError:
+                v_pred_cite = str(v_pred_path)
+        if v_sidecar_path is not None:
+            try:
+                v_side_cite = str(v_sidecar_path.relative_to(repo_root()))
+            except ValueError:
+                v_side_cite = str(v_sidecar_path)
+
         if args.b2_predictions is not None:
             b2_rows = read_optional_predictions(args.b2_predictions)
             comparison = compare_false_endorsement(
                 b2_predictions=b2_rows,
                 v_predictions=v_rows,
                 b2_run_id=args.b2_run_id,
-                v_run_id=args.v_run_id,
+                v_run_id=v_run_id,
                 b2_source=str(args.b2_predictions),
+                v_predictions_path=v_pred_cite,
+                v_run_sidecar_path=v_side_cite,
+                v_gold_source=v_gold_source,
             )
             text = render_comparison_markdown(comparison)
         else:
@@ -646,12 +805,38 @@ def main(argv: Sequence[str] | None = None) -> None:
             comparison = compare_live_b2(
                 v_predictions=v_rows,
                 metrics_path=metrics,
-                v_run_id=args.v_run_id,
+                v_run_id=v_run_id,
+                v_predictions_path=v_pred_cite,
+                v_run_sidecar_path=v_side_cite,
+                v_gold_source=v_gold_source,
             )
-            if args.live_stub or args.v_predictions is None:
+            if args.live_stub or args.paper_table or v_pred_path is None:
                 text = render_live_stub_markdown(comparison)
             else:
                 text = render_comparison_markdown(comparison)
+
+        if args.v_metrics_output is not None and comparison.v.status == SCORED:
+            if v_rows is None or not v_predictions_are_present(v_rows):
+                raise CompareError("cannot write V metrics without V predictions")
+            try:
+                resolved = resolve_run_id(v_rows, cli_run_id=v_run_id, sidecar=sidecar)
+                report = score_prediction_rows(v_rows, run_id=resolved)
+            except ScoreError as exc:
+                raise CompareError(str(exc)) from exc
+            if report.get("method_id") is None:
+                report = dict(report)
+                report["method_id"] = "V"
+            report["provenance"] = {
+                "predictions": v_pred_cite,
+                "run_sidecar": v_side_cite,
+                "gold_source": v_gold_source,
+                "run_id": resolved,
+            }
+            args.v_metrics_output.parent.mkdir(parents=True, exist_ok=True)
+            args.v_metrics_output.write_text(
+                json.dumps(report, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
     except CompareError as exc:
         print(f"COMPARE FAILED: {exc}", file=sys.stderr)
         raise SystemExit(exc.exit_code) from exc
@@ -660,6 +845,11 @@ def main(argv: Sequence[str] | None = None) -> None:
     print(
         f"wrote {args.output} b2_run_id={comparison.b2.run_id} "
         f"v_status={comparison.v.status}"
+        + (
+            f" v_run_id={comparison.v.run_id}"
+            if comparison.v.status == SCORED
+            else ""
+        )
     )
 
 

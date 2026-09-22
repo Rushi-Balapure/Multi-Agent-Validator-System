@@ -1,7 +1,9 @@
 """V versus B2 false-endorsement harness.
 
 Empty V must stay pending. The live B2 column is read from the checked-in
-metrics report. Fixture B2-only scoring reuses the existing prediction file.
+metrics report. When V dry-run predictions exist, the paper table keeps that
+B2 column and fills V from ``score_predictions`` (fixture-report smoke gold
+for synthetic e2e claim ids).
 """
 
 from __future__ import annotations
@@ -29,12 +31,17 @@ from evaluation.harness import (
 )
 from evaluation.registry import FORMULA_IDS, METHOD_IDS, get_formula
 from evaluation.score_predictions import score_predictions_file
+from evaluation.v_fixture_gold import attach_v_fixture_report_gold
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURE = ROOT / "src" / "evaluation" / "fixtures" / "b2_predictions.jsonl"
 LIVE_METRICS = ROOT / "docs" / "paper-assets" / "tables" / "b2_live_n20_metrics.json"
 STUB = ROOT / "docs" / "paper-assets" / "tables" / "v_vs_b2_false_endorsement.md"
+V_PREDICTIONS = ROOT / "docs" / "paper-assets" / "tables" / "validator_v" / "predictions.jsonl"
+V_SIDECAR = ROOT / "docs" / "paper-assets" / "tables" / "validator_v" / "run.json"
+V_METRICS = ROOT / "docs" / "paper-assets" / "tables" / "validator_v" / "v_dry_run_metrics.json"
 LIVE_RUN_ID = "same-evidence-b2-development-s0-n20-dac855c4e2ae"
+V_RUN_ID = "validator-v-development-s0-n3-d5cecb97c55b"
 FIXTURE_RUN_ID = "fixture-b2-score-001"
 NOTES = "docs/paper-assets/formulas/F-false-endorsement.md"
 
@@ -118,10 +125,9 @@ def test_passed_v_run_id_still_has_no_numbers():
         assert cell in {PENDING, EM_DASH}
 
 
-def test_live_stub_table_cites_formula_and_keeps_b2_live():
+def test_pending_live_stub_keeps_b2_and_formula():
     comparison = compare_live_b2()
     rendered = render_live_stub_markdown(comparison)
-    assert STUB.read_text(encoding="utf-8") == rendered
     assert f"[F-false-endorsement](../formulas/F-false-endorsement.md)" in rendered
     assert f"`{FORMULA_ID}`" in rendered
     assert NOTES in rendered
@@ -136,16 +142,86 @@ def test_live_stub_table_cites_formula_and_keeps_b2_live():
     for cell in _v_cells(rendered):
         assert cell in {PENDING, EM_DASH}
         assert not any(character.isdigit() for character in cell)
-    b2_column = []
-    for line in rendered.splitlines():
-        if not line.startswith("|") or line.startswith("| Metric") or line.startswith("| ---"):
-            continue
-        parts = [part.strip() for part in line.strip().strip("|").split("|")]
-        b2_column.append(parts[2])
-    assert f"`{LIVE_RUN_ID}`" in b2_column
-    assert "0.17647058823529413" in b2_column
-    assert "1.0" in b2_column
-    assert "17" in b2_column
+
+
+def test_paper_table_keeps_live_b2_and_fills_v_from_dry_run():
+    assert V_PREDICTIONS.is_file()
+    assert V_SIDECAR.is_file()
+    assert V_METRICS.is_file()
+    text = STUB.read_text(encoding="utf-8")
+    assert LIVE_RUN_ID in text
+    assert V_RUN_ID in text
+    assert "docs/paper-assets/tables/validator_v/predictions.jsonl" in text
+    assert "docs/paper-assets/tables/validator_v/run.json" in text
+    assert "src/evaluation/fixtures/v_fixture_report_gold.json" in text
+    assert f"`{FORMULA_ID}`" in text
+    assert NOTES in text
+    assert "0.17647058823529413" in text
+    assert "1.0" in text
+    # V rates are scorer outputs for the dry-run (0.0 / 0.0), not B2 copies
+    v_cells = _v_cells(text)
+    assert f"`{V_RUN_ID}`" in v_cells
+    assert "0.0" in v_cells
+    assert "pending" not in v_cells
+    assert EM_DASH not in v_cells
+    metrics = json.loads(V_METRICS.read_text(encoding="utf-8"))
+    assert metrics["run_id"] == V_RUN_ID
+    assert metrics["method_id"] == "V"
+    assert metrics["n_scored"] == 2
+    by_metric = {
+        row["metric"]: row
+        for row in metrics["metrics"]
+        if row["formula_id"] == FORMULA_ID
+    }
+    assert by_metric["false_endorsement_gold_nonsup"]["value"] == 0.0
+    assert by_metric["false_endorsement_pred_sup"]["value"] == 0.0
+    assert by_metric["false_endorsement_gold_nonsup"]["n_false_endorsements"] == 0
+    assert by_metric["false_endorsement_gold_nonsup"]["n_gold_nonsupported"] == 1
+    assert by_metric["false_endorsement_gold_nonsup"]["n_predicted_supported"] == 1
+    # Regenerating the paper table is deterministic
+    output = ROOT / "docs" / "paper-assets" / "tables" / "_regen_v_vs_b2.md"
+    try:
+        main(
+            [
+                "--paper-table",
+                "--v-metrics-output",
+                str(ROOT / "docs" / "paper-assets" / "tables" / "validator_v" / "_regen_metrics.json"),
+                "--output",
+                str(output),
+            ]
+        )
+        assert output.read_text(encoding="utf-8") == text
+    finally:
+        if output.exists():
+            output.unlink()
+        regen = ROOT / "docs" / "paper-assets" / "tables" / "validator_v" / "_regen_metrics.json"
+        if regen.exists():
+            regen.unlink()
+
+
+def test_v_against_live_report_scores_independently():
+    report = json.loads(LIVE_METRICS.read_text(encoding="utf-8"))
+    rows = _load_jsonl(V_PREDICTIONS)
+    scored, meta = attach_v_fixture_report_gold(rows)
+    comparison = compare_false_endorsement(
+        b2_report=report,
+        v_predictions=scored,
+        v_run_id=V_RUN_ID,
+        v_gold_source=meta["source"],
+    )
+    assert comparison.paired is False
+    assert comparison.v.status == "scored"
+    assert comparison.v.run_id == V_RUN_ID
+    assert comparison.b2.run_id == LIVE_RUN_ID
+    assert comparison.v.false_endorsement_gold_nonsup == 0.0
+    assert comparison.v.false_endorsement_pred_sup == 0.0
+    assert comparison.v.n_false_endorsements == 0
+    assert comparison.v.n_gold_nonsupported == 1
+    assert comparison.v.n_predicted_supported == 1
+    assert comparison.v.n_scored == 2
+    rendered = render_live_stub_markdown(comparison)
+    assert V_RUN_ID in rendered
+    assert "0.0" in rendered
 
 
 def test_fixture_b2_only_matches_existing_scorer():
@@ -189,6 +265,7 @@ def test_paired_predictions_score_both_sides_from_rows():
     )
     assert comparison.claim_ids == ("c1", "c2")
     assert comparison.v_predictions_present is True
+    assert comparison.paired is True
     assert comparison.b2.status == "scored"
     assert comparison.v.status == "scored"
     assert comparison.b2.false_endorsement_gold_nonsup == 1 / 2
@@ -214,13 +291,6 @@ def test_mismatched_claim_ids_are_refused():
             b2_run_id="b2",
             v_run_id="v",
         )
-
-
-def test_v_against_metrics_report_is_refused():
-    report = json.loads(LIVE_METRICS.read_text(encoding="utf-8"))
-    v_rows = [{"claim_id": "c1", "label": "NEI", "label_gold": "NEI", "method_id": "V"}]
-    with pytest.raises(CompareError, match="Refusing to score V"):
-        compare_false_endorsement(b2_report=report, v_predictions=v_rows, v_run_id="v")
 
 
 def test_unknown_method_id_is_rejected():
@@ -256,14 +326,14 @@ def test_cli_writes_pending_v_for_the_fixture(tmp_path: Path):
         assert not any(character.isdigit() for character in cell)
 
 
-def test_paper_stub_refuses_to_embed_scored_v():
-    b2_rows = [{"claim_id": "c1", "label": "NEI", "label_gold": "NEI", "method_id": "B2"}]
-    v_rows = [{"claim_id": "c1", "label": "NEI", "label_gold": "NEI", "method_id": "V"}]
-    comparison = compare_false_endorsement(
-        b2_predictions=b2_rows,
-        v_predictions=v_rows,
-        b2_run_id="b2",
-        v_run_id="v",
-    )
-    with pytest.raises(CompareError, match="empty-V"):
-        render_live_stub_markdown(comparison)
+def test_fixture_gold_refuses_unknown_ok_claim():
+    rows = [
+        {
+            "claim_id": "scifact:999999",
+            "label": "NEI",
+            "method_id": "V",
+            "execution_status": "ok",
+        }
+    ]
+    with pytest.raises(Exception, match="no fixture-report smoke gold"):
+        attach_v_fixture_report_gold(rows)

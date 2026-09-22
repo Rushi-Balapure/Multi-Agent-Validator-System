@@ -1,0 +1,7 @@
+{
+  "notes": "Synthetic fixture-report claim ids from Stack V offline dry-run (e2e happy / conflict). These ids are not in manifests/scifact/scifact_development_v1.json, so --join-gold development cannot attach SciFact gold. Evaluation uses this smoke gold map only for those two ok rows: happy agreement is SUPPORT; D0/D1 conflict is NEI. The failed missing-citation row is omitted. Do not treat this as locked SciFact gold.",
+  "labels": {
+    "scifact:900042": "SUPPORT",
+    "scifact:900142": "NEI"
+  }
+}
