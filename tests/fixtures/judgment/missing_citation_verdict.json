@@ -1,0 +1,123 @@
+{
+  "fixture_id": "judgment-missing-citation-v1",
+  "judgments": [
+    {
+      "claim_id": "scifact:900042",
+      "evidence_scope": "D1",
+      "label_space": "mavs_four_way",
+      "label": "supported",
+      "rationale_codes": [
+        "supporting_direction"
+      ],
+      "cited_span_ids": [
+        "D1:880042:0-84"
+      ],
+      "raw_scores": null,
+      "calibrated_probabilities": null,
+      "execution_status": "completed",
+      "uncertainty_reasons": [],
+      "gold_provenance": "none"
+    },
+    {
+      "claim_id": "scifact:900042",
+      "evidence_scope": "D0",
+      "label_space": "mavs_four_way",
+      "label": "unaddressed",
+      "rationale_codes": [
+        "missing_required_citation"
+      ],
+      "cited_span_ids": [],
+      "raw_scores": null,
+      "calibrated_probabilities": null,
+      "execution_status": "failed",
+      "uncertainty_reasons": [
+        "missing_required_citation"
+      ],
+      "gold_provenance": "none"
+    }
+  ],
+  "report_verdict": {
+    "claim_coverage": {
+      "claim_id": "scifact:900042",
+      "claims_in_report": 1,
+      "claims_judged": 1,
+      "partial": false,
+      "unchecked_spans": []
+    },
+    "central_claim_outcomes": [
+      {
+        "claim_id": "scifact:900042",
+        "central": true,
+        "d0_label": "unaddressed",
+        "d1_label": "supported",
+        "agreed_label": null
+      }
+    ],
+    "inference_link_status": [
+      {
+        "claim_id": "scifact:900042",
+        "depends_on": [],
+        "status": "unresolved",
+        "note": "An execution failure is recorded, so the inference link is unresolved. D1 is not used to repair D0."
+      }
+    ],
+    "conflicts_d0_d1": [
+      {
+        "claim_id": "scifact:900042",
+        "d0_label": "unaddressed",
+        "d1_label": "supported",
+        "d0_execution_status": "failed",
+        "d1_execution_status": "completed",
+        "note": "D0 assigns unaddressed (failed) and D1 assigns supported (completed), and independent evidence is not used to repair the original citation."
+      }
+    ],
+    "display_explanation": "Claim: In the mouse model, compound MX-42 increased memory retention.\nEvidence verdict: supported [D1:880042:0-84].\nWhy: In the mouse model, compound MX-42 increased memory retention compared with vehicle. [D1:880042:0-84]\nWhat is uncertain: missing_required_citation.\nSearch scope: corpus hash b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62; 2 independent passages; retrieval round 1.\nOriginal citations: inadequate.\nReconciler: D0 assigns unaddressed (failed) and D1 assigns supported (completed), and independent evidence is not used to repair the original citation [D1:880042:0-84]. Inference link: unresolved.\nNext useful check: Attach the original cited spans. The citation audit has no D0 passage to check.",
+    "limitations": [
+      "Labels describe the supplied evidence collection only, not an unrestricted scientific conclusion.",
+      "This fixture run uses deterministic lexical rules. Live model prompts are a later slice and were not called.",
+      "Numerical calibration is unvalidated. Raw scores and calibrated probabilities are null.",
+      "The citation audit failed closed. D1 was not used to repair D0 faithfulness."
+    ]
+  },
+  "citation_flags": [
+    {
+      "claim_id": "scifact:900042",
+      "span_id": null,
+      "doc_id": null,
+      "adequacy": "inadequate",
+      "defects": [
+        "missing_required_citation"
+      ]
+    }
+  ],
+  "reconciler_notes": [
+    {
+      "code": "d0_d1_conflict",
+      "note": "D0 assigns unaddressed (failed) and D1 assigns supported (completed), and independent evidence is not used to repair the original citation."
+    },
+    {
+      "code": "inference_link_unresolved",
+      "note": "An execution failure is recorded, so the inference link is unresolved. D1 is not used to repair D0."
+    }
+  ],
+  "claim_card": {
+    "claim": "In the mouse model, compound MX-42 increased memory retention.",
+    "evidence_verdict": "Evidence verdict: supported [D1:880042:0-84].",
+    "why": [
+      "Why: In the mouse model, compound MX-42 increased memory retention compared with vehicle. [D1:880042:0-84]"
+    ],
+    "what_is_uncertain": "missing_required_citation.",
+    "search_scope": "corpus hash b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62; 2 independent passages; retrieval round 1.",
+    "original_citations": "inadequate",
+    "next_useful_check": "Attach the original cited spans. The citation audit has no D0 passage to check.",
+    "display_text": "Claim: In the mouse model, compound MX-42 increased memory retention.\nEvidence verdict: supported [D1:880042:0-84].\nWhy: In the mouse model, compound MX-42 increased memory retention compared with vehicle. [D1:880042:0-84]\nWhat is uncertain: missing_required_citation.\nSearch scope: corpus hash b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62; 2 independent passages; retrieval round 1.\nOriginal citations: inadequate.\nReconciler: D0 assigns unaddressed (failed) and D1 assigns supported (completed), and independent evidence is not used to repair the original citation [D1:880042:0-84]. Inference link: unresolved.\nNext useful check: Attach the original cited spans. The citation audit has no D0 passage to check."
+  },
+  "sealed_reader": {
+    "neutral_question": "What did abstracts report about compound MX-42 and memory retention in the mouse model?",
+    "answer": "In the mouse model, compound MX-42 increased memory retention compared with vehicle. [D1:880042:0-84]",
+    "cited_span_ids": [
+      "D1:880042:0-84"
+    ],
+    "seal": "e9f65b142bfd6fe4fc06c4c5b2a280c0d471f76be25104588eef55ab38733aea"
+  }
+}
