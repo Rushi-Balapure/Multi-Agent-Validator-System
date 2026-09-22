@@ -1,0 +1,61 @@
+{
+  "system_id": "validator_v",
+  "method_id": "V",
+  "adaptation": "V",
+  "adaptation_note": "Independent retrieval plus staged D0 union D1 judgment. Eval reads the reconciled four-way label mapped onto SUPPORT, REFUTE, or NEI.",
+  "inference_mode": "live",
+  "model_invoked": true,
+  "prediction_label_space": "scifact_SUPPORT_REFUTE_NEI",
+  "four_way_label_space": "mavs_four_way",
+  "label_mapping": {
+    "supported": "SUPPORT",
+    "contradicted": "REFUTE",
+    "unaddressed": "NEI",
+    "underdetermined": "NEI"
+  },
+  "scored_evidence_scope": "D0_union_D1",
+  "input_source": "gather",
+  "n_predictions": 20,
+  "development_claim_budget": 20,
+  "claim_ids": [
+    "scifact:0",
+    "scifact:2",
+    "scifact:4",
+    "scifact:6",
+    "scifact:9",
+    "scifact:10",
+    "scifact:11",
+    "scifact:12",
+    "scifact:14",
+    "scifact:15",
+    "scifact:17",
+    "scifact:18",
+    "scifact:19",
+    "scifact:20",
+    "scifact:21",
+    "scifact:22",
+    "scifact:24",
+    "scifact:25",
+    "scifact:26",
+    "scifact:27"
+  ],
+  "partial": false,
+  "prompt_hash_canonical": "sha256 of utf-8 prompt name and file text pairs, sorted by name, joined with newlines",
+  "run": {
+    "run_id": "validator-v-gather-development-s0-n20-90129d9056fd",
+    "question_id": null,
+    "split": "development",
+    "seed": 0,
+    "model_id": "qwen2.5-coder-1.5b-instruct",
+    "model_revision": null,
+    "prompt_hash": "9a00c238c3d773c3927fd1c362b74769090094f5c89637a91c57e2dbd1de82d5",
+    "corpus_hash": "b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62",
+    "config_hash": "90129d9056fd24a02a0bef3ef73b5d28482d1f2fff39769aabc68fb4b014a343",
+    "timestamps": {
+      "started_at": "2026-09-22T11:23:16.683864+00:00",
+      "finished_at": "2026-09-22T11:23:58.158571+00:00"
+    },
+    "tokens": null,
+    "status": "completed"
+  }
+}
