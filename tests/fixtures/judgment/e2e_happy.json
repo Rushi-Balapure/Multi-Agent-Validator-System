@@ -1,0 +1,120 @@
+{
+  "fixture_id": "e2e-happy-v1",
+  "dry_run": true,
+  "decompose": {
+    "frozen_conclusion": "In the mouse model, compound MX-42 increased memory retention.",
+    "report_id": "e2e-happy",
+    "dataset": "scifact",
+    "native_id": 900042,
+    "split_role": "development",
+    "fixture_id": "e2e-happy-v1"
+  },
+  "attachments": [
+    {
+      "retrieval_claim_id": "scifact:900042",
+      "d0_evidence": [
+        {
+          "doc_id": 770001,
+          "snapshot_hash": "05bb520cf44a267ff6039a36dd821d8f7fe20f6245c6a15b2486c3a0bd72adda",
+          "text_span": "In the mouse model, compound MX-42 increased memory retention relative to vehicle.",
+          "offsets": {
+            "start": 0,
+            "end": 82,
+            "sentence_idxs": [
+              0
+            ]
+          },
+          "provenance": "original",
+          "deduplication_group": "s2orc:770001",
+          "access_scope": "D0"
+        }
+      ],
+      "d1_bundle": {
+        "claim_id": "scifact:900042",
+        "query": "What did abstracts report about compound MX-42 and memory retention in the mouse model?",
+        "queries": [
+          {
+            "form": "open_inquiry",
+            "query": "What did abstracts report about compound MX-42 and memory retention in the mouse model?",
+            "hits": [
+              {
+                "doc_id": 880042,
+                "rank": 1,
+                "score": 4.2
+              },
+              {
+                "doc_id": 880043,
+                "rank": 2,
+                "score": 1.1
+              }
+            ]
+          },
+          {
+            "form": "scope_measurement",
+            "query": "What did abstracts report about compound MX-42 and memory retention in the mouse model? scope measurement",
+            "hits": [
+              {
+                "doc_id": 880042,
+                "rank": 1,
+                "score": 2.0
+              }
+            ]
+          },
+          {
+            "form": "limitations_null",
+            "query": "What did abstracts report about compound MX-42 and memory retention in the mouse model? limitations null results",
+            "hits": [
+              {
+                "doc_id": 880043,
+                "rank": 1,
+                "score": 3.4
+              }
+            ]
+          }
+        ],
+        "retrieval_round": 1,
+        "corpus_hash": "b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62",
+        "passages": [
+          {
+            "doc_id": 880042,
+            "snapshot_hash": "d5d4a2950f461e6f8d6913046b0fa5cd7eb867908b5cbaf754a65ce8b3ef3305",
+            "text_span": "In the mouse model, compound MX-42 increased memory retention compared with vehicle.",
+            "offsets": {
+              "start": 0,
+              "end": 84,
+              "sentence_idxs": [
+                0
+              ]
+            },
+            "query": "What did abstracts report about compound MX-42 and memory retention in the mouse model?",
+            "rank": 1,
+            "retrieval_round": 1,
+            "provenance": "independent",
+            "deduplication_group": "s2orc:880042",
+            "access_scope": "D1",
+            "score": 4.2
+          },
+          {
+            "doc_id": 880043,
+            "snapshot_hash": "4254b3d069cb9a6e7976cfc32adb6690430e6c14df8b317d85eb27afca731309",
+            "text_span": "A separate yeast assay reported unchanged glucose uptake under solvent control.",
+            "offsets": {
+              "start": 0,
+              "end": 79,
+              "sentence_idxs": [
+                0
+              ]
+            },
+            "query": "What did abstracts report about compound MX-42 and memory retention in the mouse model? limitations null results",
+            "rank": 2,
+            "retrieval_round": 1,
+            "provenance": "independent",
+            "deduplication_group": "s2orc:880043",
+            "access_scope": "D1",
+            "score": 3.4
+          }
+        ]
+      }
+    }
+  ]
+}
