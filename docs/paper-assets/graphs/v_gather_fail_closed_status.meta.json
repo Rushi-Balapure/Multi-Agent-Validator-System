@@ -10,7 +10,7 @@
   "figure_id": "v_gather_fail_closed_status",
   "n_scored": 0,
   "n_skipped_not_ok": 20,
-  "note": "Fail-closed gather: auditor does not load gold D0; all 20 rows are execution_status=failed and skipped by F-false-endorsement.",
+  "note": "Comparison history (#23): fail-closed gather; auditor does not load gold D0; all 20 rows are execution_status=failed and skipped by F-false-endorsement. Tables under validator_v_gather/ are not overwritten by cited-D0.",
   "scoring_status": "skipped_not_ok",
   "source_metrics": "docs/paper-assets/tables/validator_v_gather/v_gather_metrics.json",
   "source_predictions": "docs/paper-assets/tables/validator_v_gather/predictions.jsonl",

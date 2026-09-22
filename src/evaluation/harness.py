@@ -13,6 +13,11 @@ When every V row is execution not-ok (gather fail-closed D0), the V cell is
 ``skipped``: FE rates stay ``N/A`` (not 0.0) and ``n_skipped_not_ok`` is
 reported. Failed rows are never remapped to scorables.
 
+When cited-D0 gather rows are mostly execution-ok, paper-table mode joins
+locked SciFact development gold (``--join-gold development``) and scores
+both FE denominators. Partial skips (``n_skipped_not_ok``) are reported
+honestly and are never remapped to scorables.
+
 Paired mode (B2 prediction rows + V rows) requires the same claim ids.
 Paper-table mode keeps the checked-in live B2 metrics column and aligns V
 gather claim ids to that set. Paired bootstrap still requires aligned
@@ -21,11 +26,13 @@ scorable claim ids.
 The checked-in table is ``docs/paper-assets/tables/v_vs_b2_false_endorsement.md``.
 Its B2 column is the live development run already stored in
 ``docs/paper-assets/tables/b2_live_n20_metrics.json``. The V column is the
-Phase-3 gather live run under ``docs/paper-assets/tables/validator_v_gather/``.
+Phase-3 cited-D0 gather live run under
+``docs/paper-assets/tables/validator_v_gather_cited_d0/``. The fail-closed
+gather set under ``validator_v_gather/`` is kept as comparison history.
 
     PYTHONPATH=src python -m evaluation.harness \\
         --paper-table \\
-        --v-metrics-output docs/paper-assets/tables/validator_v_gather/v_gather_metrics.json \\
+        --v-metrics-output docs/paper-assets/tables/validator_v_gather_cited_d0/v_gather_cited_d0_metrics.json \\
         --output docs/paper-assets/tables/v_vs_b2_false_endorsement.md
 """
 
@@ -39,6 +46,7 @@ from pathlib import Path
 from typing import Any, Literal, Mapping, Sequence
 
 from evaluation.registry import METHOD_IDS, get_formula
+from evaluation.scifact_gold import GoldJoinError, join_scifact_gold
 from evaluation.score_predictions import (
     ScoreError,
     _execution_ok,
@@ -61,9 +69,19 @@ NA = "N/A"
 SKIPPED = "skipped"
 LIVE_B2_METRICS = Path("docs/paper-assets/tables/b2_live_n20_metrics.json")
 DEFAULT_V_PREDICTIONS = Path(
+    "docs/paper-assets/tables/validator_v_gather_cited_d0/predictions.jsonl"
+)
+DEFAULT_V_SIDECAR = Path(
+    "docs/paper-assets/tables/validator_v_gather_cited_d0/run.json"
+)
+# Fail-closed gather (#23) kept as comparison history — not the paper-table default.
+FAIL_CLOSED_V_PREDICTIONS = Path(
     "docs/paper-assets/tables/validator_v_gather/predictions.jsonl"
 )
-DEFAULT_V_SIDECAR = Path("docs/paper-assets/tables/validator_v_gather/run.json")
+FAIL_CLOSED_V_SIDECAR = Path("docs/paper-assets/tables/validator_v_gather/run.json")
+FAIL_CLOSED_V_RUN_ID = "validator-v-gather-development-s0-n20-90129d9056fd"
+CITED_D0_V_RUN_ID = "validator-v-gather-development-s0-n20-3c856362819b"
+DEFAULT_JOIN_GOLD = "development"
 # Offline fixture-report dry-run (synthetic e2e claim ids); kept for regen checks.
 FIXTURE_V_PREDICTIONS = Path("docs/paper-assets/tables/validator_v/predictions.jsonl")
 FIXTURE_V_SIDECAR = Path("docs/paper-assets/tables/validator_v/run.json")
@@ -335,6 +353,24 @@ def _fail_closed_note(cell: FalseEndorsementScore) -> str | None:
     )
 
 
+def _cited_d0_history_note(cell: FalseEndorsementScore) -> str | None:
+    """Facts-only note when the paper table scores cited-D0 rather than fail-closed."""
+    if cell.status != SCORED or cell.run_id != CITED_D0_V_RUN_ID:
+        return None
+    n_skip = cell.n_skipped_not_ok if cell.n_skipped_not_ok is not None else 0
+    n_scored = cell.n_scored if cell.n_scored is not None else 0
+    return (
+        "Comparison history (facts only): fail-closed gather (#23) under "
+        "`docs/paper-assets/tables/validator_v_gather/` "
+        f"(`{FAIL_CLOSED_V_RUN_ID}`) had `n_skipped_not_ok=20` / `n_scored=0` "
+        "(FE N/A). Cited-D0 gather (#26) under "
+        "`docs/paper-assets/tables/validator_v_gather_cited_d0/` "
+        f"(`{CITED_D0_V_RUN_ID}`) has "
+        f"`n_skipped_not_ok={n_skip}` / `n_scored={n_scored}`. "
+        "The fail-closed set is kept for comparison and is not overwritten."
+    )
+
+
 def _metric_row(report: Mapping[str, Any], metric: str) -> Mapping[str, Any]:
     matches = [
         row
@@ -471,6 +507,8 @@ def _score_predictions(
     *,
     expected_method: str,
     run_id: str | None,
+    join_gold: str | None = None,
+    sidecar: Mapping[str, Any] | None = None,
 ) -> FalseEndorsementScore:
     if not rows:
         raise CompareError(f"{expected_method} predictions are empty; refusing to invent a score")
@@ -481,10 +519,15 @@ def _score_predictions(
         if claim_id in seen:
             raise CompareError(f"duplicate claim_id {claim_id}")
         seen.add(claim_id)
+    scored_rows: Sequence[Mapping[str, Any]] = rows
     try:
-        resolved = resolve_run_id(rows, cli_run_id=run_id, sidecar=None)
-        report = score_prediction_rows(rows, run_id=resolved)
-    except ScoreError as exc:
+        if join_gold:
+            scored_rows, _gold_join = join_scifact_gold(
+                rows, split=join_gold, sidecar=sidecar
+            )
+        resolved = resolve_run_id(scored_rows, cli_run_id=run_id, sidecar=sidecar)
+        report = score_prediction_rows(scored_rows, run_id=resolved)
+    except (ScoreError, GoldJoinError) as exc:
         raise CompareError(str(exc)) from exc
     if report.get("method_id") is None:
         report = dict(report)
@@ -528,6 +571,8 @@ def compare_false_endorsement(
     v_run_sidecar_path: str | None = None,
     v_gold_source: str | None = None,
     align_claim_ids_with_b2_metrics: bool = False,
+    join_gold: str | None = None,
+    v_sidecar: Mapping[str, Any] | None = None,
 ) -> VvsB2FalseEndorsement:
     """Score B2 and, when V rows exist, V.
 
@@ -540,6 +585,10 @@ def compare_false_endorsement(
 
     With a B2 metrics report, set ``align_claim_ids_with_b2_metrics`` to
     require V claim ids match ``gold_join`` (Phase-3 paired table).
+
+    ``join_gold`` attaches locked SciFact labels before scoring V (and B2
+    prediction rows when provided). Failures stay skipped; they are never
+    remapped to scorables.
     """
     if b2_predictions is not None and b2_report is not None:
         raise CompareError("pass B2 predictions or a B2 metrics report, not both")
@@ -556,10 +605,18 @@ def compare_false_endorsement(
         assert v_predictions is not None
         if b2_predictions is not None:
             v_cell = _score_predictions(
-                v_predictions, expected_method="V", run_id=v_run_id
+                v_predictions,
+                expected_method="V",
+                run_id=v_run_id,
+                join_gold=join_gold,
+                sidecar=v_sidecar,
             )
             b2_cell = _score_predictions(
-                b2_predictions, expected_method="B2", run_id=b2_run_id
+                b2_predictions,
+                expected_method="B2",
+                run_id=b2_run_id,
+                join_gold=join_gold,
+                sidecar=None,
             )
             if v_cell.status == SKIPPED:
                 claim_ids = _assert_claim_id_sets_match(
@@ -584,7 +641,11 @@ def compare_false_endorsement(
             assert b2_report is not None
             b2_cell = score_from_report(b2_report, expected_method="B2")
             v_cell = _score_predictions(
-                v_predictions, expected_method="V", run_id=v_run_id
+                v_predictions,
+                expected_method="V",
+                run_id=v_run_id,
+                join_gold=join_gold,
+                sidecar=v_sidecar,
             )
             if align_claim_ids_with_b2_metrics:
                 claim_ids = _assert_claim_id_sets_match(
@@ -592,12 +653,26 @@ def compare_false_endorsement(
                     _claim_ids_only(v_predictions, "V"),
                 )
                 paired_claim_ids = True
-                paired = v_cell.status == SCORED and b2_cell.status == SCORED
+                # Full paired (equal n_scored) requires every claim scorable on both sides.
+                paired = (
+                    v_cell.status == SCORED
+                    and b2_cell.status == SCORED
+                    and isinstance(v_cell.n_scored, int)
+                    and isinstance(b2_cell.n_scored, int)
+                    and v_cell.n_scored == len(claim_ids)
+                    and b2_cell.n_scored == len(claim_ids)
+                )
             else:
                 claim_ids = None
                 paired = False
     elif b2_predictions is not None:
-        b2_cell = _score_predictions(b2_predictions, expected_method="B2", run_id=b2_run_id)
+        b2_cell = _score_predictions(
+            b2_predictions,
+            expected_method="B2",
+            run_id=b2_run_id,
+            join_gold=join_gold,
+            sidecar=None,
+        )
         v_cell = _pending_v(v_run_id)
     else:
         assert b2_report is not None
@@ -609,6 +684,8 @@ def compare_false_endorsement(
     if v_cell.status == SKIPPED:
         _assert_skipped_has_no_fe_rates(v_cell)
 
+    history = _cited_d0_history_note(v_cell)
+    fail_closed = _fail_closed_note(v_cell)
     return VvsB2FalseEndorsement(
         formula_id=FORMULA_ID,
         notes_path=_notes_path(),
@@ -622,7 +699,7 @@ def compare_false_endorsement(
         v_predictions_path=v_predictions_path,
         v_run_sidecar_path=v_run_sidecar_path,
         v_gold_source=v_gold_source,
-        fail_closed_note=_fail_closed_note(v_cell),
+        fail_closed_note=fail_closed or history,
     )
 
 
@@ -721,6 +798,8 @@ def compare_live_b2(
     v_run_sidecar_path: str | None = None,
     v_gold_source: str | None = None,
     align_claim_ids_with_b2_metrics: bool = True,
+    join_gold: str | None = None,
+    v_sidecar: Mapping[str, Any] | None = None,
 ) -> VvsB2FalseEndorsement:
     """B2 column from the checked-in live metrics.
 
@@ -743,6 +822,8 @@ def compare_live_b2(
         v_run_sidecar_path=v_run_sidecar_path,
         v_gold_source=v_gold_source,
         align_claim_ids_with_b2_metrics=align,
+        join_gold=join_gold,
+        v_sidecar=v_sidecar,
     )
 
 
@@ -777,12 +858,48 @@ def _run_cell(cell: FalseEndorsementScore) -> str:
 
 
 _NEXT_CONTRACT_NOTE = (
-    "**Next contract (not implemented in this MR):** either (a) a separate "
-    "D1-mapped label column scored without remapping fail-closed D0 rows into "
-    "SUPPORT rates, or (b) a Judge slice that attaches non-gold proposer "
-    "citations for D0 so gather rows can be execution-ok without inventing "
-    "gold D0. Do not silently remap `execution_status=failed` to scorables."
+    "**Next contract (not implemented in this MR):** a separate D1-mapped "
+    "label column scored without remapping fail-closed D0 rows into SUPPORT "
+    "rates. Do not silently remap `execution_status=failed` to scorables. "
+    "Cited-D0 gather (non-gold proposer citations as D0) is the scored V "
+    "column in this table; the fail-closed set under `validator_v_gather/` "
+    "remains comparison history."
 )
+
+
+def _v_count_bullets(comparison: VvsB2FalseEndorsement) -> list[str]:
+    """Honest row/skip counts when V was scored or fully skipped."""
+    if comparison.v.status not in {SCORED, SKIPPED}:
+        return []
+    lines = [
+        f"- V n_rows: `{comparison.v.n_rows}`",
+        f"- V n_scored: `{comparison.v.n_scored}`",
+        f"- V n_skipped_not_ok: `{comparison.v.n_skipped_not_ok}`",
+        f"- V n_skipped_unlabeled: `{comparison.v.n_skipped_unlabeled}`",
+        (
+            f"- V B2 sidecar (live): `docs/paper-assets/tables/b2_live_n20_metrics.json` "
+            f"(run `{comparison.b2.run_id}`)"
+        ),
+    ]
+    return lines
+
+
+def _append_skip_table_rows(lines: list[str], comparison: VvsB2FalseEndorsement) -> None:
+    if comparison.v.status not in {SCORED, SKIPPED}:
+        return
+    if comparison.v.status == SCORED and not (
+        isinstance(comparison.v.n_skipped_not_ok, int) and comparison.v.n_skipped_not_ok > 0
+    ):
+        # Still report n_scored for scored cited-D0 so denominators are auditable.
+        pass
+    lines.append(
+        f"| n_skipped_not_ok | — | "
+        f"{comparison.b2.n_skipped_not_ok if comparison.b2.n_skipped_not_ok is not None else 0} | "
+        f"{comparison.v.n_skipped_not_ok} |"
+    )
+    lines.append(
+        f"| n_scored | — | {comparison.b2.n_scored} | {comparison.v.n_scored} |"
+    )
 
 
 def render_comparison_markdown(comparison: VvsB2FalseEndorsement) -> str:
@@ -860,23 +977,7 @@ def render_comparison_markdown(comparison: VvsB2FalseEndorsement) -> str:
             f"- paired claim ids (n={len(comparison.claim_ids)}): "
             + ", ".join(f"`{c}`" for c in comparison.claim_ids)
         )
-    if comparison.v.status == SKIPPED:
-        lines.append(
-            f"- V n_rows: `{comparison.v.n_rows}`"
-        )
-        lines.append(
-            f"- V n_scored: `{comparison.v.n_scored}`"
-        )
-        lines.append(
-            f"- V n_skipped_not_ok: `{comparison.v.n_skipped_not_ok}`"
-        )
-        lines.append(
-            f"- V n_skipped_unlabeled: `{comparison.v.n_skipped_unlabeled}`"
-        )
-        lines.append(
-            f"- V B2 sidecar (live): `docs/paper-assets/tables/b2_live_n20_metrics.json` "
-            f"(run `{comparison.b2.run_id}`)"
-        )
+    lines.extend(_v_count_bullets(comparison))
     if comparison.fail_closed_note:
         lines.extend(["", comparison.fail_closed_note])
     lines.extend(
@@ -901,15 +1002,7 @@ def render_comparison_markdown(comparison: VvsB2FalseEndorsement) -> str:
         lines.append(
             f"| {label} | `{FORMULA_ID}` | {b2_text} | {v_text} |"
         )
-    if comparison.v.status == SKIPPED:
-        lines.append(
-            f"| n_skipped_not_ok | — | "
-            f"{comparison.b2.n_skipped_not_ok if comparison.b2.n_skipped_not_ok is not None else 0} | "
-            f"{comparison.v.n_skipped_not_ok} |"
-        )
-        lines.append(
-            f"| n_scored | — | {comparison.b2.n_scored} | {comparison.v.n_scored} |"
-        )
+    _append_skip_table_rows(lines, comparison)
     lines.extend(
         [
             "",
@@ -923,7 +1016,7 @@ def render_comparison_markdown(comparison: VvsB2FalseEndorsement) -> str:
             "",
         ]
     )
-    if comparison.v.status == SKIPPED:
+    if comparison.v.status in {SKIPPED, SCORED}:
         lines.extend([_NEXT_CONTRACT_NOTE, ""])
     return "\n".join(lines)
 
@@ -956,14 +1049,29 @@ def render_live_stub_markdown(comparison: VvsB2FalseEndorsement) -> str:
             "for the preregistered comparison.\n\n"
         )
     else:
+        skip_bit = (
+            f", n_skipped_not_ok = {comparison.v.n_skipped_not_ok}"
+            if comparison.v.n_skipped_not_ok is not None
+            else ""
+        )
+        if comparison.v.run_id == CITED_D0_V_RUN_ID:
+            v_desc = (
+                f"The V column is cited-D0 gather run `{comparison.v.run_id}` "
+                f"(n scored = {comparison.v.n_scored}{skip_bit}). "
+                "Claim ids match the B2 live set (paired claim alignment). "
+            )
+        else:
+            v_desc = (
+                f"The V column is run `{comparison.v.run_id}` "
+                f"(n scored = {comparison.v.n_scored}{skip_bit}). "
+            )
         note = (
             "The B2 column is the checked-in live development run "
             f"`{comparison.b2.run_id}` "
             f"(n scored = {comparison.b2.n_scored}), the same live column as "
             "[b2_live_vs_mock.md](b2_live_vs_mock.md). "
-            f"The V column is run `{comparison.v.run_id}` "
-            f"(n scored = {comparison.v.n_scored}). "
-            "Held-out run ids below are placeholders "
+            + v_desc
+            + "Held-out run ids below are placeholders "
             "for the preregistered comparison.\n\n"
         )
     marker = "B2 source:"
@@ -1025,7 +1133,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help=(
             "fill the paper table from the checked-in live B2 metrics and the "
-            "default validator_v_gather artifacts under docs/paper-assets/tables/"
+            "default validator_v_gather_cited_d0 artifacts under docs/paper-assets/tables/"
         ),
     )
     parser.add_argument(
@@ -1034,6 +1142,14 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help=(
             "fill the paper table using the offline fixture-report dry-run under "
             "docs/paper-assets/tables/validator_v/ (synthetic e2e claim ids)"
+        ),
+    )
+    parser.add_argument(
+        "--join-gold",
+        default=None,
+        help=(
+            "locked SciFact split for V (and B2 prediction-row) gold join; "
+            "paper-table defaults to development"
         ),
     )
     return parser.parse_args(argv)
@@ -1045,6 +1161,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         v_pred_path = args.v_predictions
         v_sidecar_path = args.v_run_sidecar
         attach_gold = args.attach_v_fixture_gold
+        join_gold = args.join_gold
         if args.paper_table_fixture_v:
             root = repo_root()
             if v_pred_path is None:
@@ -1052,6 +1169,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             if v_sidecar_path is None:
                 v_sidecar_path = root / FIXTURE_V_SIDECAR
             attach_gold = True
+            join_gold = None
             args.live_stub = True
             args.paper_table = True
         elif args.paper_table:
@@ -1060,8 +1178,10 @@ def main(argv: Sequence[str] | None = None) -> None:
                 v_pred_path = root / DEFAULT_V_PREDICTIONS
             if v_sidecar_path is None:
                 v_sidecar_path = root / DEFAULT_V_SIDECAR
-            # Gather live rows use development claim ids; do not attach fixture gold.
+            # Cited-D0 gather live rows use development claim ids; join locked gold.
             attach_gold = False
+            if join_gold is None:
+                join_gold = DEFAULT_JOIN_GOLD
             args.live_stub = True
 
         v_rows = read_optional_predictions(v_pred_path)
@@ -1074,6 +1194,8 @@ def main(argv: Sequence[str] | None = None) -> None:
             except FixtureGoldError as exc:
                 raise CompareError(str(exc)) from exc
             v_gold_source = gold_meta["source"]
+        elif join_gold and v_rows is not None and v_predictions_are_present(v_rows):
+            v_gold_source = f"data.scifact_loader.load_split:{join_gold}"
 
         v_pred_cite = None
         v_side_cite = None
@@ -1099,6 +1221,8 @@ def main(argv: Sequence[str] | None = None) -> None:
                 v_predictions_path=v_pred_cite,
                 v_run_sidecar_path=v_side_cite,
                 v_gold_source=v_gold_source,
+                join_gold=join_gold,
+                v_sidecar=sidecar,
             )
             text = render_comparison_markdown(comparison)
         else:
@@ -1115,6 +1239,8 @@ def main(argv: Sequence[str] | None = None) -> None:
                 align_claim_ids_with_b2_metrics=align
                 and not args.paper_table_fixture_v
                 and not attach_gold,
+                join_gold=join_gold,
+                v_sidecar=sidecar,
             )
             if args.live_stub or args.paper_table or v_pred_path is None:
                 text = render_live_stub_markdown(comparison)
@@ -1125,9 +1251,17 @@ def main(argv: Sequence[str] | None = None) -> None:
             if v_rows is None or not v_predictions_are_present(v_rows):
                 raise CompareError("cannot write V metrics without V predictions")
             try:
-                resolved = resolve_run_id(v_rows, cli_run_id=v_run_id, sidecar=sidecar)
-                report = score_prediction_rows(v_rows, run_id=resolved)
-            except ScoreError as exc:
+                scored_rows: Sequence[Mapping[str, Any]] = v_rows
+                gold_join = None
+                if join_gold:
+                    scored_rows, gold_join = join_scifact_gold(
+                        v_rows, split=join_gold, sidecar=sidecar
+                    )
+                resolved = resolve_run_id(
+                    scored_rows, cli_run_id=v_run_id, sidecar=sidecar
+                )
+                report = score_prediction_rows(scored_rows, run_id=resolved)
+            except (ScoreError, GoldJoinError) as exc:
                 raise CompareError(str(exc)) from exc
             if report.get("method_id") is None:
                 report = dict(report)
@@ -1136,8 +1270,11 @@ def main(argv: Sequence[str] | None = None) -> None:
                 "predictions": v_pred_cite,
                 "run_sidecar": v_side_cite,
                 "gold_source": v_gold_source,
+                "join_gold": join_gold,
                 "run_id": resolved,
             }
+            if gold_join is not None:
+                report["gold_join"] = gold_join
             args.v_metrics_output.parent.mkdir(parents=True, exist_ok=True)
             args.v_metrics_output.write_text(
                 json.dumps(report, indent=2, sort_keys=True) + "\n",
