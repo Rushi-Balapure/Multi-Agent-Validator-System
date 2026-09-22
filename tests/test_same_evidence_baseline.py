@@ -308,12 +308,13 @@ def test_redirect_cannot_leave_local_or_private_hosts():
             handler.redirect_request(request, None, 302, "Found", {}, target)
 
 
-def test_committed_b2_config_points_at_lm_studio_lan():
+def test_committed_b2_config_points_at_lm_studio_loopback():
     config = yaml.safe_load((ROOT / "configs" / "baseline" / "same_evidence_b2.yaml").read_text(encoding="utf-8"))
-    assert config["base_url"] == "http://192.168.1.10:1234/v1"
+    assert config["base_url"] == "http://127.0.0.1:1234/v1"
     assert config["model_id"] == "qwen2.5-coder-1.5b-instruct"
     assert config["dry_run"] is True
     assert_local_or_private(config["base_url"])
+    assert_local_or_private("http://192.168.1.10:1234/v1")
 
 
 def test_dry_run_refuses_public_endpoint(tmp_path: Path):

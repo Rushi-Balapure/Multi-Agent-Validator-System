@@ -11,9 +11,10 @@ From the repository root, after the pinned SciFact files are present:
 ``--dry-run`` uses the documented mock in ``b2.py`` and does not open a socket.
 The urllib OpenAI-compatible client is used only for ``--live`` (or when the
 config sets ``dry_run: false``). ``base_url`` must be a loopback or RFC1918
-private-LAN endpoint. The default config points at LM Studio
-``http://192.168.1.10:1234/v1`` with model id ``qwen2.5-coder-1.5b-instruct``.
-Loopback (``127.0.0.1`` or ``localhost``) remains valid for a local proxy.
+private-LAN endpoint. The default config points at LM Studio on this machine,
+``http://127.0.0.1:1234/v1``, with model id ``qwen2.5-coder-1.5b-instruct``.
+An RFC1918 address such as ``http://192.168.1.10:1234/v1`` is also allowed
+from another machine on the private LAN. Loopback remains valid for a local proxy.
 Public DNS names and non-private addresses are refused, including redirects.
 A missing D0 join exits 2. An empty SciFact evidence object does not.
 """

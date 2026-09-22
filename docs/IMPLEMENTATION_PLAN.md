@@ -68,7 +68,7 @@ Work units (each → one MR):
    - Judge claims against the original citation set D0 only. No independent retrieval in this phase.
    - Research-plan baselines in this family: B0 (direct judge sees report + D0), B1 (atomic claims + D0; judge sees asserted answers), B2 (neutral questions + isolated reader + D0, then compare). Adaptations are named as adaptations. A prompt-only condition is not labeled as a reproduction of a trained method.
    - Payload isolation for the factored D0 reader: blind inputs must not contain asserted answers.
-   - Inference client: an OpenAI-compatible local-or-private-LAN endpoint (urllib; no cloud SDK). Default is LM Studio at `http://192.168.1.10:1234/v1` with model id `qwen2.5-coder-1.5b-instruct`. Loopback (`127.0.0.1` or `localhost`) remains valid for a local proxy. Public DNS names and non-private addresses are refused, including redirects.
+   - Inference client: an OpenAI-compatible local-or-private-LAN endpoint (urllib; no cloud SDK). Default is LM Studio on this machine at `http://127.0.0.1:1234/v1` with model id `qwen2.5-coder-1.5b-instruct`. An RFC1918 address such as `http://192.168.1.10:1234/v1` is also allowed from another private-LAN host. Loopback remains valid for a local proxy. Public DNS names and non-private addresses are refused, including redirects.
 4. Evaluation adapters + native SciFact metrics + bootstrap timers
    - Preserve official scorer inputs and outputs. Report native support / refute / evidence metrics.
    - Three-way insufficient-information labels are not gold four-way underdetermined labels. Any coarse mapping that collapses Unaddressed and Underdetermined into insufficient information is labeled as that comparison.
