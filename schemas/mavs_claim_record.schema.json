@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mavs.local/schemas/mavs_claim_record.schema.json",
+  "title": "MavsClaimRecord",
+  "type": "object",
+  "required": [
+    "claim_id",
+    "normalized_claim",
+    "source"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "claim_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "report_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "exact_source_span": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "normalized_claim": {
+      "type": "string",
+      "minLength": 1
+    },
+    "subject": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "relation": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "object": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "population": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "comparator": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "time": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "units": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "modality": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "neutral_question": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "asserted_answer": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "dataset",
+        "native_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "dataset": {
+          "type": "string",
+          "const": "scifact"
+        },
+        "native_id": {
+          "type": "integer"
+        },
+        "split_role": {
+          "type": "string",
+          "enum": [
+            "development",
+            "calibration",
+            "held_out_local_eval",
+            "official_test_unlabeled"
+          ]
+        }
+      }
+    }
+  }
+}

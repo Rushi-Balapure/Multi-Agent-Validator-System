@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mavs.local/schemas/mavs_run_record.schema.json",
+  "title": "MavsRunRecord",
+  "type": "object",
+  "required": [
+    "run_id",
+    "split",
+    "seed",
+    "model_id",
+    "prompt_hash",
+    "corpus_hash",
+    "config_hash",
+    "status"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "run_id": {
+      "type": "string"
+    },
+    "question_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "split": {
+      "type": "string"
+    },
+    "seed": {
+      "type": "integer"
+    },
+    "model_id": {
+      "type": "string"
+    },
+    "model_revision": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "prompt_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "corpus_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "config_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "timestamps": {
+      "type": "object"
+    },
+    "tokens": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "status": {
+      "type": "string"
+    }
+  }
+}

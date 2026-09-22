@@ -1,0 +1,58 @@
+{
+  "dataset": "scifact",
+  "source": {
+    "name": "Allen Institute for AI SciFact release/latest",
+    "url": "https://scifact.s3-us-west-2.amazonaws.com/release/latest/data.tar.gz",
+    "upstream_repo": "https://github.com/allenai/scifact",
+    "upstream_doc": "https://github.com/allenai/scifact/blob/master/doc/data.md",
+    "research_plan_cite": "[6,13]",
+    "retrieved_at": "2026-09-22T12:25:00+05:30",
+    "tarball_sha256": "11c621288d41ac144d29b13b0f8503b3820b7d6e8b1f6ff24dff335c196d76be",
+    "upstream_git_commit": "68b98a56d93e0f9da0d2aab4e6c3294699a0f72e",
+    "upstream_git_commit_date": "2023-10-15T18:32:12Z",
+    "note": "Data files come from S3 release/latest tarball (content-hashed). Upstream repo commit pinned separately so download script and docs are not floating HEAD."
+  },
+  "files": {
+    "claims_train.jsonl": {
+      "path": "data/raw/scifact/claims_train.jsonl",
+      "sha256": "f4c8fa82d8bd0653a9cc8d61a6ea48c25eacea64e90af5dbf390ebb1b74372f0",
+      "n_records": 809
+    },
+    "claims_dev.jsonl": {
+      "path": "data/raw/scifact/claims_dev.jsonl",
+      "sha256": "86f0435d08fdb65d1aa41d1472684f57e6e71930626497bdf4d7a9ec1a632217",
+      "n_records": 300
+    },
+    "claims_test.jsonl": {
+      "path": "data/raw/scifact/claims_test.jsonl",
+      "sha256": "558930d75215c73f84a28fe538307d6d397c9de1ec7239514cf45f80d75d2ca3",
+      "n_records": 300
+    },
+    "corpus.jsonl": {
+      "path": "data/raw/scifact/corpus.jsonl",
+      "sha256": "b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62",
+      "n_records": 5183
+    }
+  },
+  "counts": {
+    "corpus_docs": 5183,
+    "claims_train": 809,
+    "claims_dev": 300,
+    "claims_test": 300,
+    "calibration_from_train": 100,
+    "development_from_train": 709
+  },
+  "split_policy": {
+    "version": "scifact-splits-v1",
+    "locked": true,
+    "rules": [
+      "Use released training for development/calibration only.",
+      "Reserve fixed calibration subset (100 claim ids) from train before prompt tuning; remainder is development.",
+      "Freeze public development split as local held-out evaluation; never call it community test.",
+      "Official test remains unlabeled; evaluate via leaderboard/official scorer separately if accessible.",
+      "Do not invent labels. Do not silently regenerate once locked."
+    ],
+    "calibration_salt": "mavs-scifact-calibration-v1",
+    "calibration_n": 100
+  }
+}

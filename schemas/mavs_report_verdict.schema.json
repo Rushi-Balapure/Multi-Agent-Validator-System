@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mavs.local/schemas/mavs_report_verdict.schema.json",
+  "title": "MavsReportVerdict",
+  "type": "object",
+  "required": [
+    "claim_coverage",
+    "central_claim_outcomes",
+    "inference_link_status",
+    "conflicts_d0_d1",
+    "display_explanation",
+    "limitations"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "claim_coverage": {
+      "type": "object"
+    },
+    "central_claim_outcomes": {
+      "type": "array"
+    },
+    "inference_link_status": {
+      "type": "array"
+    },
+    "conflicts_d0_d1": {
+      "type": "array"
+    },
+    "display_explanation": {
+      "type": "string"
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
