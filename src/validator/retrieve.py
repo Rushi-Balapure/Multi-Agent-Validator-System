@@ -7,18 +7,24 @@ original citations, asserted answers, or conclusions.
 Query protocol for this round: open inquiry, scope/measurement, and
 limitations-or-null-results. Each form keeps the top 20 positive BM25 hits.
 Those lists are deduped, reranked by the best BM25 score, and cut to at most
-8 passages. Dense retrieval and reciprocal-rank fusion are not in this MR.
+8 passages. ``retrieval_round`` stays 1. Round-2 stop rules and
+reciprocal-rank fusion are config prep only (``round2`` / ``rrf`` locked
+off). Dense retrieval is not in this MR.
 
 From the repository root::
 
     PYTHONPATH=src python3 -m validator.retrieve index \\
         --config configs/retrieval/scifact_bm25.yaml
+    PYTHONPATH=src python3 -m validator.retrieve gather-claims \\
+        --config configs/retrieval/scifact_bm25.yaml \\
+        --limit 5 \\
+        --output artifacts/retrieval/dev5_bundles.jsonl
     PYTHONPATH=src python3 -m validator.retrieve gather-dev10 \\
         --config configs/retrieval/scifact_bm25.yaml \\
         --output artifacts/retrieval/dev10_bundles.jsonl
 
-After ``pip install -e .`` the same commands are ``mavs-retrieve index`` and
-``mavs-retrieve gather-dev10``.
+After ``pip install -e .`` the same commands are ``mavs-retrieve index``,
+``mavs-retrieve gather-claims``, and ``mavs-retrieve gather-dev10``.
 """
 
 from __future__ import annotations
@@ -153,8 +159,9 @@ def _rerank_union(
 ) -> list[_Candidate]:
     """Dedupe by document id and normalized abstract, then keep the best scores.
 
-    TODO: dense retrieval and reciprocal-rank fusion (1 / (60 + rank) summed
-    across lists) are a later development comparison, not this rerank.
+    Round 2 is not selected here. ``RetrievalConfig.round2`` and ``.rrf`` are
+    locked off. Reciprocal-rank fusion would be ``1 / (rrf.k + rank)`` summed
+    across lists; this rerank is max BM25 only.
     """
     from data.scifact_loader import abstract_text_and_spans
 
@@ -303,28 +310,83 @@ def _read_bundles(path: Path) -> list[EvidenceBundle]:
     return bundles
 
 
-def run_gather_dev10(
+def _split_claim_ids(value: str) -> list[str]:
+    if not isinstance(value, str) or not value.strip():
+        raise RetrievalError("--claim-ids was empty")
+    parts = [part.strip() for part in value.split(",")]
+    if any(part == "" for part in parts):
+        raise RetrievalError(f"--claim-ids has an empty id: {value!r}")
+    return parts
+
+
+def resolve_gather_claim_ids(
+    config: RetrievalConfig,
+    *,
+    claim_ids: str | list[str] | None = None,
+    manifest: Path | None = None,
+    limit: int | None = None,
+) -> list[str]:
+    """Resolve project claim ids for ``gather-claims``.
+
+    ``--claim-ids`` selects those ids. Otherwise take the first ``limit``
+    ids (default 5) from ``manifest`` or the locked development manifest.
+    Pass one of ``--claim-ids`` or ``--manifest``, not both. ``limit`` caps
+    an explicit id list when ``manifest`` is omitted.
+    """
+    if not isinstance(config, RetrievalConfig):
+        raise TypeError("config must be a RetrievalConfig")
+    if limit is not None and (isinstance(limit, bool) or not isinstance(limit, int) or limit < 1):
+        raise RetrievalError("--limit must be a positive integer")
+    if claim_ids is not None and manifest is not None:
+        raise RetrievalError("pass --claim-ids or --manifest, not both")
+    if claim_ids is None:
+        count = 5 if limit is None else limit
+        path = manifest if manifest is not None else config.resolve(config.development_manifest)
+        selected = project_claim_ids_from_manifest(path, count)
+    else:
+        selected = _split_claim_ids(claim_ids) if isinstance(claim_ids, str) else list(claim_ids)
+        if limit is not None:
+            selected = selected[:limit]
+    if not selected:
+        raise RetrievalError("no claim ids to gather")
+    if len(selected) != len(set(selected)):
+        raise RetrievalError(f"duplicate claim ids: {selected}")
+    for claim_id in selected:
+        native_id_from_claim_id(claim_id)
+    return selected
+
+
+def run_gather_claims(
     config: RetrievalConfig,
     output: Path,
+    claim_ids: list[str],
     *,
     download: bool = True,
 ) -> list[EvidenceBundle]:
-    """Gather the 10 pinned development claims and write JSONL bundles."""
+    """Gather claim texts for ``claim_ids`` and write JSONL EvidenceBundles.
+
+    Claim text comes from :func:`load_claim_texts` only. Gold fields on the
+    claims file are not passed to :func:`gather`.
+    """
+    if not isinstance(claim_ids, list) or not claim_ids:
+        raise RetrievalError("claim_ids must be a non-empty list of project ids")
+    resolved = resolve_gather_claim_ids(config, claim_ids=claim_ids)
+    if resolved != claim_ids:
+        raise RetrievalError("claim_ids drifted while resolving")
     if download:
         from data.pins.scifact.download_verify import ensure_scifact_raw
 
         ensure_scifact_raw(REPO_ROOT)
-    pinned = assert_fixed_claim_ids(config)
-    texts = load_claim_texts(pinned, config.resolve(config.claims_jsonl))
+    texts = load_claim_texts(claim_ids, config.resolve(config.claims_jsonl))
     bundles: list[EvidenceBundle] = []
-    for claim_id in pinned:
+    for claim_id in claim_ids:
         bundle = gather(texts[claim_id], config, claim_id)
         if bundle.claim_id != claim_id or bundle.query != texts[claim_id]:
             raise RetrievalError(f"{claim_id} bundle was not keyed by the claim text")
         bundles.append(bundle)
         print(format_bundle_log(bundle), flush=True)
-    if [bundle.claim_id for bundle in bundles] != pinned:
-        raise RetrievalError("bundle claim_ids drifted from the pinned development ids")
+    if [bundle.claim_id for bundle in bundles] != claim_ids:
+        raise RetrievalError("bundle claim_ids drifted from the requested ids")
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("w", encoding="utf-8") as handle:
         for bundle in bundles:
@@ -337,10 +399,25 @@ def run_gather_dev10(
             )
             handle.write("\n")
     written = _read_bundles(output)
-    if [bundle.claim_id for bundle in written] != pinned:
-        raise RetrievalError(f"{output} claim_ids do not match the pinned development ids")
+    if [bundle.claim_id for bundle in written] != claim_ids:
+        raise RetrievalError(f"{output} claim_ids do not match the requested ids")
     print(f"wrote {len(written)} bundles {output}", flush=True)
     return written
+
+
+def run_gather_dev10(
+    config: RetrievalConfig,
+    output: Path,
+    *,
+    download: bool = True,
+) -> list[EvidenceBundle]:
+    """Gather the 10 pinned development claims and write JSONL bundles."""
+    if download:
+        from data.pins.scifact.download_verify import ensure_scifact_raw
+
+        ensure_scifact_raw(REPO_ROOT)
+    pinned = assert_fixed_claim_ids(config)
+    return run_gather_claims(config, output, pinned, download=False)
 
 
 def _resolve_cli_path(value: str) -> Path:
@@ -364,7 +441,8 @@ def main(argv: list[str] | None = None) -> int:
         prog="python3 -m validator.retrieve",
         description=(
             "Build a reproducible SciFact BM25 index and gather independent D1 "
-            "evidence for 10 fixed development claims (scifact:{native_id})."
+            "evidence. gather-claims takes arbitrary project claim ids; "
+            "gather-dev10 keeps the 10 pinned development ids."
         ),
     )
     subcommands = parser.add_subparsers(dest="command", required=True)
@@ -383,6 +461,44 @@ def main(argv: list[str] | None = None) -> int:
         default="artifacts/retrieval/dev10_bundles.jsonl",
         help="JSONL path. Relative paths are resolved from the repository root.",
     )
+    claims_command = subcommands.add_parser(
+        "gather-claims",
+        parents=[common],
+        help=(
+            "Write EvidenceBundles for --claim-ids or a manifest prefix. "
+            "Default: first 5 locked development ids."
+        ),
+    )
+    claims_command.add_argument(
+        "--claim-ids",
+        default=None,
+        help=(
+            "Comma-separated project ids, such as scifact:0,scifact:2. "
+            "Do not combine with --manifest."
+        ),
+    )
+    claims_command.add_argument(
+        "--manifest",
+        default=None,
+        help=(
+            "Manifest JSON of native ids. Default: the locked development "
+            "manifest. Do not combine with --claim-ids."
+        ),
+    )
+    claims_command.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help=(
+            "Manifest prefix length (default 5 when --claim-ids is omitted). "
+            "When --claim-ids is set, keep only the first N of those ids."
+        ),
+    )
+    claims_command.add_argument(
+        "--output",
+        default="artifacts/retrieval/dev5_bundles.jsonl",
+        help="JSONL path. Relative paths are resolved from the repository root.",
+    )
     args = parser.parse_args(argv)
     try:
         config = load_retrieval_config(_resolve_cli_path(args.config))
@@ -397,7 +513,17 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 0
         output = _resolve_cli_path(args.output)
-        run_gather_dev10(config, output)
+        if args.command == "gather-dev10":
+            run_gather_dev10(config, output)
+            return 0
+        manifest = None if args.manifest is None else _resolve_cli_path(args.manifest)
+        claim_ids = resolve_gather_claim_ids(
+            config,
+            claim_ids=args.claim_ids,
+            manifest=manifest,
+            limit=args.limit,
+        )
+        run_gather_claims(config, output, claim_ids)
         return 0
     except (RetrievalError, ValidationError) as exc:
         print(f"error: {exc}", file=sys.stderr)

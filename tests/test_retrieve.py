@@ -17,7 +17,15 @@ from validator.retrieval.config import RetrievalConfig, load_retrieval_config
 from validator.retrieval.errors import CorpusHashMismatch, RetrievalError
 from validator.retrieval.models import EvidenceBundle, QueryHit, QueryLog, RetrievedPassage
 from validator.retrieval.paths import REPO_ROOT
-from validator.retrieve import gather, load_claim_texts, run_gather_dev10
+from validator.retrieve import (
+    format_bundle_log,
+    gather,
+    load_claim_texts,
+    main,
+    resolve_gather_claim_ids,
+    run_gather_claims,
+    run_gather_dev10,
+)
 from validator.schemas import Evidence
 
 DEV10 = [
@@ -399,3 +407,150 @@ def test_dev10_cli_writes_string_claim_ids_without_gold(tmp_path: Path):
     swapped = config.model_copy(update={"fixed_claim_ids": list(reversed(DEV10))})
     with pytest.raises(RetrievalError, match="fixed_claim_ids"):
         run_gather_dev10(swapped, tmp_path / "other.jsonl", download=False)
+
+
+def write_claims_manifest(tmp_path: Path, native_ids: list[int]) -> None:
+    manifest = {"manifest_id": "test", "role": "development", "ids": native_ids}
+    (tmp_path / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    claim_lines = []
+    for native_id in native_ids:
+        claim_lines.append(
+            json.dumps(
+                {
+                    "id": native_id,
+                    "claim": f"alpha shared token {native_id}",
+                    "evidence": {"123": [{"label": "SUPPORT", "sentences": [0]}]},
+                    "cited_doc_ids": [123],
+                    "asserted_answer": "supported",
+                    "conclusion": "GOLDCONCLUSIONSHOULDNOTLEAK",
+                }
+            )
+        )
+    (tmp_path / "claims.jsonl").write_text("\n".join(claim_lines) + "\n", encoding="utf-8")
+
+
+def test_default_gather_claim_ids_are_first_five_development_ids():
+    config = load_retrieval_config(REPO_ROOT / "configs" / "retrieval" / "scifact_bm25.yaml")
+    assert config.retrieval_round == 1
+    assert config.rerank == "max_bm25"
+    assert config.round2.enabled is False
+    assert list(config.round2.start_when) == [
+        "unresolved_question",
+        "scope_mismatch",
+        "contradictory_evidence",
+    ]
+    assert list(config.round2.stop_when) == [
+        "exhausted_budget",
+        "no_new_eligible_documents",
+        "complete_bounded_evidence",
+    ]
+    assert config.rrf.enabled is False
+    assert config.rrf.k == 60
+    assert resolve_gather_claim_ids(config) == DEV10[:5]
+    assert resolve_gather_claim_ids(config, limit=5) == DEV10[:5]
+
+
+def test_round2_and_rrf_flags_reject_product_path():
+    config = load_retrieval_config(REPO_ROOT / "configs" / "retrieval" / "scifact_bm25.yaml")
+    payload = config.model_dump()
+    payload["round2"] = {**payload["round2"], "enabled": True}
+    with pytest.raises(ValidationError):
+        RetrievalConfig.model_validate(payload)
+    payload = config.model_dump()
+    payload["rrf"] = {**payload["rrf"], "enabled": True}
+    with pytest.raises(ValidationError):
+        RetrievalConfig.model_validate(payload)
+    payload = config.model_dump()
+    payload["rrf"] = {**payload["rrf"], "k": 10}
+    with pytest.raises(ValidationError):
+        RetrievalConfig.model_validate(payload)
+
+
+def test_gather_claims_five_development_ids(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
+    native_ids = [0, 2, 4, 6, 9, 10, 11, 12, 14, 15, 99]
+    docs = [corpus_doc(doc_id, f"alpha shared token paper {doc_id}") for doc_id in range(1, 13)]
+    _path, digest = write_corpus(tmp_path, docs)
+    write_claims_manifest(tmp_path, native_ids)
+    config = make_config(tmp_path, digest)
+    selected = resolve_gather_claim_ids(config, limit=5)
+    assert selected == DEV10[:5]
+    output = tmp_path / "dev5_bundles.jsonl"
+    bundles = run_gather_claims(config, output, selected, download=False)
+    assert [bundle.claim_id for bundle in bundles] == DEV10[:5]
+    assert len(bundles) == 5
+    logged = capsys.readouterr().out
+    lines = output.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 5
+    for line, claim_id, native_id in zip(lines, DEV10[:5], native_ids[:5], strict=True):
+        payload = json.loads(line)
+        assert payload["claim_id"] == claim_id
+        assert payload["query"] == f"alpha shared token {native_id}"
+        assert payload["retrieval_round"] == 1
+        assert set(walk_keys(payload)).isdisjoint(BANNED_GOLD_KEYS)
+        assert "GOLDCONCLUSIONSHOULDNOTLEAK" not in line
+        assert "SUPPORT" not in line
+        bundle = EvidenceBundle.model_validate(payload)
+        assert len(bundle.passages) <= 8
+        assert len(bundle.queries) == 3
+        for item in bundle.queries:
+            assert len(item.hits) <= 20
+        log = format_bundle_log(bundle)
+        assert f"claim_id={claim_id}" in log
+        assert "form=open_inquiry" in log
+        assert "hits=" in log
+        assert "reranked=" in log
+        assert log in logged
+    arbitrary = run_gather_claims(
+        config,
+        tmp_path / "arbitrary.jsonl",
+        ["scifact:15", "scifact:99"],
+        download=False,
+    )
+    assert [bundle.claim_id for bundle in arbitrary] == ["scifact:15", "scifact:99"]
+    assert all(len(bundle.passages) <= 8 for bundle in arbitrary)
+
+
+def test_gather_claims_cli_limit_five(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    native_ids = [0, 2, 4, 6, 9, 10, 11, 12, 14, 15]
+    docs = [corpus_doc(doc_id, f"alpha shared token paper {doc_id}") for doc_id in range(1, 13)]
+    _path, digest = write_corpus(tmp_path, docs)
+    write_claims_manifest(tmp_path, native_ids)
+    config = make_config(tmp_path, digest)
+    config_path = tmp_path / "retrieval.yaml"
+    config_path.write_text(
+        yaml.safe_dump(config.model_dump(mode="json"), sort_keys=False),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "data.pins.scifact.download_verify.ensure_scifact_raw",
+        lambda _root: None,
+    )
+    output = tmp_path / "dev5_bundles.jsonl"
+    code = main(
+        [
+            "gather-claims",
+            "--config",
+            str(config_path),
+            "--limit",
+            "5",
+            "--output",
+            str(output),
+        ]
+    )
+    assert code == 0
+    payloads = [json.loads(line) for line in output.read_text(encoding="utf-8").splitlines()]
+    assert [payload["claim_id"] for payload in payloads] == DEV10[:5]
+    assert all(len(payload["passages"]) <= 8 for payload in payloads)
+    assert all(set(walk_keys(payload)).isdisjoint(BANNED_GOLD_KEYS) for payload in payloads)
+    code = main(
+        [
+            "gather-claims",
+            "--config",
+            str(config_path),
+            "--claim-ids",
+            "scifact:0,scifact:2",
+            "--manifest",
+            str(tmp_path / "manifest.json"),
+        ]
+    )
+    assert code == 2
