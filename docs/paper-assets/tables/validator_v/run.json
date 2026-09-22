@@ -1,0 +1,39 @@
+{
+  "system_id": "validator_v",
+  "method_id": "V",
+  "adaptation": "V",
+  "adaptation_note": "Independent retrieval plus staged D0 union D1 judgment. Eval reads the reconciled four-way label mapped onto SUPPORT, REFUTE, or NEI.",
+  "inference_mode": "mock",
+  "model_invoked": false,
+  "prediction_label_space": "scifact_SUPPORT_REFUTE_NEI",
+  "four_way_label_space": "mavs_four_way",
+  "label_mapping": {
+    "supported": "SUPPORT",
+    "contradicted": "REFUTE",
+    "unaddressed": "NEI",
+    "underdetermined": "NEI"
+  },
+  "scored_evidence_scope": "D0_union_D1",
+  "input_source": "fixture_report",
+  "n_predictions": 3,
+  "development_claim_budget": 20,
+  "partial": false,
+  "prompt_hash_canonical": "sha256 of utf-8 prompt name and file text pairs, sorted by name, joined with newlines",
+  "run": {
+    "run_id": "validator-v-development-s0-n3-d5cecb97c55b",
+    "question_id": null,
+    "split": "development",
+    "seed": 0,
+    "model_id": "qwen2.5-coder-1.5b-instruct",
+    "model_revision": null,
+    "prompt_hash": "f64a47124aa2bcf62d2d9ea980567521a04ced5e59244b7d7594bbcaaa824688",
+    "corpus_hash": "b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62",
+    "config_hash": "d5cecb97c55bd50eadb0894d746426d4d37429175701bcbc8a98c25fcc41922a",
+    "timestamps": {
+      "started_at": "2026-09-22T10:52:19.329706+00:00",
+      "finished_at": "2026-09-22T10:52:19.333111+00:00"
+    },
+    "tokens": null,
+    "status": "completed"
+  }
+}
