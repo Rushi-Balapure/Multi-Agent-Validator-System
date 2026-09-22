@@ -7,3 +7,18 @@ Reproducible inference-time validator for scientific conclusions, plus a researc
 - Research plan: [Validator_Agent_Two_Month_Research_Plan.pdf](Validator_Agent_Two_Month_Research_Plan.pdf)
 - Implementation plan: [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)
 - Paper graphs and formula notes: [docs/paper-assets/](docs/paper-assets/)
+
+## Same-evidence baseline (B2)
+
+Named adaptation of research-plan B2: a template neutral question, an isolated reader over the claim's original citations (D0), then a compare step. Predictions are SciFact `SUPPORT` / `REFUTE` / `NEI` (`CONTRADICT` maps to `REFUTE`). The dry-run uses a documented mock and does not retrieve documents.
+
+```bash
+python3 -m pip install -e ".[dev]"
+python3 -m data.pins.scifact.download_verify
+python3 -m pytest tests/test_same_evidence_baseline.py -q
+PYTHONPATH=src python3 -m validator.same_evidence.runner \
+  --config configs/baseline/same_evidence_b2.yaml \
+  --dry-run --limit 20 \
+  --output artifacts/same_evidence_b2/predictions.jsonl \
+  --run-sidecar artifacts/same_evidence_b2/run.json
+```
