@@ -15,6 +15,9 @@ FORMULA_IDS: tuple[str, ...] = (
     "F-latency-cost",
 )
 
+# Frozen for the V-versus-B2 harness. Ablation ids stay out of this tuple.
+METHOD_IDS: tuple[str, ...] = ("B2", "V")
+
 
 @dataclass(frozen=True)
 class Formula:

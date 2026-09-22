@@ -54,3 +54,22 @@ No corpus-split edits. No baseline/retrieval/judge code changes to chase scores.
 - False endorsement uses `F-false-endorsement`. On this label space the endorsement class is `SUPPORT` (false-support rate). Both denominators are reported. `CONTRADICT` gold counts as `REFUTE`.
 
 The scorer does not join the corpus. Rows without gold are skipped. The paper stub is `docs/paper-assets/tables/b2_live_vs_mock.md`. Live artifacts are not in-repo; that note has the command to score them once Baseline drops `artifacts/same_evidence_b2/predictions.jsonl` and `run.json`.
+
+## V versus B2 harness
+
+`PYTHONPATH=src python -m evaluation.harness` compares method_id `B2` and optional `V` on `F-false-endorsement` (both denominators). The method_id enum is `B2` and `V` only. V predictions must use the same claim ids as the B2 prediction rows. A missing or empty V file leaves the V cell pending (`—` in the table). The harness does not copy B2 rates into that cell.
+
+The paper stub is `docs/paper-assets/tables/v_vs_b2_false_endorsement.md`. Its B2 column is the checked-in live report `docs/paper-assets/tables/b2_live_n20_metrics.json` (run `same-evidence-b2-development-s0-n20-dac855c4e2ae`). Held-out run ids in that file are placeholders. Regenerating the pending stub:
+
+```bash
+PYTHONPATH=src python -m evaluation.harness \
+  --output docs/paper-assets/tables/v_vs_b2_false_endorsement.md
+```
+
+## Bootstrap-by-family timers
+
+`evaluation.bootstrap.BootstrapByFamilyConfig` stores the contract plan: question family by default, claim family as the other cluster key, `n_resamples=2000`, 95% interval, formula `F-false-endorsement`, methods `B2` and `V`. `describe_bootstrap_timer` returns that plan with `interval=None`. `bootstrap_by_family` raises `NotImplementedError` until V predictions exist. It does not draw resamples and it does not return a confidence interval.
+
+## Latency and tokens on Run
+
+`F-latency-cost` needs median and p95 latency, warm versus cold cache, and token totals. Corpus Lock's `Run` has `timestamps` and `tokens` only. The gap is written in `docs/paper-assets/run_latency_token_contract.md` for Corpus Lock and Arch Lead. Eval Forge does not fork the Run schema and does not invent latency or token totals.
