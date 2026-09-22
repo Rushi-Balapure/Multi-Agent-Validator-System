@@ -13,6 +13,8 @@ manifests:
 raw_dir: data/raw/scifact
 download: python3 -m data.pins.scifact.download_verify
 smoke: python3 -m data.smoke_scifact_splits
+# Turing-Machine path: download_verify, then smoke. Fails on hash mismatch.
+bootstrap: python3 -m data.bootstrap_scifact
 doc_id_scheme: scifact_s2orc_integer
 calibration_salt: mavs-scifact-calibration-v1
 upstream_git_commit: 68b98a56d93e0f9da0d2aab4e6c3294699a0f72e
