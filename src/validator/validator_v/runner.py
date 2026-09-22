@@ -19,11 +19,13 @@ socket.
 
 ``--gather`` is opt-in. It judges development claims in B2 order and calls
 Retrieval Wing ``gather(neutral_question, config, claim_id)`` via
-``validator.runner.gather_bundle``. Claim selection is ``--claim-ids``, else
-config ``claim_ids``, else the first ``--limit`` locked development manifest
-ids. Gold D0, asserted answers, and original citations are not arguments. The
-citation auditor receives an empty D0 list and fail-closes. ``--live`` calls
-the local reader and judge; pytest does not pass it.
+``validator.runner.gather_bundle`` for D1 only. Claim selection is
+``--claim-ids``, else config ``claim_ids``, else the first ``--limit`` locked
+development manifest ids. D0 is attached separately from SciFact native
+``cited_doc_ids`` (full abstracts, ``provenance=original``, ``access_scope=D0``)
+via ``validator.validator_v.cited_d0``. Gold ``evidence`` SUPPORT/CONTRADICT
+rationales are never copied into D0 and never passed to gather. ``--live``
+calls the local reader and judge; pytest does not pass it.
 
 Phase-3 B2 alignment (run ``same-evidence-b2-development-s0-n20-dac855c4e2ae``)::
 
@@ -185,7 +187,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "Run Stack V over a development budget of at most 20 claims and write "
             "predictions.jsonl plus run.json. The default is an offline fixture-report "
             "dry-run (inference_mode=mock). --gather calls Retrieval Wing "
-            "gather(neutral_question, config, claim_id) with claim text only. "
+            "gather(neutral_question, config, claim_id) for D1 and attaches "
+            "non-gold cited_doc_ids abstracts as D0. "
             "Phase-3 B2 order (20 ids): "
             + ",".join(PHASE3_B2_CLAIM_IDS)
         )
@@ -212,9 +215,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--gather",
         action="store_true",
         help=(
-            "Judge development claims via gather(neutral_question, config, claim_id). "
+            "Judge development claims via gather(neutral_question, config, claim_id) "
+            "for D1, and attach SciFact cited_doc_ids abstracts as non-gold D0. "
             "Ids come from --claim-ids, else config claim_ids, else the first --limit "
-            "locked development manifest ids (B2 order). Gold D0 is not loaded."
+            "locked development manifest ids (B2 order). Gold evidence is not loaded."
         ),
     )
     parser.add_argument(
@@ -569,6 +573,7 @@ def _rows_from_gather(
 ) -> tuple[list[dict[str, Any]], bool]:
     from validator.retrieval.config import load_retrieval_config
     from validator.retrieve import load_claim_texts
+    from validator.validator_v.cited_d0 import CitedD0Error, load_cited_d0_index
 
     if retrieval is None:
         retrieval_path = _resolve(root, config.retrieval_config)
@@ -576,18 +581,27 @@ def _rows_from_gather(
             retrieval = load_retrieval_config(retrieval_path)
         except (RetrievalError, OSError, ValueError) as exc:
             raise ValidatorVError(str(exc), exit_code=1) from exc
+    claims_path = retrieval.resolve(retrieval.claims_jsonl)
     try:
-        texts = load_claim_texts(claim_ids, retrieval.resolve(retrieval.claims_jsonl))
+        texts = load_claim_texts(claim_ids, claims_path)
     except (RetrievalError, OSError, ValueError) as exc:
         raise ValidatorVError(str(exc), exit_code=1) from exc
     if len(claim_ids) > DEVELOPMENT_CLAIM_BUDGET:
         raise ValidatorVError(
             f"gather selected {len(claim_ids)} claims; the development budget is {DEVELOPMENT_CLAIM_BUDGET}"
         )
+    try:
+        cited_d0 = load_cited_d0_index(root, claims_path)
+    except CitedD0Error as exc:
+        raise ValidatorVError(str(exc), exit_code=1) from exc
     template = _neutral_template(root, config)
     rows: list[dict[str, Any]] = []
     for claim_id in claim_ids:
         claim = _claim_from_text(claim_id, texts[claim_id], template)
+        try:
+            d0_evidence = cited_d0.for_claim(claim.claim_id)
+        except CitedD0Error as exc:
+            raise ValidatorVError(str(exc), exit_code=1) from exc
         try:
             bundle = gather_bundle(claim, retrieval)
         except (PipelineError, IsolationError, RetrievalError, ValueError) as exc:
@@ -597,7 +611,7 @@ def _rows_from_gather(
             JudgmentFixture(
                 fixture_id=f"validator-v-gather:{claim.claim_id}",
                 claim=claim,
-                d0_evidence=[],
+                d0_evidence=d0_evidence,
                 d1_bundle=bundle,
             ),
             live=live,

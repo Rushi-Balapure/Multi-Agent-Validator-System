@@ -6,6 +6,10 @@
 # LM Studio at http://127.0.0.1:1234/v1. It does not invent scores when the
 # SciFact index or LM Studio is missing; it exits non-zero with the command.
 #
+# D0 on --gather: SciFact native cited_doc_ids abstracts (provenance=original),
+# joined from corpus.jsonl. Gold evidence SUPPORT/CONTRADICT rationales are not
+# loaded as D0. Retrieval gather stays D1-only (neutral question + claim_id).
+#
 # Claim ids match B2 live run same-evidence-b2-development-s0-n20-dac855c4e2ae
 # (first 20 locked development ids, that order).
 #
@@ -13,7 +17,7 @@
 #   bash scripts/validator_v_phase3_gather_smoke.sh
 # Optional:
 #   VALIDATOR_V_PHASE3_OUT=artifacts/validator_v_phase3 bash scripts/validator_v_phase3_gather_smoke.sh
-#   VALIDATOR_V_PHASE3_LIVE=0  # gather only (mock judge); still needs BM25 index
+#   VALIDATOR_V_PHASE3_LIVE=0  # gather only (mock judge); still needs BM25 index + corpus
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"

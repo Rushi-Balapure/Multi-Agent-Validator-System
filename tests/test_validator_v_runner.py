@@ -269,9 +269,10 @@ def test_cli_module_writes_the_artifact_paths(tmp_path: Path):
     assert sidecar_payload["n_predictions"] == len(_rows(predictions))
 
 
-def test_gather_passes_the_neutral_question_and_not_gold_d0(
+def test_gather_attaches_non_gold_cited_d0_and_not_gold_evidence(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
+    """--gather: D1 via neutral question only; D0 from ORIGINAL cited abstracts."""
     _block_network(monkeypatch)
     import validator.retrieve as retrieve_mod
     import validator.validator_v.runner as batch
@@ -279,6 +280,10 @@ def test_gather_passes_the_neutral_question_and_not_gold_d0(
     happy = load_report_fixture(HAPPY)
     template_bundle = happy.attachments[0].d1_bundle
     assert template_bundle is not None
+    d0_template = list(happy.attachments[0].d0_evidence)
+    assert d0_template
+    assert all(item.provenance.value == "original" for item in d0_template)
+    assert all(item.access_scope.value == "D0" for item in d0_template)
     claim_text = "In the mouse model, compound MX-42 increased memory retention."
     seen: list[tuple[str, str]] = []
 
@@ -286,14 +291,29 @@ def test_gather_passes_the_neutral_question_and_not_gold_d0(
         assert isinstance(claim_or_neutral_question, str)
         assert LEAK not in claim_or_neutral_question
         assert "asserted_answer" not in claim_or_neutral_question
+        assert "cited_doc_ids" not in claim_or_neutral_question
+        assert "SUPPORT" not in claim_or_neutral_question
+        assert "CONTRADICT" not in claim_or_neutral_question
         seen.append((claim_or_neutral_question, claim_id))
         return template_bundle.model_copy(update={"claim_id": claim_id})
 
     def fake_texts(claim_ids, _path):
         return {claim_id: claim_text for claim_id in claim_ids}
 
+    class FakeCitedD0:
+        def for_claim(self, claim_id: str):
+            assert claim_id == PHASE3_B2_CLAIM_IDS[0]
+            return list(d0_template)
+
     monkeypatch.setattr(retrieve_mod, "gather", fake_gather)
     monkeypatch.setattr(retrieve_mod, "load_claim_texts", fake_texts)
+    import validator.validator_v.cited_d0 as cited_d0_mod
+
+    monkeypatch.setattr(
+        cited_d0_mod,
+        "load_cited_d0_index",
+        lambda *_args, **_kwargs: FakeCitedD0(),
+    )
     d0_seen: list[list] = []
     real_run = batch.run_fixture
 
@@ -301,6 +321,10 @@ def test_gather_passes_the_neutral_question_and_not_gold_d0(
         d0_seen.append(list(fixture.d0_evidence))
         assert fixture.claim.asserted_answer is None
         assert kwargs.get("live") is None
+        for item in fixture.d0_evidence:
+            assert item.provenance.value == "original"
+            assert item.access_scope.value == "D0"
+            assert item.provenance.value != "corpus_gold"
         return real_run(fixture, **kwargs)
 
     monkeypatch.setattr(batch, "run_fixture", spy_run)
@@ -330,15 +354,21 @@ def test_gather_passes_the_neutral_question_and_not_gold_d0(
         .strip()
     )
     assert seen == [(expected_question, expected_id)]
-    assert d0_seen == [[]]
+    assert len(d0_seen) == 1
+    assert len(d0_seen[0]) == 1
+    assert d0_seen[0][0].doc_id == d0_template[0].doc_id
+    assert d0_seen[0][0].provenance.value == "original"
+    assert d0_seen[0][0].access_scope.value == "D0"
     row = _rows(predictions)[0]
     assert row["claim_id"] == expected_id
     assert row["method_id"] == "V"
     assert row["inference_mode"] == "mock"
+    assert row["d0_label_4way"] == "supported"
     assert row["d1_label_4way"] == "supported"
-    assert row["label_4way"] == "underdetermined"
-    assert row["label"] == "NEI"
-    assert row["execution_status"] == "failed"
+    assert row["label_4way"] == "supported"
+    assert row["label"] == "SUPPORT"
+    # Non-empty ORIGINAL D0: no longer fail-closed solely for missing D0.
+    assert row["execution_status"] == "ok"
     sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
     assert sidecar["input_source"] == "gather"
     assert sidecar["n_predictions"] == 1
@@ -354,11 +384,13 @@ def test_gather_preserves_phase3_b2_claim_id_order(
     """Mocked gather over the 20 B2 ids writes predictions/run.json with method_id=V."""
     _block_network(monkeypatch)
     import validator.retrieve as retrieve_mod
+    import validator.validator_v.cited_d0 as cited_d0_mod
     import validator.validator_v.runner as batch
 
     happy = load_report_fixture(HAPPY)
     template_bundle = happy.attachments[0].d1_bundle
     assert template_bundle is not None
+    d0_template = list(happy.attachments[0].d0_evidence)
     gather_order: list[str] = []
 
     def fake_gather(claim_or_neutral_question, config, claim_id):
@@ -370,8 +402,18 @@ def test_gather_preserves_phase3_b2_claim_id_order(
         assert list(claim_ids) == list(PHASE3_B2_CLAIM_IDS)
         return {claim_id: f"claim text for {claim_id}" for claim_id in claim_ids}
 
+    class FakeCitedD0:
+        def for_claim(self, claim_id: str):
+            assert claim_id in PHASE3_B2_CLAIM_IDS
+            return list(d0_template)
+
     monkeypatch.setattr(retrieve_mod, "gather", fake_gather)
     monkeypatch.setattr(retrieve_mod, "load_claim_texts", fake_texts)
+    monkeypatch.setattr(
+        cited_d0_mod,
+        "load_cited_d0_index",
+        lambda *_args, **_kwargs: FakeCitedD0(),
+    )
     predictions = tmp_path / "predictions.jsonl"
     sidecar_path = tmp_path / "run.json"
     claim_ids_arg = ",".join(PHASE3_B2_CLAIM_IDS)
@@ -405,6 +447,8 @@ def test_gather_preserves_phase3_b2_claim_id_order(
         assert row["label_4way"] in FOUR_WAY
         assert row["inference_mode"] == "mock"
         assert row["evidence_scope"] == "D0_union_D1"
+        # cited D0 present → not fail-closed solely for empty D0
+        assert row["execution_status"] == "ok"
     sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
     assert sidecar["method_id"] == "V"
     assert sidecar["input_source"] == "gather"
@@ -423,9 +467,12 @@ def test_gather_preserves_phase3_b2_claim_id_order(
             parse_args(["--help"])
     assert exited.value.code == 0
     help_out = buffer.getvalue()
-    assert "scifact:0,scifact:2,scifact:4" in help_out
+    assert "scifact:0" in help_out
+    assert "scifact:2" in help_out
+    assert "scifact:4" in help_out
     assert "scifact:27" in help_out
     assert "--claim-ids" in help_out
+    assert "cited_doc_ids" in help_out
 
 
 def test_claim_ids_without_gather_is_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
