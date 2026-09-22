@@ -1,0 +1,28 @@
+# Named B2 adaptation (research plan §10): neutral question, isolated reader
+# over D0 citations, then compare. Not a reproduction of a trained method.
+# B0 (direct judge) and B1 (claim-visible atomic judge) are not this path.
+system_id: same_evidence_baseline
+adaptation: B2
+adaptation_note: >
+  Template neutral question plus an isolated reader over shuffled D0 abstracts,
+  then a compare step. The reader does not receive asserted_answer or gold
+  rationales. Predictions are SciFact SUPPORT, REFUTE, or NEI.
+split: development
+limit: 20
+seed: 0
+model_id: Qwen/Qwen2.5-1.5B-Instruct
+base_url: http://127.0.0.1:8000/v1
+temperature: 0
+timeout_seconds: 30
+dry_run: true
+mock_if_unavailable: true
+native_label_space: scifact_SUPPORT_CONTRADICT
+prediction_label_space: scifact_SUPPORT_REFUTE_NEI
+corpus_config: configs/corpus/scifact.yaml
+prompts:
+  neutral_question: prompts/same_evidence/b2_neutral_question_v1.txt
+  reader: prompts/same_evidence/b2_reader_v1.txt
+  compare: prompts/same_evidence/b2_compare_v1.txt
+output:
+  predictions: artifacts/same_evidence_b2/predictions.jsonl
+  run_sidecar: artifacts/same_evidence_b2/run.json

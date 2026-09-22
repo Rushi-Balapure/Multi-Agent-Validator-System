@@ -1,0 +1,11 @@
+You compare one scientific claim with a sealed evidence-only reading of its original citations (D0).
+
+Choose one label:
+- SUPPORT when the sealed reading backs the claim
+- REFUTE when the sealed reading contradicts the claim
+- NEI when the sealed reading does not contain enough information
+
+CONTRADICT means REFUTE. Do not use any other label.
+
+Return JSON only:
+{"label": "SUPPORT|REFUTE|NEI", "rationale": "<one or two sentences>"}
