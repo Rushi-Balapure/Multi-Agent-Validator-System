@@ -23,6 +23,7 @@ from pathlib import Path
 import pytest
 
 from evaluation.registry import FORMULA_IDS, get_formula
+from evaluation.scifact_gold import GoldJoinError, claim_label_from_native, join_scifact_gold
 from evaluation.score_predictions import ScoreError, main, score_prediction_rows, score_predictions_file
 from evaluation.scorers import false_endorsement
 
@@ -155,6 +156,67 @@ def test_absent_classes_contribute_zero_f1():
     assert metrics[("F-native-scifact", "macro_f1", None)]["value"] == (1.0 + 0.0 + 0.0) / 3
     assert metrics[("F-false-endorsement", "false_endorsement_gold_nonsup", "SUPPORT")]["value"] == 0.0
     assert metrics[("F-false-endorsement", "false_endorsement_pred_sup", "SUPPORT")]["value"] == 0.0
+
+
+def test_native_gold_reduction_does_not_invent_labels():
+    assert claim_label_from_native([]) == "NEI"
+    assert claim_label_from_native(["SUPPORT", "SUPPORT"]) == "SUPPORT"
+    assert claim_label_from_native(["CONTRADICT"]) == "CONTRADICT"
+    with pytest.raises(GoldJoinError, match="mixed"):
+        claim_label_from_native(["SUPPORT", "CONTRADICT"])
+    with pytest.raises(GoldJoinError, match="outside"):
+        claim_label_from_native(["unaddressed"])
+
+
+def test_join_gold_uses_locked_development_split():
+    claims_path = ROOT / "data" / "raw" / "scifact" / "claims_train.jsonl"
+    if not claims_path.is_file():
+        pytest.skip("pinned SciFact claims are not downloaded")
+    rows = [
+        {"claim_id": "scifact:0", "label": "NEI", "adaptation": "B2", "inference_mode": "live"},
+        {"claim_id": "scifact:2", "label": "REFUTE", "adaptation": "B2", "inference_mode": "live"},
+        {"claim_id": "scifact:12", "label": "NEI", "adaptation": "B2", "inference_mode": "live"},
+    ]
+    sidecar = {
+        "inference_mode": "live",
+        "run": {
+            "run_id": "join-check",
+            "split": "development",
+            "corpus_hash": "b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62",
+        },
+    }
+    joined, gold = join_scifact_gold(rows, split="development", sidecar=sidecar)
+    by_id = {row["claim_id"]: row["label_gold"] for row in joined}
+    assert by_id == {"scifact:0": "NEI", "scifact:2": "CONTRADICT", "scifact:12": "SUPPORT"}
+    assert gold["n_joined"] == 3
+    assert gold["claims"][2]["native_labels"] == ["SUPPORT", "SUPPORT"]
+    with pytest.raises(GoldJoinError, match="not in the locked"):
+        join_scifact_gold(
+            [{"claim_id": "scifact:999999", "label": "NEI"}],
+            split="development",
+            sidecar=sidecar,
+        )
+
+
+def test_checked_in_live_metrics_cite_the_development_run():
+    report = json.loads(
+        (ROOT / "docs" / "paper-assets" / "tables" / "b2_live_n20_metrics.json").read_text(encoding="utf-8")
+    )
+    run_id = "same-evidence-b2-development-s0-n20-dac855c4e2ae"
+    assert report["run_id"] == run_id
+    assert report["inference_mode"] == "live"
+    assert report["n_scored"] == 20
+    assert report["counts"]["per_class"]["SUPPORT"] == {"tp": 0, "fp": 3, "fn": 3}
+    assert report["counts"]["per_class"]["REFUTE"] == {"tp": 1, "fp": 3, "fn": 0}
+    assert report["counts"]["per_class"]["NEI"] == {"tp": 11, "fp": 2, "fn": 5}
+    metrics = _index(report)
+    assert metrics[("F-native-scifact", "precision", "REFUTE")]["value"] == 0.25
+    assert metrics[("F-native-scifact", "micro_f1", None)]["value"] == 0.6
+    assert metrics[("F-false-endorsement", "false_endorsement_gold_nonsup", "SUPPORT")]["value"] == 3 / 17
+    assert metrics[("F-false-endorsement", "false_endorsement_pred_sup", "SUPPORT")]["value"] == 1.0
+    for row in report["metrics"]:
+        assert row["run_id"] == run_id
+        assert row["formula_id"] in {"F-native-scifact", "F-false-endorsement"}
 
 
 def test_existing_false_endorsement_fixture_unchanged():

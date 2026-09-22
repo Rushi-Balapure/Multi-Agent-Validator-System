@@ -1,0 +1,351 @@
+{
+  "counts": {
+    "formula_id": "F-native-scifact",
+    "micro": {
+      "fn": 8,
+      "fp": 8,
+      "tp": 12
+    },
+    "notes_path": "docs/paper-assets/formulas/F-native-scifact.md",
+    "per_class": {
+      "NEI": {
+        "fn": 5,
+        "fp": 2,
+        "tp": 11
+      },
+      "REFUTE": {
+        "fn": 0,
+        "fp": 3,
+        "tp": 1
+      },
+      "SUPPORT": {
+        "fn": 3,
+        "fp": 3,
+        "tp": 0
+      }
+    },
+    "run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae"
+  },
+  "endorsement_label": "SUPPORT",
+  "gold_join": {
+    "claims": [
+      {
+        "claim_id": "scifact:0",
+        "gold_source": "data.scifact_loader.load_split",
+        "label": "NEI",
+        "label_gold": "NEI",
+        "native_labels": []
+      },
+      {
+        "claim_id": "scifact:2",
+        "gold_source": "data.scifact_loader.load_split",
+        "label": "REFUTE",
+        "label_gold": "CONTRADICT",
+        "native_labels": [
+          "CONTRADICT"
+        ]
+      },
+      {
+        "claim_id": "scifact:4",
+        "gold_source": "data.scifact_loader.load_split",
+        "label": "NEI",
+        "label_gold": "NEI",
+        "native_labels": []
+      },
+      {
+        "claim_id": "scifact:6",
+        "gold_source": "data.scifact_loader.load_split",
+        "label": "REFUTE",
+        "label_gold": "NEI",
+        "native_labels": []
+      },
+      {
+        "claim_id": "scifact:9",
+        "gold_source": "data.scifact_loader.load_split",
+        "label": "NEI",
+        "label_gold": "SUPPORT",
+        "native_labels": [
+          "SUPPORT"
+        ]
+      },
+      {
+        "claim_id": "scifact:10",
+        "gold_source": "data.scifact_loader.load_split",
+        "label": "NEI",
+        "label_gold": "NEI",
+        "native_labels": []
+      },
+      {
+        "claim_id": "scifact:11",
+        "gold_source": "data.scifact_loader.load_split",
+        "label": "NEI",
+        "label_gold": "NEI",
+        "native_labels": []
+      },
+      {
+        "claim_id": "scifact:12",
+        "gold_source": "data.scifact_loader.load_split",
+        "label": "NEI",
+        "label_gold": "SUPPORT",
+        "native_labels": [
+          "SUPPORT",
+          "SUPPORT"
+        ]
+      },
+      {
+        "claim_id": "scifact:14",
+        "gold_source": "data.scifact_loader.load_split",
+        "label": "REFUTE",
+        "label_gold": "NEI",
+        "native_labels": []
+      },
+      {
+        "claim_id": "scifact:15",
+        "gold_source": "data.scifact_loader.load_split",
+        "label": "NEI",
+        "label_gold": "NEI",
+        "native_labels": []
+      },
+      {
+        "claim_id": "scifact:17",
+        "gold_source": "data.scifact_loader.load_split",
+        "label": "NEI",
+        "label_gold": "NEI",
+        "native_labels": []
+      },
+      {
+        "claim_id": "scifact:18",
+        "gold_source": "data.scifact_loader.load_split",
+        "label": "NEI",
+        "label_gold": "NEI",
+        "native_labels": []
+      },
+      {
+        "claim_id": "scifact:19",
+        "gold_source": "data.scifact_loader.load_split",
+        "label": "SUPPORT",
+        "label_gold": "NEI",
+        "native_labels": []
+      },
+      {
+        "claim_id": "scifact:20",
+        "gold_source": "data.scifact_loader.load_split",
+        "label": "SUPPORT",
+        "label_gold": "NEI",
+        "native_labels": []
+      },
+      {
+        "claim_id": "scifact:21",
+        "gold_source": "data.scifact_loader.load_split",
+        "label": "SUPPORT",
+        "label_gold": "NEI",
+        "native_labels": []
+      },
+      {
+        "claim_id": "scifact:22",
+        "gold_source": "data.scifact_loader.load_split",
+        "label": "REFUTE",
+        "label_gold": "SUPPORT",
+        "native_labels": [
+          "SUPPORT"
+        ]
+      },
+      {
+        "claim_id": "scifact:24",
+        "gold_source": "data.scifact_loader.load_split",
+        "label": "NEI",
+        "label_gold": "NEI",
+        "native_labels": []
+      },
+      {
+        "claim_id": "scifact:25",
+        "gold_source": "data.scifact_loader.load_split",
+        "label": "NEI",
+        "label_gold": "NEI",
+        "native_labels": []
+      },
+      {
+        "claim_id": "scifact:26",
+        "gold_source": "data.scifact_loader.load_split",
+        "label": "NEI",
+        "label_gold": "NEI",
+        "native_labels": []
+      },
+      {
+        "claim_id": "scifact:27",
+        "gold_source": "data.scifact_loader.load_split",
+        "label": "NEI",
+        "label_gold": "NEI",
+        "native_labels": []
+      }
+    ],
+    "manifest": "manifests/scifact/scifact_development_v1.json",
+    "n_already_labeled": 0,
+    "n_joined": 20,
+    "rule": "Upstream gold_labels only. Empty evidence (no gold_labels) is NEI on the SUPPORT/REFUTE/NEI label space, not a four-way label. Uniform SUPPORT or CONTRADICT is kept. CONTRADICT is scored as REFUTE. Mixed SUPPORT and CONTRADICT is refused.",
+    "source": "data.scifact_loader.load_split",
+    "split": "development"
+  },
+  "inference_mode": "live",
+  "method_id": "B2",
+  "metrics": [
+    {
+      "class": "SUPPORT",
+      "formula_id": "F-native-scifact",
+      "metric": "precision",
+      "notes_path": "docs/paper-assets/formulas/F-native-scifact.md",
+      "run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
+      "value": 0.0
+    },
+    {
+      "class": "SUPPORT",
+      "formula_id": "F-native-scifact",
+      "metric": "recall",
+      "notes_path": "docs/paper-assets/formulas/F-native-scifact.md",
+      "run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
+      "value": 0.0
+    },
+    {
+      "class": "SUPPORT",
+      "formula_id": "F-native-scifact",
+      "metric": "f1",
+      "notes_path": "docs/paper-assets/formulas/F-native-scifact.md",
+      "run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
+      "value": 0.0
+    },
+    {
+      "class": "REFUTE",
+      "formula_id": "F-native-scifact",
+      "metric": "precision",
+      "notes_path": "docs/paper-assets/formulas/F-native-scifact.md",
+      "run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
+      "value": 0.25
+    },
+    {
+      "class": "REFUTE",
+      "formula_id": "F-native-scifact",
+      "metric": "recall",
+      "notes_path": "docs/paper-assets/formulas/F-native-scifact.md",
+      "run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
+      "value": 1.0
+    },
+    {
+      "class": "REFUTE",
+      "formula_id": "F-native-scifact",
+      "metric": "f1",
+      "notes_path": "docs/paper-assets/formulas/F-native-scifact.md",
+      "run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
+      "value": 0.4
+    },
+    {
+      "class": "NEI",
+      "formula_id": "F-native-scifact",
+      "metric": "precision",
+      "notes_path": "docs/paper-assets/formulas/F-native-scifact.md",
+      "run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
+      "value": 0.8461538461538461
+    },
+    {
+      "class": "NEI",
+      "formula_id": "F-native-scifact",
+      "metric": "recall",
+      "notes_path": "docs/paper-assets/formulas/F-native-scifact.md",
+      "run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
+      "value": 0.6875
+    },
+    {
+      "class": "NEI",
+      "formula_id": "F-native-scifact",
+      "metric": "f1",
+      "notes_path": "docs/paper-assets/formulas/F-native-scifact.md",
+      "run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
+      "value": 0.7586206896551724
+    },
+    {
+      "class": null,
+      "formula_id": "F-native-scifact",
+      "metric": "micro_precision",
+      "notes_path": "docs/paper-assets/formulas/F-native-scifact.md",
+      "run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
+      "value": 0.6
+    },
+    {
+      "class": null,
+      "formula_id": "F-native-scifact",
+      "metric": "micro_recall",
+      "notes_path": "docs/paper-assets/formulas/F-native-scifact.md",
+      "run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
+      "value": 0.6
+    },
+    {
+      "class": null,
+      "formula_id": "F-native-scifact",
+      "metric": "micro_f1",
+      "notes_path": "docs/paper-assets/formulas/F-native-scifact.md",
+      "run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
+      "value": 0.6
+    },
+    {
+      "class": null,
+      "formula_id": "F-native-scifact",
+      "metric": "macro_precision",
+      "notes_path": "docs/paper-assets/formulas/F-native-scifact.md",
+      "run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
+      "value": 0.3653846153846154
+    },
+    {
+      "class": null,
+      "formula_id": "F-native-scifact",
+      "metric": "macro_recall",
+      "notes_path": "docs/paper-assets/formulas/F-native-scifact.md",
+      "run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
+      "value": 0.5625
+    },
+    {
+      "class": null,
+      "formula_id": "F-native-scifact",
+      "metric": "macro_f1",
+      "notes_path": "docs/paper-assets/formulas/F-native-scifact.md",
+      "run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
+      "value": 0.3862068965517242
+    },
+    {
+      "alias": "false_support_rate",
+      "class": "SUPPORT",
+      "endorsement_label": "SUPPORT",
+      "formula_id": "F-false-endorsement",
+      "metric": "false_endorsement_gold_nonsup",
+      "n_false_endorsements": 3,
+      "n_gold_nonsupported": 17,
+      "n_predicted_supported": 3,
+      "notes_path": "docs/paper-assets/formulas/F-false-endorsement.md",
+      "run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
+      "value": 0.17647058823529413
+    },
+    {
+      "alias": "false_support_among_predicted_support",
+      "class": "SUPPORT",
+      "endorsement_label": "SUPPORT",
+      "formula_id": "F-false-endorsement",
+      "metric": "false_endorsement_pred_sup",
+      "n_false_endorsements": 3,
+      "n_gold_nonsupported": 17,
+      "n_predicted_supported": 3,
+      "notes_path": "docs/paper-assets/formulas/F-false-endorsement.md",
+      "run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
+      "value": 1.0
+    }
+  ],
+  "n_rows": 20,
+  "n_scored": 20,
+  "n_skipped_not_ok": 0,
+  "n_skipped_unlabeled": 0,
+  "prediction_label_space": "scifact_SUPPORT_REFUTE_NEI",
+  "provenance": {
+    "join_gold": "development",
+    "predictions": "artifacts/same_evidence_b2/predictions.jsonl",
+    "run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
+    "run_sidecar": "artifacts/same_evidence_b2/run.json"
+  },
+  "run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae"
+}

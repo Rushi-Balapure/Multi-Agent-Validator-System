@@ -6,21 +6,22 @@ both F-false-endorsement denominators. Every metric cites ``run_id`` and
 a formula id from the metric contract.
 
 Gold is optional on the artifact. Rows without gold are counted and
-skipped. If no row has gold, the command exits 2 and writes nothing:
-this scorer does not join the corpus.
+skipped unless ``--join-gold`` names a locked split. That flag copies
+claim labels from ``data.scifact_loader.load_split`` (empty evidence is
+NEI; CONTRADICT stays CONTRADICT and is scored as REFUTE). It does not
+invent labels. Official test is refused.
 
 ``run_id`` comes from ``--run-id`` or from the run sidecar
-(``run.run_id``). A live B2 artifact is not in this repo. After Baseline
-writes one (including the ``inference_mode=live`` rename; today's live
-call records ``inference_mode=endpoint``):
+(``run.run_id``). ``artifacts/`` is gitignored, so a checked-in copy of a
+scored run lives under ``docs/paper-assets/tables/``.
 
     PYTHONPATH=src python -m evaluation.score_predictions \\
         --predictions artifacts/same_evidence_b2/predictions.jsonl \\
         --run-sidecar artifacts/same_evidence_b2/run.json \\
-        --output artifacts/same_evidence_b2/metrics.json
+        --join-gold development \\
+        --output docs/paper-assets/tables/b2_live_n20_metrics.json
 
-Rows still need ``label_gold`` (or ``gold_label`` / ``gold``). ``CONTRADICT``
-gold is scored as REFUTE. Do not score a file that mixes mock and live rows.
+Do not score a file that mixes mock and live rows.
 """
 
 from __future__ import annotations
@@ -32,6 +33,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from evaluation.registry import get_formula
+from evaluation.scifact_gold import GoldJoinError, join_scifact_gold
 from evaluation.scorers import (
     ENDORSEMENT_LABEL,
     NATIVE_LABELS,
@@ -360,6 +362,7 @@ def score_predictions_file(
     *,
     run_id: str | None = None,
     run_sidecar: Path | None = None,
+    join_gold: str | None = None,
 ) -> dict[str, Any]:
     rows = _read_jsonl(predictions)
     sidecar = _read_sidecar(run_sidecar)
@@ -367,12 +370,21 @@ def score_predictions_file(
     sidecar_mode = None
     if sidecar and isinstance(sidecar.get("inference_mode"), str):
         sidecar_mode = sidecar["inference_mode"]
+    gold_join = None
+    if join_gold:
+        try:
+            rows, gold_join = join_scifact_gold(rows, split=join_gold, sidecar=sidecar)
+        except GoldJoinError as exc:
+            raise ScoreError(str(exc)) from exc
     report = score_prediction_rows(rows, run_id=resolved, inference_mode=sidecar_mode)
     report["provenance"] = {
         "run_id": resolved,
         "predictions": str(predictions),
         "run_sidecar": str(run_sidecar) if run_sidecar else None,
+        "join_gold": join_gold,
     }
+    if gold_join is not None:
+        report["gold_join"] = gold_join
     return report
 
 
@@ -395,6 +407,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="run.json; run_id is read from run.run_id",
     )
     parser.add_argument("--run-id", default=None, help="overrides the sidecar and row run_id")
+    parser.add_argument(
+        "--join-gold",
+        default=None,
+        metavar="SPLIT",
+        help="locked split role (development) used when rows have no label_gold",
+    )
     parser.add_argument("--output", required=True, type=Path, help="metrics JSON path")
     return parser.parse_args(argv)
 
@@ -406,6 +424,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             args.predictions,
             run_id=args.run_id,
             run_sidecar=args.run_sidecar,
+            join_gold=args.join_gold,
         )
     except ScoreError as exc:
         print(f"SCORE FAILED: {exc}", file=sys.stderr)

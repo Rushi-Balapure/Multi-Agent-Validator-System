@@ -48,7 +48,7 @@ No corpus-split edits. No baseline/retrieval/judge code changes to chase scores.
 
 ## Scoring B2 predictions
 
-`PYTHONPATH=src python -m evaluation.score_predictions` reads a same-evidence `predictions.jsonl` (`claim_id`, predicted `label` in `SUPPORT` / `REFUTE` / `NEI`, optional `label_gold`). It writes metrics JSON. Each metric includes `run_id` (CLI `--run-id`, else sidecar `run.run_id`) and a formula id:
+`PYTHONPATH=src python -m evaluation.score_predictions` reads a same-evidence `predictions.jsonl` (`claim_id`, predicted `label` in `SUPPORT` / `REFUTE` / `NEI`, optional `label_gold`). It writes metrics JSON. Pass `--join-gold development` to copy claim labels from `data.scifact_loader.load_split` when the artifact has none (empty evidence → NEI; uniform `CONTRADICT` is scored as `REFUTE`; mixed native labels are refused). Each metric includes `run_id` (CLI `--run-id`, else sidecar `run.run_id`) and a formula id:
 
 - Per-class, micro, and macro precision / recall / F1 use `F-native-scifact`. This is label classification only. It is not four-way macro-F1.
 - False endorsement uses `F-false-endorsement`. On this label space the endorsement class is `SUPPORT` (false-support rate). Both denominators are reported. `CONTRADICT` gold counts as `REFUTE`.
