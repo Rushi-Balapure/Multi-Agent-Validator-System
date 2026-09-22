@@ -1,0 +1,8 @@
+{
+  "fixture_id": "decompose-numeric-v1",
+  "question": "What change in systolic pressure was reported?",
+  "frozen_conclusion": "In a randomized trial, treatment may lower systolic pressure by 12.5% in older adults compared with placebo (effect size of 0.42).",
+  "report_id": "decompose-numeric",
+  "native_id": 910003,
+  "split_role": "development"
+}

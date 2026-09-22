@@ -1,0 +1,9 @@
+{
+  "fixture_id": "decompose-population-v1",
+  "question": "What was reported for mice and for older adults?",
+  "frozen_conclusion": "In mice, compound MX-42 reduced amyloid burden. In older adults, the same compound was associated with slower decline.",
+  "report_text": "A frozen report follows. In mice, compound MX-42 reduced amyloid burden. In older adults, the same compound was associated with slower decline.",
+  "report_id": "decompose-population",
+  "native_id": 910002,
+  "split_role": "development"
+}
