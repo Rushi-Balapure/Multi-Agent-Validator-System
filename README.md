@@ -32,3 +32,17 @@ bash scripts/phase1_smoke.sh
 ```
 
 Writes `artifacts/phase1_smoke/predictions.jsonl`, `run.json`, and `metrics.json` (gitignored). `PHASE1_SMOKE_OUT` overrides that directory.
+
+## Stack V batch runner
+
+Offline dry-run of the staged D0 ∪ D1 pipeline over the three report fixtures. The scored `label` is the reconciled four-way judgment mapped onto `SUPPORT` / `REFUTE` / `NEI` (`supported` → `SUPPORT`, `contradicted` → `REFUTE`, `unaddressed` and `underdetermined` → `NEI`). `label_4way` keeps the four-way token. At most 20 development claims are written. `method_id` is `V`.
+
+```bash
+PYTHONPATH=src python3 -m validator.validator_v \
+  --config configs/validator_v/development.yaml \
+  --dry-run \
+  --output artifacts/validator_v/predictions.jsonl \
+  --run-sidecar artifacts/validator_v/run.json
+```
+
+`--gather` is opt-in. It calls Retrieval Wing `gather(neutral_question, config, claim_id)` for the first `--limit` development manifest ids (same order as B2) and does not pass gold D0. `bash scripts/validator_v_smoke.sh` is the offline check. `VALIDATOR_V_SMOKE_OUT` overrides its output directory.
