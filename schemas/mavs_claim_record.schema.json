@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://mavs.local/schemas/mavs_claim_record.schema.json",
   "title": "MavsClaimRecord",
+  "description": "Atomic claim (research-plan §4). Phase-2 decomposition fills subject/relation/object, population/comparator/time/units/modality, neutral_question, asserted_answer, and dependencies. SciFact same-evidence loads may leave those optional fields null.",
   "type": "object",
   "required": [
     "claim_id",
@@ -99,28 +100,61 @@
     "source": {
       "type": "object",
       "required": [
-        "dataset",
-        "native_id"
+        "dataset"
       ],
       "additionalProperties": false,
       "properties": {
         "dataset": {
           "type": "string",
-          "const": "scifact"
+          "enum": [
+            "scifact",
+            "agentic"
+          ]
         },
         "native_id": {
-          "type": "integer"
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "split_role": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "development",
             "calibration",
             "held_out_local_eval",
-            "official_test_unlabeled"
+            "official_test_unlabeled",
+            null
           ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "dataset": {
+                "const": "scifact"
+              }
+            },
+            "required": [
+              "dataset"
+            ]
+          },
+          "then": {
+            "required": [
+              "native_id"
+            ],
+            "properties": {
+              "native_id": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

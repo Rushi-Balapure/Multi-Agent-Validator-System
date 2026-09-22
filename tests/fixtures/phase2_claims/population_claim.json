@@ -1,0 +1,24 @@
+{
+  "claim_id": "agentic:phase2-population-v1",
+  "report_id": "agentic:phase2-frozen-report-v1",
+  "exact_source_span": "In adults aged 65 years and older with hypertension, treatment reduced systolic blood pressure.",
+  "normalized_claim": "In adults aged 65 years and older with hypertension, treatment reduced systolic blood pressure.",
+  "subject": "treatment",
+  "relation": "reduced",
+  "object": "systolic blood pressure",
+  "population": "adults aged 65 years and older with hypertension",
+  "comparator": null,
+  "time": null,
+  "units": null,
+  "modality": "effect",
+  "neutral_question": "What did abstracts report about treatment and systolic blood pressure in adults aged 65 years and older with hypertension?",
+  "asserted_answer": "treatment reduced systolic blood pressure in adults aged 65 years and older with hypertension",
+  "dependencies": [
+    "agentic:phase2-numeric-v1"
+  ],
+  "source": {
+    "dataset": "agentic",
+    "native_id": null,
+    "split_role": null
+  }
+}

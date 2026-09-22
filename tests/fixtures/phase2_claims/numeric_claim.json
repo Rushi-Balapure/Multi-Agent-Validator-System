@@ -1,0 +1,24 @@
+{
+  "claim_id": "agentic:phase2-numeric-v1",
+  "report_id": "agentic:phase2-frozen-report-v1",
+  "exact_source_span": "Treatment reduced systolic blood pressure by 12 mmHg versus placebo at 12 weeks.",
+  "normalized_claim": "Treatment reduced systolic blood pressure by 12 mmHg versus placebo at 12 weeks.",
+  "subject": "treatment",
+  "relation": "reduced",
+  "object": "systolic blood pressure",
+  "population": null,
+  "comparator": "placebo",
+  "time": "12 weeks",
+  "units": "mmHg",
+  "modality": "magnitude",
+  "neutral_question": "What change in systolic blood pressure versus placebo at 12 weeks did abstracts report for the treatment?",
+  "asserted_answer": "12 mmHg reduction versus placebo at 12 weeks",
+  "dependencies": [
+    "agentic:phase2-population-v1"
+  ],
+  "source": {
+    "dataset": "agentic",
+    "native_id": null,
+    "split_role": null
+  }
+}
