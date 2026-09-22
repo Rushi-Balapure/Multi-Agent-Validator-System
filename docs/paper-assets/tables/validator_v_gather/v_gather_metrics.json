@@ -1,0 +1,20 @@
+{
+  "counts": null,
+  "endorsement_label": "SUPPORT",
+  "inference_mode": "live",
+  "method_id": "V",
+  "metrics": [],
+  "n_rows": 20,
+  "n_scored": 0,
+  "n_skipped_not_ok": 20,
+  "n_skipped_unlabeled": 0,
+  "prediction_label_space": "scifact_SUPPORT_REFUTE_NEI",
+  "provenance": {
+    "gold_source": null,
+    "predictions": "docs/paper-assets/tables/validator_v_gather/predictions.jsonl",
+    "run_id": "validator-v-gather-development-s0-n20-90129d9056fd",
+    "run_sidecar": "docs/paper-assets/tables/validator_v_gather/run.json"
+  },
+  "run_id": "validator-v-gather-development-s0-n20-90129d9056fd",
+  "scoring_status": "skipped_not_ok"
+}

@@ -1,0 +1,18 @@
+{
+  "b2_false_endorsement_gold_nonsup": 0.17647058823529413,
+  "b2_false_endorsement_pred_sup": 1.0,
+  "b2_run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
+  "figure_id": "fe_bar_v_vs_b2",
+  "formula_id": "F-false-endorsement",
+  "note": "V FE rates are N/A because every gather row is execution_status not ok (fail-closed D0). Values are taken only from saved metrics.",
+  "sources": {
+    "b2_metrics": "docs/paper-assets/tables/b2_live_n20_metrics.json",
+    "v_metrics": "docs/paper-assets/tables/validator_v_gather/v_gather_metrics.json",
+    "v_predictions": "docs/paper-assets/tables/validator_v_gather/predictions.jsonl"
+  },
+  "v_fe_rates": null,
+  "v_n_scored": 0,
+  "v_n_skipped_not_ok": 20,
+  "v_run_id": "validator-v-gather-development-s0-n20-90129d9056fd",
+  "v_scoring_status": "skipped_not_ok"
+}

@@ -227,3 +227,41 @@ def test_existing_false_endorsement_fixture_unchanged():
         (ROOT / "src" / "evaluation" / "fixtures" / "false_endorsement_expected.json").read_text(encoding="utf-8")
     )
     assert false_endorsement(payload) == expected
+
+
+def test_all_failed_rows_report_skipped_not_ok_without_fe_rates():
+    rows = [
+        {
+            "claim_id": f"scifact:{i}",
+            "label": "NEI",
+            "method_id": "V",
+            "execution_status": "failed",
+            "inference_mode": "live",
+        }
+        for i in range(3)
+    ]
+    report = score_prediction_rows(rows, run_id="gather-skip-001")
+    assert report["scoring_status"] == "skipped_not_ok"
+    assert report["n_rows"] == 3
+    assert report["n_scored"] == 0
+    assert report["n_skipped_not_ok"] == 3
+    assert report["metrics"] == []
+    assert report["counts"] is None
+
+
+def test_checked_in_v_gather_is_entirely_fail_closed():
+    path = ROOT / "docs" / "paper-assets" / "tables" / "validator_v_gather" / "predictions.jsonl"
+    rows = [
+        json.loads(line)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert len(rows) == 20
+    assert all(row.get("execution_status") == "failed" for row in rows)
+    report = score_prediction_rows(
+        rows, run_id="validator-v-gather-development-s0-n20-90129d9056fd"
+    )
+    assert report["scoring_status"] == "skipped_not_ok"
+    assert report["n_skipped_not_ok"] == 20
+    assert report["n_scored"] == 0
+    assert report["metrics"] == []

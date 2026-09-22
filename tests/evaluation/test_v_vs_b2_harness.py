@@ -19,7 +19,9 @@ from evaluation.harness import (
     FORMULA_ID,
     HELD_OUT_B2_RUN_ID_PLACEHOLDER,
     HELD_OUT_V_RUN_ID_PLACEHOLDER,
+    NA,
     PENDING,
+    SKIPPED,
     V_RUN_ID_PLACEHOLDER,
     CompareError,
     compare_false_endorsement,
@@ -40,8 +42,16 @@ STUB = ROOT / "docs" / "paper-assets" / "tables" / "v_vs_b2_false_endorsement.md
 V_PREDICTIONS = ROOT / "docs" / "paper-assets" / "tables" / "validator_v" / "predictions.jsonl"
 V_SIDECAR = ROOT / "docs" / "paper-assets" / "tables" / "validator_v" / "run.json"
 V_METRICS = ROOT / "docs" / "paper-assets" / "tables" / "validator_v" / "v_dry_run_metrics.json"
+V_GATHER_PRED = (
+    ROOT / "docs" / "paper-assets" / "tables" / "validator_v_gather" / "predictions.jsonl"
+)
+V_GATHER_SIDE = ROOT / "docs" / "paper-assets" / "tables" / "validator_v_gather" / "run.json"
+V_GATHER_METRICS = (
+    ROOT / "docs" / "paper-assets" / "tables" / "validator_v_gather" / "v_gather_metrics.json"
+)
 LIVE_RUN_ID = "same-evidence-b2-development-s0-n20-dac855c4e2ae"
 V_RUN_ID = "validator-v-development-s0-n3-d5cecb97c55b"
+V_GATHER_RUN_ID = "validator-v-gather-development-s0-n20-90129d9056fd"
 FIXTURE_RUN_ID = "fixture-b2-score-001"
 NOTES = "docs/paper-assets/formulas/F-false-endorsement.md"
 
@@ -144,40 +154,35 @@ def test_pending_live_stub_keeps_b2_and_formula():
         assert not any(character.isdigit() for character in cell)
 
 
-def test_paper_table_keeps_live_b2_and_fills_v_from_dry_run():
-    assert V_PREDICTIONS.is_file()
-    assert V_SIDECAR.is_file()
-    assert V_METRICS.is_file()
+def test_paper_table_paired_gather_is_fail_closed_na():
+    assert V_GATHER_PRED.is_file()
+    assert V_GATHER_SIDE.is_file()
+    assert V_GATHER_METRICS.is_file()
     text = STUB.read_text(encoding="utf-8")
     assert LIVE_RUN_ID in text
-    assert V_RUN_ID in text
-    assert "docs/paper-assets/tables/validator_v/predictions.jsonl" in text
-    assert "docs/paper-assets/tables/validator_v/run.json" in text
-    assert "src/evaluation/fixtures/v_fixture_report_gold.json" in text
+    assert V_GATHER_RUN_ID in text
+    assert "docs/paper-assets/tables/validator_v_gather/predictions.jsonl" in text
+    assert "docs/paper-assets/tables/validator_v_gather/run.json" in text
     assert f"`{FORMULA_ID}`" in text
     assert NOTES in text
     assert "0.17647058823529413" in text
     assert "1.0" in text
-    # V rates are scorer outputs for the dry-run (0.0 / 0.0), not B2 copies
+    assert NA in text
+    assert "n_skipped_not_ok" in text
+    assert "Next contract" in text
+    assert "fail-closed" in text.lower()
+    # V FE cells are N/A — never invent 0.0 SUPPORT rates from failed rows
     v_cells = _v_cells(text)
-    assert f"`{V_RUN_ID}`" in v_cells
-    assert "0.0" in v_cells
-    assert "pending" not in v_cells
-    assert EM_DASH not in v_cells
-    metrics = json.loads(V_METRICS.read_text(encoding="utf-8"))
-    assert metrics["run_id"] == V_RUN_ID
+    assert any(V_GATHER_RUN_ID in cell for cell in v_cells)
+    assert NA in v_cells
+    assert "0.0" not in v_cells
+    metrics = json.loads(V_GATHER_METRICS.read_text(encoding="utf-8"))
+    assert metrics["run_id"] == V_GATHER_RUN_ID
     assert metrics["method_id"] == "V"
-    assert metrics["n_scored"] == 2
-    by_metric = {
-        row["metric"]: row
-        for row in metrics["metrics"]
-        if row["formula_id"] == FORMULA_ID
-    }
-    assert by_metric["false_endorsement_gold_nonsup"]["value"] == 0.0
-    assert by_metric["false_endorsement_pred_sup"]["value"] == 0.0
-    assert by_metric["false_endorsement_gold_nonsup"]["n_false_endorsements"] == 0
-    assert by_metric["false_endorsement_gold_nonsup"]["n_gold_nonsupported"] == 1
-    assert by_metric["false_endorsement_gold_nonsup"]["n_predicted_supported"] == 1
+    assert metrics["scoring_status"] == "skipped_not_ok"
+    assert metrics["n_scored"] == 0
+    assert metrics["n_skipped_not_ok"] == 20
+    assert metrics["metrics"] == []
     # Regenerating the paper table is deterministic
     output = ROOT / "docs" / "paper-assets" / "tables" / "_regen_v_vs_b2.md"
     try:
@@ -185,7 +190,14 @@ def test_paper_table_keeps_live_b2_and_fills_v_from_dry_run():
             [
                 "--paper-table",
                 "--v-metrics-output",
-                str(ROOT / "docs" / "paper-assets" / "tables" / "validator_v" / "_regen_metrics.json"),
+                str(
+                    ROOT
+                    / "docs"
+                    / "paper-assets"
+                    / "tables"
+                    / "validator_v_gather"
+                    / "_regen_metrics.json"
+                ),
                 "--output",
                 str(output),
             ]
@@ -194,9 +206,42 @@ def test_paper_table_keeps_live_b2_and_fills_v_from_dry_run():
     finally:
         if output.exists():
             output.unlink()
-        regen = ROOT / "docs" / "paper-assets" / "tables" / "validator_v" / "_regen_metrics.json"
+        regen = (
+            ROOT
+            / "docs"
+            / "paper-assets"
+            / "tables"
+            / "validator_v_gather"
+            / "_regen_metrics.json"
+        )
         if regen.exists():
             regen.unlink()
+
+
+def test_v_gather_against_live_report_is_skipped_not_invented():
+    report = json.loads(LIVE_METRICS.read_text(encoding="utf-8"))
+    rows = _load_jsonl(V_GATHER_PRED)
+    comparison = compare_false_endorsement(
+        b2_report=report,
+        v_predictions=rows,
+        v_run_id=V_GATHER_RUN_ID,
+        align_claim_ids_with_b2_metrics=True,
+    )
+    assert comparison.paired is False
+    assert comparison.paired_claim_ids is True
+    assert comparison.v.status == SKIPPED
+    assert comparison.v.run_id == V_GATHER_RUN_ID
+    assert comparison.b2.run_id == LIVE_RUN_ID
+    assert comparison.v.false_endorsement_gold_nonsup is None
+    assert comparison.v.false_endorsement_pred_sup is None
+    assert comparison.v.n_scored == 0
+    assert comparison.v.n_skipped_not_ok == 20
+    assert comparison.claim_ids is not None
+    assert len(comparison.claim_ids) == 20
+    rendered = render_live_stub_markdown(comparison)
+    assert V_GATHER_RUN_ID in rendered
+    assert NA in rendered
+    assert "0.0" not in _v_cells(rendered)
 
 
 def test_v_against_live_report_scores_independently():
@@ -208,6 +253,7 @@ def test_v_against_live_report_scores_independently():
         v_predictions=scored,
         v_run_id=V_RUN_ID,
         v_gold_source=meta["source"],
+        align_claim_ids_with_b2_metrics=False,
     )
     assert comparison.paired is False
     assert comparison.v.status == "scored"
