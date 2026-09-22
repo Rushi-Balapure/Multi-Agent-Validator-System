@@ -2,8 +2,8 @@
 
 Phase-2 inputs are an optional question and a frozen conclusion, plus an
 optional report the conclusion was taken from. The output is a schema-valid
-list of atomic ``Claim`` records: neutral questions, asserted answers, and
-exact source spans.
+``Report`` whose embedded ``Claim`` records use ``dataset="agentic"``:
+neutral questions, asserted answers, and exact source spans.
 
 Quantities, confidence language, population, experimental setting, comparators,
 and causal scope are copied from the source. A conjunction such as
@@ -25,10 +25,11 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from validator.schemas import Claim, ClaimSource, SplitRole
+from validator.schemas import Claim, ClaimSource, Report, SplitRole
 
 CLAIM_BUDGET = 8
 
@@ -45,7 +46,8 @@ _QUANTITY = re.compile(
     re.I,
 )
 _POP = (
-    r"the mouse model|mouse model|older adults|mice|mouse|rats|adults|humans|patients"
+    r"adults aged [^,.;]+|older adults|the mouse model|mouse model|"
+    r"mice|mouse|rats|adults|humans|patients"
 )
 _POP_MENTION = re.compile(
     rf"\b(?:in|among|for|to)\s+(?P<pop>{_POP})\b",
@@ -82,7 +84,10 @@ _TIME_FIELD = re.compile(
 )
 _VERB = re.compile(
     r"\b(?:"
-    r"(?:may|might|could)\s+be\s+associated\s+with"
+    r"(?:did|does|do)\s+not\s+(?:significantly\s+|slightly\s+)?"
+    r"(?:improve|improves|increase|increases|decrease|decreases|reduce|reduces|"
+    r"lower|lowers|raise|raises|cause|causes)"
+    r"|(?:may|might|could)\s+be\s+associated\s+with"
     r"|(?:is|was|are|were)\s+associated\s+with"
     r"|(?:may|might|could)\s+(?:significantly\s+|slightly\s+)?"
     r"(?:improve|improves|increase|increases|decrease|decreases|reduce|reduces|"
@@ -141,29 +146,40 @@ class LiveDecompositionRefused(DecomposeError):
 
 
 class DecomposeInput(BaseModel):
-    """Proposer inputs. The conclusion is frozen; this module does not rewrite the report."""
+    """Proposer inputs. The conclusion is frozen; this module does not rewrite the report.
+
+    Frozen conclusions use ``dataset="agentic"``. ``native_id`` and ``split_role``
+    stay unset. Pass ``dataset="scifact"`` only with a real ``native_id``.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     frozen_conclusion: str = Field(min_length=1)
     question: str | None = None
+    question_id: str | None = None
     report_text: str | None = None
     report_id: str | None = None
-    native_id: int
-    # Development is the fixture default so Claim.source validates against the
-    # claim record schema, which does not allow a null split_role.
-    split_role: SplitRole | None = SplitRole.DEVELOPMENT
+    dataset: Literal["agentic", "scifact"] = "agentic"
+    native_id: int | None = None
+    split_role: SplitRole | None = None
     fixture_id: str | None = None
+
+    @model_validator(mode="after")
+    def scifact_source_needs_native_id(self) -> DecomposeInput:
+        if self.dataset == "scifact" and self.native_id is None:
+            raise ValueError('native_id is required when dataset is "scifact"')
+        return self
 
 
 class DecompositionResult(BaseModel):
-    """Atomic claims plus coverage when the report exceeds the claim budget."""
+    """Agentic Report plus coverage when the conclusion exceeds the claim budget."""
 
     model_config = ConfigDict(extra="forbid")
 
     fixture_id: str | None = None
     question: str | None = None
     report_id: str | None = None
+    report: Report
     claims: list[Claim]
     partial: bool = False
     unchecked_spans: list[str] = Field(default_factory=list)
@@ -225,14 +241,29 @@ def decompose(
             continue
         kept.append(draft)
 
-    claims = _assign_claims(spec, kept)
+    report_id = spec.report_id or spec.fixture_id or "agentic:decompose"
+    claims = _assign_claims(spec, kept, report_id)
     for claim in claims:
         _require_exact_span(claim.exact_source_span, conclusion, spec.report_text)
         Claim.model_validate(claim.model_dump())
+    report = Report(
+        report_id=report_id,
+        question_id=spec.question_id,
+        frozen_conclusion=conclusion,
+        claim_ids=[claim.claim_id for claim in claims],
+        claims=claims,
+        generator={
+            "model_id": "fixture-proposer",
+            "dry_run": True,
+            "partial": bool(unchecked),
+            "unchecked_spans": list(unchecked),
+        },
+    )
     return DecompositionResult(
         fixture_id=spec.fixture_id,
         question=spec.question,
-        report_id=spec.report_id,
+        report_id=report_id,
+        report=report,
         claims=claims,
         partial=bool(unchecked),
         unchecked_spans=unchecked,
@@ -305,7 +336,7 @@ def _claims_for_sentence(sentence: str, *, group_index: int) -> list[_Draft]:
         local_pop, local_suffix, obj = _local_population(obj, shared)
         normalized = _assemble(prefixes, f"{subject} {verb} {obj}".strip(), local_suffix, suffixes)
         population = local_pop or shared.get("population")
-        modality = _modality(verb)
+        modality = _modality(verb, normalized)
         drafts.append(
             _Draft(
                 sentence=sentence,
@@ -370,14 +401,14 @@ def _verbatim_draft(
 ) -> _Draft:
     subject, verb, obj = parsed
     population = shared.get("population") or _only(_populations(sentence))
+    normalized = sentence if sentence.endswith((".", "!", "?")) else f"{sentence}."
     if verb is None:
         nominal = _NOMINAL.search(sentence)
         relation = nominal.group(1).casefold() if nominal else None
         modality = _modality_from_text(sentence, relation)
     else:
         relation = verb
-        modality = _modality(verb)
-    normalized = sentence if sentence.endswith((".", "!", "?")) else f"{sentence}."
+        modality = _modality(verb, normalized)
     return _Draft(
         sentence=sentence,
         normalized=normalized,
@@ -539,14 +570,22 @@ def _assemble(prefixes: list[str], clause: str, local_suffix: str, suffixes: lis
     return text
 
 
-def _modality(verb: str) -> str:
+def _modality(verb: str, text: str) -> str:
+    """Map a verb onto the §4 modality strings used by agentic claims.
+
+    Association stays association. Negation stays negation. A measured
+    quantity is magnitude. Confidence words stay in the relation text.
+    """
     folded = verb.casefold()
-    hedged = _HEDGE.search(folded) is not None
     if any(token in folded for token in ("associated", "correlated", "linked")):
-        return "hedged_association" if hedged else "association"
-    if _CAUSAL_WORD.search(folded) or "lead to" in folded or "leads to" in folded or "led to" in folded:
-        return "hedged_causal" if hedged else "causal"
-    return "hedged_effect" if hedged else "effect"
+        return "association"
+    if re.search(r"\bnot\b", folded):
+        return "negation"
+    if _CAUSAL_WORD.search(folded) or re.search(r"\b(?:led to|leads to|lead to)\b", folded):
+        return "causal"
+    if _quantities(text) or _units(text):
+        return "magnitude"
+    return "effect"
 
 
 def _modality_from_text(sentence: str, relation: str | None) -> str:
@@ -555,11 +594,15 @@ def _modality_from_text(sentence: str, relation: str | None) -> str:
     if _REC_START.search(sentence):
         return "recommendation"
     if re.search(r"\b(?:associated|association|correlated|correlation|linked)\b", sentence, re.I):
-        return "hedged_association" if _HEDGE.search(sentence) else "association"
+        return "association"
+    if re.search(r"\b(?:did|does|do)\s+not\b", sentence, re.I):
+        return "negation"
     if _CAUSAL_WORD.search(sentence):
-        return "hedged_causal" if _HEDGE.search(sentence) else "causal"
+        return "causal"
+    if _quantities(sentence) or _units(sentence):
+        return "magnitude"
     if relation or re.search(r"\b(?:reduction|increase|decrease|improvement)\b", sentence, re.I):
-        return "hedged_effect" if _HEDGE.search(sentence) else "effect"
+        return "effect"
     return "descriptive"
 
 
@@ -767,16 +810,18 @@ def _enforce_preservation(sentence: str, drafts: list[_Draft]) -> None:
                 raise DecomposeError(f"experimental setting {setting!r} was dropped")
 
 
-def _assign_claims(spec: DecomposeInput, drafts: list[_Draft]) -> list[Claim]:
+def _assign_claims(spec: DecomposeInput, drafts: list[_Draft], report_id: str) -> list[Claim]:
     anchors: dict[int, str] = {}
     claims: list[Claim] = []
     source = ClaimSource(
-        dataset="scifact",
+        dataset=spec.dataset,
         native_id=spec.native_id,
         split_role=spec.split_role,
     )
+    slug = re.sub(r"[^A-Za-z0-9._-]+", "-", report_id.removeprefix("agentic:")).strip("-")
+    slug = slug or "decompose"
     for number, draft in enumerate(drafts, start=1):
-        claim_id = f"scifact:{spec.native_id}:{number}"
+        claim_id = f"agentic:{slug}:{number}"
         dependencies: list[str] = []
         if draft.group is not None:
             anchor = anchors.get(draft.group)
@@ -791,7 +836,7 @@ def _assign_claims(spec: DecomposeInput, drafts: list[_Draft]) -> list[Claim]:
         claims.append(
             Claim(
                 claim_id=claim_id,
-                report_id=spec.report_id,
+                report_id=report_id,
                 exact_source_span=draft.sentence,
                 normalized_claim=normalized,
                 subject=draft.subject,
@@ -833,12 +878,23 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--conclusion", help="Frozen conclusion text. Not combined with --fixture.")
     parser.add_argument("--question", help="Upstream question. Stored on the result, not asserted as a claim.")
     parser.add_argument("--report-text", help="Optional report text used to check exact spans.")
-    parser.add_argument("--report-id", help="Report id copied onto each claim.")
-    parser.add_argument("--native-id", type=int, help="SciFact-shaped source id. Required with --conclusion.")
+    parser.add_argument("--report-id", help="Report id copied onto the Report and each claim.")
+    parser.add_argument("--question-id", help="Optional question id stored on the Report.")
+    parser.add_argument(
+        "--dataset",
+        choices=["agentic", "scifact"],
+        default="agentic",
+        help="Claim source dataset. Frozen conclusions use agentic. scifact requires --native-id.",
+    )
+    parser.add_argument(
+        "--native-id",
+        type=int,
+        help="SciFact native id. Required only with --dataset scifact.",
+    )
     parser.add_argument(
         "--split-role",
         choices=[item.value for item in SplitRole],
-        help="Optional split role stored on Claim.source.",
+        help="Optional split role. Agentic conclusions usually leave this unset.",
     )
     parser.add_argument("--output", type=Path, help="Write Decomposition JSON here. Omit to write stdout.")
     parser.add_argument(
@@ -882,19 +938,29 @@ def _spec_from_args(args: argparse.Namespace) -> DecomposeInput:
     if args.fixture is not None:
         if any(
             value is not None
-            for value in (args.native_id, args.report_text, args.question, args.report_id, args.split_role)
-        ):
+            for value in (
+                args.native_id,
+                args.report_text,
+                args.question,
+                args.question_id,
+                args.report_id,
+                args.split_role,
+            )
+        ) or args.dataset != "agentic":
             raise DecomposeError("--fixture already carries conclusion inputs")
         return load_fixture(args.fixture)
-    if args.native_id is None:
-        raise DecomposeError("--native-id is required with --conclusion")
+    if args.dataset == "scifact" and args.native_id is None:
+        raise DecomposeError("--native-id is required when --dataset scifact")
     payload: dict[str, object] = {
         "frozen_conclusion": args.conclusion,
         "question": args.question,
+        "question_id": args.question_id,
         "report_text": args.report_text,
         "report_id": args.report_id,
-        "native_id": args.native_id,
+        "dataset": args.dataset,
     }
+    if args.native_id is not None:
+        payload["native_id"] = args.native_id
     if args.split_role:
         payload["split_role"] = SplitRole(args.split_role)
     return DecomposeInput.model_validate(payload)

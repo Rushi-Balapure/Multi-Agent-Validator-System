@@ -2,7 +2,5 @@
   "fixture_id": "decompose-association-v1",
   "question": "How was MX-42 exposure related to tumor volume in mice?",
   "frozen_conclusion": "In mice, higher MX-42 exposure was associated with lower tumor volume compared with vehicle.",
-  "report_id": "decompose-association",
-  "native_id": 910004,
-  "split_role": "development"
+  "report_id": "decompose-association"
 }

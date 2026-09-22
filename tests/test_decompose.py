@@ -21,18 +21,37 @@ from validator.decompose import (
     neutral_reader_input,
 )
 from validator.evidence_reader import assert_reader_boundary
-from validator.schemas import Claim
+from validator.schemas import Claim, Report
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "tests" / "fixtures" / "decompose"
 SCHEMA = json.loads((ROOT / "schemas" / "mavs_claim_record.schema.json").read_text(encoding="utf-8"))
+REPORT_SCHEMA = json.loads((ROOT / "schemas" / "mavs_report_record.schema.json").read_text(encoding="utf-8"))
 VALIDATOR = Draft202012Validator(SCHEMA)
+REPORT_VALIDATOR = Draft202012Validator(REPORT_SCHEMA)
 _CAUSAL = ("cause", "caused", "causes", "causal", "causation")
 
 
 def _run(name: str):
     spec = load_fixture(FIXTURES / name)
-    return spec, decompose(spec)
+    result = decompose(spec)
+    _assert_report(spec, result)
+    return spec, result
+
+
+def _assert_report(spec: DecomposeInput, result) -> None:
+    report = result.report
+    assert isinstance(report, Report)
+    assert report.report_id == spec.report_id
+    assert report.frozen_conclusion == spec.frozen_conclusion.strip()
+    assert report.claim_ids == [claim.claim_id for claim in result.claims]
+    assert [claim.claim_id for claim in report.claims] == report.claim_ids
+    errors = sorted(error.message for error in REPORT_VALIDATOR.iter_errors(report.model_dump(mode="json")))
+    assert errors == []
+    assert "asserted_answer" not in (report.generator or {})
+    for claim in report.claims:
+        payload = neutral_reader_input(claim)
+        assert claim.asserted_answer not in json.dumps(payload)
 
 
 def _assert_schema(claims: list[Claim]) -> None:
@@ -53,8 +72,10 @@ def _assert_spans(spec: DecomposeInput, claims: list[Claim]) -> None:
         if spec.report_text is not None:
             assert claim.exact_source_span in spec.report_text
         assert claim.report_id == spec.report_id
-        assert claim.source.dataset == "scifact"
-        assert claim.source.native_id == spec.native_id
+        assert claim.claim_id.startswith("agentic:")
+        assert claim.source.dataset == "agentic"
+        assert claim.source.native_id is None
+        assert claim.source.split_role is None
 
 
 def _no_causal(text: str) -> bool:
@@ -125,7 +146,7 @@ def test_numeric_effect_size_percent_hedge_and_setting_are_kept():
     assert "0.42" in (claim.asserted_answer or "")
     assert claim.units == "%"
     assert "may" in claim.normalized_claim.casefold()
-    assert claim.modality == "hedged_effect"
+    assert claim.modality == "magnitude"
     assert claim.population is not None and claim.population.casefold() == "older adults"
     assert "older adults" in claim.normalized_claim.casefold()
     assert claim.comparator is not None and "placebo" in claim.comparator.casefold()
@@ -159,13 +180,50 @@ def test_associated_with_stays_association():
     assert "association" in (claim.neutral_question or "").casefold()
 
 
+def test_agentic_report_keeps_magnitude_population_and_negation():
+    spec = DecomposeInput(
+        question_id="decompose-scope-q1",
+        report_id="agentic:decompose-scope-v1",
+        frozen_conclusion=(
+            "In adults aged 65 years and older with hypertension, treatment reduced "
+            "systolic blood pressure by 12 mmHg versus placebo at 12 weeks. "
+            "The intervention did not increase all-cause mortality relative to control."
+        ),
+    )
+    result = decompose(spec)
+    _assert_report(spec, result)
+    _assert_schema(result.claims)
+    assert result.report.question_id == "decompose-scope-q1"
+    pressure, mortality = result.claims
+    assert pressure.population is not None
+    assert "65" in pressure.population
+    assert "hypertension" in pressure.population.casefold()
+    assert pressure.units == "mmHg"
+    assert pressure.modality == "magnitude"
+    assert pressure.comparator is not None and "placebo" in pressure.comparator.casefold()
+    assert pressure.time is not None and "12 weeks" in pressure.time
+    assert "12 mmHg" in pressure.normalized_claim
+    assert "12 mmHg" in (pressure.asserted_answer or "")
+    assert mortality.modality == "negation"
+    assert mortality.relation is not None and "not" in mortality.relation.casefold()
+    assert "increase" in mortality.relation.casefold()
+    assert mortality.comparator is not None and "control" in mortality.comparator.casefold()
+    assert "relative to" in mortality.normalized_claim.casefold()
+    assert "causal" not in (mortality.modality or "")
+    for claim in result.claims:
+        assert claim.source.dataset == "agentic"
+        assert claim.source.native_id is None
+        assert claim.source.split_role is None
+        assert claim.asserted_answer not in (claim.neutral_question or "")
+
+
 def test_opinions_and_recommendations_are_separate_claims():
     spec, result = _run("recommendation.json")
     _assert_schema(result.claims)
     _assert_spans(spec, result.claims)
     by_modality = {claim.modality: claim for claim in result.claims}
-    assert set(by_modality) == {"effect", "opinion", "recommendation"}
-    effect = by_modality["effect"]
+    assert set(by_modality) == {"magnitude", "opinion", "recommendation"}
+    effect = by_modality["magnitude"]
     opinion = by_modality["opinion"]
     recommendation = by_modality["recommendation"]
     assert "20%" in effect.normalized_claim
@@ -213,9 +271,7 @@ def test_object_coordination_keeps_association_and_shared_scope():
             "In older adults, vitamin D was associated with higher bone density "
             "and lower fracture risk compared with placebo."
         ),
-        native_id=910011,
         report_id="decompose-association-split",
-        split_role="development",
     )
     result = decompose(spec)
     _assert_schema(result.claims)
@@ -242,7 +298,6 @@ def test_per_conjunct_populations_are_not_swapped_or_upgraded():
             "Compound MX-42 reduced amyloid burden in mice and was associated "
             "with slower decline in older adults."
         ),
-        native_id=910012,
         report_id="decompose-population-split",
     )
     result = decompose(spec)
@@ -265,7 +320,6 @@ def test_quantities_stay_on_the_conjunct_that_stated_them():
             "Compound MX-42 improves memory retention by 25% and reduces anxiety "
             "by 10% in mice compared with vehicle."
         ),
-        native_id=910013,
         report_id="decompose-quantities",
     )
     result = decompose(spec)
@@ -285,7 +339,6 @@ def test_quantities_stay_on_the_conjunct_that_stated_them():
 def test_explicit_causal_scope_is_preserved():
     spec = DecomposeInput(
         frozen_conclusion="Compound MX-42 causes weight loss in mice compared with vehicle.",
-        native_id=910014,
         report_id="decompose-causal",
     )
     result = decompose(spec)
@@ -301,7 +354,6 @@ def test_explicit_causal_scope_is_preserved():
 def test_time_phrase_is_kept():
     spec = DecomposeInput(
         frozen_conclusion="Compound MX-42 reduced pain after 12 weeks in mice compared with vehicle.",
-        native_id=910015,
         report_id="decompose-time",
     )
     claim = decompose(spec).claims[0]
@@ -314,13 +366,15 @@ def test_default_budget_lists_the_unchecked_span():
     sentences = [f"Compound MX-{index} improves memory in mice." for index in range(1, 10)]
     spec = DecomposeInput(
         frozen_conclusion=" ".join(sentences),
-        native_id=910016,
         report_id="decompose-budget",
     )
     result = decompose(spec)
     assert CLAIM_BUDGET == 8
     assert result.partial is True
     assert len(result.claims) == 8
+    assert result.report.claim_ids == [claim.claim_id for claim in result.claims]
+    assert result.report.generator is not None
+    assert result.report.generator["partial"] is True
     assert result.unchecked_spans == ["Compound MX-9 improves memory in mice."]
     assert result.unchecked_spans[0] in spec.frozen_conclusion
     assert result.unchecked_spans[0] not in {claim.exact_source_span for claim in result.claims}
@@ -328,7 +382,7 @@ def test_default_budget_lists_the_unchecked_span():
 
 
 def test_claim_budget_cannot_exceed_the_research_plan_cap():
-    spec = DecomposeInput(frozen_conclusion="Compound MX-42 improves memory in mice.", native_id=1)
+    spec = DecomposeInput(frozen_conclusion="Compound MX-42 improves memory in mice.")
     with pytest.raises(DecomposeError):
         decompose(spec, claim_budget=0)
     with pytest.raises(DecomposeError):
@@ -341,7 +395,7 @@ def test_live_decomposition_is_refused_without_a_socket(monkeypatch: pytest.Monk
 
     monkeypatch.setattr(urllib.request, "urlopen", fail_network)
     monkeypatch.setattr(socket, "create_connection", fail_network)
-    spec = DecomposeInput(frozen_conclusion="Compound MX-42 improves memory in mice.", native_id=1)
+    spec = DecomposeInput(frozen_conclusion="Compound MX-42 improves memory in mice.")
     with pytest.raises(LiveDecompositionRefused):
         decompose(spec, dry_run=False)
 
@@ -376,8 +430,6 @@ def test_cli_conclusion_mode_and_help(capsys: pytest.CaptureFixture[str]):
             [
                 "--conclusion",
                 "In mice, higher MX-42 exposure was associated with lower tumor volume.",
-                "--native-id",
-                "910020",
                 "--report-id",
                 "cli-association",
                 "--dry-run",
@@ -387,7 +439,12 @@ def test_cli_conclusion_mode_and_help(capsys: pytest.CaptureFixture[str]):
     )
     payload = json.loads(capsys.readouterr().out)
     assert payload["claims"][0]["modality"] == "association"
+    assert payload["claims"][0]["source"]["dataset"] == "agentic"
+    assert payload["claims"][0]["source"]["native_id"] is None
+    assert payload["report"]["frozen_conclusion"].startswith("In mice,")
+    assert payload["report"]["claim_ids"] == [payload["claims"][0]["claim_id"]]
     assert "cause" not in payload["claims"][0]["relation"]
+    assert list(REPORT_VALIDATOR.iter_errors(payload["report"])) == []
     with pytest.raises(SystemExit) as exc:
         main(["--help"])
     assert exc.value.code == 0

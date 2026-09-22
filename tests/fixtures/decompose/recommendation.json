@@ -2,7 +2,5 @@
   "fixture_id": "decompose-recommendation-v1",
   "question": "What did the trial conclude for older adults?",
   "frozen_conclusion": "The trial found a 20% reduction in fractures in older adults. In our opinion, the result is promising. We recommend offering the supplement to older adults.",
-  "report_id": "decompose-recommendation",
-  "native_id": 910005,
-  "split_role": "development"
+  "report_id": "decompose-recommendation"
 }
