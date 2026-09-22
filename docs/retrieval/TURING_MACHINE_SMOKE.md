@@ -1,6 +1,10 @@
 # Turing-Machine BM25 index and gather-dev10 smoke
 
-Local clone on `main`. SciFact raw files are not in git. Download them first, then build the pure-Python BM25 index twice and gather the 10 pinned development claims. This note does not add a retrieval protocol. Product wiring of gather output into the Judge Stack is out of this MR.
+Verified on Turing-Machine. Clone:
+
+`/home/rushi/Desktop/Rushi/open_source/Multi-Agent-Validator-System` at `main` `67761f2`
+
+SciFact raw files are not in git. Download them first, then build the pure-Python BM25 index twice and gather the 10 pinned development claims. This note does not add a retrieval protocol. Product wiring of gather output into the Judge Stack is out of this MR.
 
 Pinned `corpus.jsonl` sha256 (`corpus_hash`):
 
@@ -34,6 +38,22 @@ PYTHONPATH=src python3 -m validator.retrieve gather-dev10 \
 ```
 
 `index` refuses to write unless `data/raw/scifact/corpus.jsonl` matches `corpus_hash` and `configs/corpus/scifact.yaml`. The index file is canonical JSON (`sort_keys`, compact separators, trailing newline) with no timestamp. A second build of the same corpus and config replaces `artifacts/retrieval/scifact_bm25.json` with the same bytes. `cmp` exits 0 and prints nothing when the two files are byte-identical. The file mtime changes; the bytes do not.
+
+Record the index file sha256 after each build:
+
+```bash
+sha256sum artifacts/retrieval/scifact_bm25.json
+```
+
+## Verified outcomes (Turing-Machine, `main` `67761f2`)
+
+Index #1:
+
+`n_docs=5183` `corpus_hash=b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62` → `artifacts/retrieval/scifact_bm25.json`
+
+Index #2 (idempotence): same path, sha256 `c74a28468d45bf94b0d896b8bdc72578e7c14e33703873cd8a83628703c6c775` on both builds. **IDEMPOTENT_OK**
+
+`gather-dev10`: wrote 10 bundles for `scifact:0`, `scifact:2`, `scifact:4`, `scifact:6`, `scifact:9`, `scifact:10`, `scifact:11`, `scifact:12`, `scifact:14`, `scifact:15`. Each bundle has 8 passages and 3 query forms (`open_inquiry`, `scope_measurement`, `limitations_null`). **GATHER_SMOKE_OK**
 
 `gather-dev10` writes one JSON object per line, in the pinned id order. Confirm the ids:
 
