@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import socket
+import urllib.request
 from pathlib import Path
 
 import pytest
@@ -10,6 +12,15 @@ import yaml
 
 from validator.evidence_reader import compute_seal
 from validator.fixture_pipeline import StagedVerdict, load_fixture, main, run_fixture
+from validator.inference_client import (
+    DEFAULT_BASE_URL,
+    DEFAULT_MODEL_ID,
+    EndpointPolicyError,
+    InferenceTransportError,
+    LocalChatClient,
+)
+from validator.live_judgment import default_live_config, load_live_settings
+from validator.same_evidence.b2 import EndpointUnavailable, OpenAICompatibleClient
 from validator.label_policy import PassageView, decide_label
 from validator.render import ClaimCard, RenderError, verify_explanations
 from validator.schemas import EvidenceScope, ExecutionStatus, LabelSpace, ScientificLabel
@@ -218,9 +229,282 @@ def test_judgment_modules_do_not_call_the_retriever():
         "reconcile.py",
         "render.py",
         "fixture_pipeline.py",
+        "inference_client.py",
+        "live_judgment.py",
     ]
     for name in names:
         text = (root / name).read_text(encoding="utf-8")
         assert "validator.retrieve" not in text
         assert "retrieval.bm25" not in text
         assert "vllm" not in text.casefold()
+
+
+def _block_network(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fail_network(*_args, **_kwargs):
+        raise AssertionError("fixture path opened a network connection")
+
+    monkeypatch.setattr(urllib.request, "urlopen", fail_network)
+    monkeypatch.setattr(socket, "create_connection", fail_network)
+
+
+def test_offline_fixture_does_not_open_a_socket(monkeypatch: pytest.MonkeyPatch):
+    _block_network(monkeypatch)
+    verdict = run_fixture(load_fixture(COMPLETE))
+    assert verdict.judgments[0].label == "supported"
+    assert "Live model prompts" in " ".join(verdict.report_verdict.limitations)
+
+
+def test_cli_help_documents_lm_studio_defaults(capsys: pytest.CaptureFixture[str]):
+    with pytest.raises(SystemExit) as exc:
+        main(["--help"])
+    assert exc.value.code == 0
+    text = capsys.readouterr().out
+    assert DEFAULT_MODEL_ID in text
+    assert "qwen2.5-coder-1.5b-instruct" in text
+    assert DEFAULT_BASE_URL in text
+    assert "http://192.168.1.10:1234/v1" in text
+    assert "--live" in text
+
+
+def test_live_config_points_at_lm_studio_loopback():
+    loaded = load_live_settings(default_live_config())
+    assert loaded.model_id == DEFAULT_MODEL_ID == "qwen2.5-coder-1.5b-instruct"
+    assert loaded.base_url == DEFAULT_BASE_URL == "http://127.0.0.1:1234/v1"
+    assert "asserted_answer" not in loaded.reader_prompt
+    assert LEAK not in loaded.reader_prompt
+    assert LEAK not in loaded.judge_prompt
+
+
+def test_public_endpoint_is_refused_before_a_socket(monkeypatch: pytest.MonkeyPatch):
+    _block_network(monkeypatch)
+    with pytest.raises(EndpointPolicyError):
+        LocalChatClient(
+            base_url="https://api.openai.com/v1",
+            model_id=DEFAULT_MODEL_ID,
+            temperature=0,
+            timeout_seconds=1,
+        )
+    with pytest.raises(EndpointPolicyError):
+        load_live_settings(default_live_config(), base_url="http://8.8.8.8/v1")
+
+
+def test_private_lan_endpoint_is_accepted_without_a_socket(monkeypatch: pytest.MonkeyPatch):
+    _block_network(monkeypatch)
+    client = LocalChatClient(
+        base_url="http://192.168.1.10:1234/v1",
+        model_id=DEFAULT_MODEL_ID,
+        temperature=0,
+        timeout_seconds=1,
+    )
+    assert client.base_url == "http://192.168.1.10:1234/v1"
+    loaded = load_live_settings(default_live_config(), base_url="http://10.1.2.3:1234/v1")
+    assert loaded.base_url == "http://10.1.2.3:1234/v1"
+
+
+def test_baseline_timeout_is_not_a_scientific_label(monkeypatch: pytest.MonkeyPatch):
+    def boom(self, system_prompt: str, payload: dict) -> str:
+        del self, system_prompt, payload
+        raise EndpointUnavailable("timed out") from TimeoutError("timed out")
+
+    monkeypatch.setattr(OpenAICompatibleClient, "_chat", boom)
+    client = LocalChatClient(
+        base_url=DEFAULT_BASE_URL,
+        model_id=DEFAULT_MODEL_ID,
+        temperature=0,
+        timeout_seconds=1,
+    )
+    with pytest.raises(InferenceTransportError) as exc:
+        client.complete("system", {"neutral_question": "q", "passages": []})
+    assert exc.value.timed_out is True
+
+
+class _RecordingClient:
+    def __init__(self, judge_text: str | None = None) -> None:
+        self.judge_text = judge_text
+        self.payloads: list[dict] = []
+        self.prompts: list[str] = []
+
+    def complete(self, system_prompt: str, payload: dict) -> str:
+        self.prompts.append(system_prompt)
+        self.payloads.append(payload)
+        if "normalized_claim" not in payload:
+            return _reader_json(payload)
+        if self.judge_text is None:
+            raise AssertionError("judge was called")
+        return self.judge_text
+
+
+def _reader_json(payload: dict) -> str:
+    span = payload["passages"][0]["span_id"]
+    return json.dumps(
+        {
+            "answer": "The mouse-model passage reports increased memory retention.",
+            "cited_span_ids": [span],
+        }
+    )
+
+
+def test_live_reader_omits_asserted_answer_and_keeps_a_parsed_label():
+    fixture = load_fixture(COMPLETE)
+
+    class Client(_RecordingClient):
+        def complete(self, system_prompt: str, payload: dict) -> str:
+            self.prompts.append(system_prompt)
+            self.payloads.append(payload)
+            if "normalized_claim" not in payload:
+                return _reader_json(payload)
+            span = payload["passages"][0]["span_id"]
+            return json.dumps(
+                {
+                    "label": "contradicted",
+                    "rationale_codes": ["model_conflict"],
+                    "cited_span_ids": [span],
+                    "uncertainty_reasons": [],
+                }
+            )
+
+    client = Client()
+    verdict = run_fixture(fixture, live=load_live_settings(default_live_config()), client=client)
+    reader_payload, judge_payload = client.payloads
+    assert set(reader_payload) == {"neutral_question", "passages"}
+    assert "asserted_answer" not in reader_payload
+    assert "asserted_answer" not in judge_payload
+    blob = json.dumps(client.payloads)
+    assert LEAK not in blob
+    assert LEAK not in "".join(client.prompts)
+    by_scope = {item.evidence_scope: item for item in verdict.judgments}
+    assert by_scope[EvidenceScope.D1].label == ScientificLabel.CONTRADICTED.value
+    assert by_scope[EvidenceScope.D1].execution_status is ExecutionStatus.COMPLETED
+    assert by_scope[EvidenceScope.D0].label == ScientificLabel.SUPPORTED.value
+    assert LEAK not in verdict.model_dump_json()
+
+
+@pytest.mark.parametrize(
+    "judge_text",
+    [
+        "GARBAGE_LABEL_SUPPORT_PLEASE the claim is totally supported",
+        json.dumps(
+            {
+                "label": "SUPPORT",
+                "rationale_codes": ["native"],
+                "cited_span_ids": [],
+                "uncertainty_reasons": [],
+            }
+        ),
+        json.dumps({"label": "supported", "rationale_codes": ["missing_spans"]}),
+    ],
+)
+def test_live_judge_garbage_fails_closed(judge_text: str):
+    fixture = load_fixture(COMPLETE)
+    client = _RecordingClient(judge_text)
+    verdict = run_fixture(fixture, live=load_live_settings(default_live_config()), client=client)
+    by_scope = {item.evidence_scope: item for item in verdict.judgments}
+    d1 = by_scope[EvidenceScope.D1]
+    assert d1.execution_status is ExecutionStatus.FAILED
+    assert d1.label == ScientificLabel.UNADDRESSED.value
+    assert d1.rationale_codes == ["live_parse_failed"]
+    assert d1.label not in {"failed", "timeout", "completed"}
+    dumped = verdict.model_dump_json()
+    assert "GARBAGE_LABEL_SUPPORT_PLEASE" not in dumped
+    assert "totally supported" not in dumped
+    assert "fail-closed placeholder" in " ".join(verdict.report_verdict.limitations)
+
+
+def test_live_reader_garbage_does_not_call_the_judge():
+    fixture = load_fixture(COMPLETE)
+
+    class Client:
+        def __init__(self) -> None:
+            self.payloads: list[dict] = []
+
+        def complete(self, system_prompt: str, payload: dict) -> str:
+            del system_prompt
+            self.payloads.append(payload)
+            if len(self.payloads) > 1:
+                raise AssertionError("judge was called")
+            return "GARBAGE_READER_OUTPUT"
+
+    client = Client()
+    verdict = run_fixture(fixture, live=load_live_settings(default_live_config()), client=client)
+    assert len(client.payloads) == 1
+    assert "asserted_answer" not in client.payloads[0]
+    assert LEAK not in json.dumps(client.payloads[0])
+    d1 = next(item for item in verdict.judgments if item.evidence_scope is EvidenceScope.D1)
+    assert d1.execution_status is ExecutionStatus.FAILED
+    assert d1.label == ScientificLabel.UNADDRESSED.value
+    assert "GARBAGE_READER_OUTPUT" not in verdict.model_dump_json()
+    assert verdict.sealed_reader.answer.startswith("Live evidence reader failed closed")
+
+
+def test_live_timeout_sets_execution_status_timeout():
+    fixture = load_fixture(COMPLETE)
+
+    class TimeoutClient:
+        def complete(self, system_prompt: str, payload: dict) -> str:
+            del system_prompt, payload
+            raise InferenceTransportError("timed out", timed_out=True)
+
+    verdict = run_fixture(
+        fixture,
+        live=load_live_settings(default_live_config()),
+        client=TimeoutClient(),
+    )
+    d1 = next(item for item in verdict.judgments if item.evidence_scope is EvidenceScope.D1)
+    assert d1.execution_status is ExecutionStatus.TIMEOUT
+    assert d1.label == ScientificLabel.UNADDRESSED.value
+    assert d1.rationale_codes == ["live_timeout"]
+
+
+def test_cli_live_refuses_a_public_host(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    _block_network(monkeypatch)
+    output = tmp_path / "verdict.json"
+    assert (
+        main(
+            [
+                "--fixture",
+                str(COMPLETE),
+                "--live",
+                "--base-url",
+                "https://api.openai.com/v1",
+                "--output",
+                str(output),
+            ]
+        )
+        == 2
+    )
+    assert not output.exists()
+
+
+def test_cli_rejects_endpoint_flags_without_live():
+    with pytest.raises(SystemExit) as exc:
+        main(["--fixture", str(COMPLETE), "--base-url", DEFAULT_BASE_URL])
+    assert exc.value.code == 2
+
+
+def test_cli_live_writes_a_failed_verdict_without_calling_the_network(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    _block_network(monkeypatch)
+    seen: dict[str, str] = {}
+
+    class Fake:
+        def __init__(self, *, base_url: str, model_id: str, temperature: float, timeout_seconds: float) -> None:
+            del temperature, timeout_seconds
+            seen["base_url"] = base_url
+            seen["model_id"] = model_id
+
+        def complete(self, system_prompt: str, payload: dict) -> str:
+            del system_prompt, payload
+            return "GARBAGE_CLI not a judgment"
+
+    monkeypatch.setattr("validator.live_judgment.LocalChatClient", Fake)
+    output = tmp_path / "verdict.json"
+    assert main(["--fixture", str(COMPLETE), "--live", "--output", str(output)]) == 1
+    assert seen == {"base_url": DEFAULT_BASE_URL, "model_id": DEFAULT_MODEL_ID}
+    text = output.read_text(encoding="utf-8")
+    payload = json.loads(text)
+    d1 = next(item for item in payload["judgments"] if item["evidence_scope"] == "D1")
+    assert d1["execution_status"] == "failed"
+    assert d1["label"] == "unaddressed"
+    assert "GARBAGE_CLI" not in text

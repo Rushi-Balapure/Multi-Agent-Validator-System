@@ -2,8 +2,10 @@
 
 The judge sees the atomic claim, the sealed evidence-only record, and the D1
 bundle. It does not see gold D0 labels and it does not audit original
-citations. Live model prompts are a later slice; fixture runs use the
-deterministic label policy. ``execution_status`` is not a scientific label.
+citations. The default fixture path uses the deterministic label policy and
+does not call a model. ``validator.live_judgment`` may call a local model for
+this step; a response that does not parse is not given a scientific label.
+``execution_status`` is not a scientific label.
 """
 
 from __future__ import annotations
@@ -21,12 +23,12 @@ from validator.schemas import (
 )
 
 
-def judge_claim(
+def assert_judge_boundary(
     claim: Claim,
     sealed: SealedEvidenceRecord,
     bundle: EvidenceBundle,
-) -> Judgment:
-    """Label the claim against D1 after checking the sealed reader record."""
+) -> list[PassageView]:
+    """Refuse a sealed record or D1 bundle that does not belong to this claim."""
     if claim.neutral_question != sealed.neutral_question:
         raise IsolationError(
             "judge refused a sealed record whose question does not match the claim"
@@ -50,7 +52,16 @@ def judge_claim(
         raise IsolationError(
             "sealed reader cites spans that are not in the D1 bundle: " + ", ".join(unknown)
         )
+    return views
 
+
+def judge_claim(
+    claim: Claim,
+    sealed: SealedEvidenceRecord,
+    bundle: EvidenceBundle,
+) -> Judgment:
+    """Label the claim against D1 after checking the sealed reader record."""
+    views = assert_judge_boundary(claim, sealed, bundle)
     decision = decide_label(claim.normalized_claim, views)
     return Judgment(
         claim_id=claim.claim_id,

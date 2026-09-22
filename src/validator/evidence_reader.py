@@ -2,8 +2,9 @@
 
 Inputs are a neutral question and D1 passage text. The reader seals an
 evidence-only answer and its cited span ids before any claim is revealed.
-Live model prompts are a later slice; the fixture reader quotes overlapping
-passages and does not call a model.
+The default fixture reader quotes overlapping passages and does not call a
+model. ``validator.live_judgment`` may call a local model, and it still
+rejects any payload that crosses this boundary before the request is sent.
 """
 
 from __future__ import annotations
