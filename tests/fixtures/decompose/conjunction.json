@@ -1,0 +1,7 @@
+{
+  "fixture_id": "decompose-conjunction-v1",
+  "question": "What effects does compound MX-42 have in mice?",
+  "frozen_conclusion": "Compound MX-42 improves memory retention and reduces anxiety in mice compared with vehicle.",
+  "report_text": "Compound MX-42 improves memory retention and reduces anxiety in mice compared with vehicle.",
+  "report_id": "decompose-conjunction"
+}
