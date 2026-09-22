@@ -220,3 +220,6 @@ __marimo__/
 # Frozen SciFact release extracted by data/pins/scifact/download_verify.py.
 # Hashes live in data/pins/scifact/PIN.json. Do not commit the raw jsonl files.
 /data/raw/
+
+# Retrieval index and EvidenceBundle outputs. Rebuilt from the pinned corpus hash.
+/artifacts/

@@ -1,0 +1,51 @@
+# Retrieval wing: SciFact BM25 index and independent gatherer.
+# BM25 is pure-Python Okapi, matching rank_bm25 BM25Okapi (k1=1.5, b=0.75,
+# epsilon idf floor) without a numpy dependency. No stemmer.
+# Dense retrieval and reciprocal-rank fusion are not in this MR.
+#
+# doc_id is the SciFact S2ORC integer. Project claim ids follow the corpus-lock
+# loader: scifact:{native_id}. The ten ids below are the first ten native ids
+# in manifests/scifact/scifact_development_v1.json.
+#
+# From the repository root:
+#   PYTHONPATH=src python3 -m validator.retrieve index \
+#     --config configs/retrieval/scifact_bm25.yaml
+#   PYTHONPATH=src python3 -m validator.retrieve gather-dev10 \
+#     --config configs/retrieval/scifact_bm25.yaml \
+#     --output artifacts/retrieval/dev10_bundles.jsonl
+#
+# Writes artifacts/retrieval/dev10_bundles.jsonl (gitignored). The index build
+# refuses to run unless corpus.jsonl matches corpus_hash.
+
+schema_version: scifact-bm25-gather-v1
+dataset: scifact
+doc_id_scheme: scifact_s2orc_integer
+corpus_config: configs/corpus/scifact.yaml
+corpus_jsonl: data/raw/scifact/corpus.jsonl
+corpus_hash: b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62
+claims_jsonl: data/raw/scifact/claims_train.jsonl
+development_manifest: manifests/scifact/scifact_development_v1.json
+index_path: artifacts/retrieval/scifact_bm25.json
+k1: 1.5
+b: 0.75
+epsilon: 0.25
+top_k_per_query: 20
+max_passages: 8
+retrieval_round: 1
+tokenizer: alnum_lower_v1
+rerank: max_bm25
+query_templates:
+  open_inquiry: "{text}"
+  scope_measurement: "{text} scope measurement population dose effect size"
+  limitations_null: "{text} limitations null results no significant effect"
+fixed_claim_ids:
+  - "scifact:0"
+  - "scifact:2"
+  - "scifact:4"
+  - "scifact:6"
+  - "scifact:9"
+  - "scifact:10"
+  - "scifact:11"
+  - "scifact:12"
+  - "scifact:14"
+  - "scifact:15"
