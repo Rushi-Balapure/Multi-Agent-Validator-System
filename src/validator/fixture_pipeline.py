@@ -29,7 +29,11 @@ From the repository root::
 A report fixture runs the same stages for every kept claim. It starts from
 ``decompose`` or from fixture claims, then uses a fixture EvidenceBundle.
 The default is ``dry_run``: no index and no model. Opt-in gather lives in
-``python -m validator.runner --gather`` and is not the pytest path.
+``python -m validator.runner --gather`` and is not the pytest path. That
+path calls the Retrieval Wing public gather API with
+``configs/retrieval/scifact_bm25.yaml``. The Retrieval Wing CLI itself is
+``gather-claims`` under the retrieve module. This module does not import
+or reimplement the gatherer.
 
     PYTHONPATH=src python3 -m validator.fixture_pipeline \\
         --fixture tests/fixtures/judgment/e2e_happy.json --dry-run \\

@@ -347,13 +347,75 @@ def test_runner_gather_flag_is_refused_for_a_dry_fixture(monkeypatch: pytest.Mon
     assert exc.value.code == 2
 
 
+def test_e2e_fixture_bundles_match_retrieval_wing_shape():
+    """Offline CI fixtures must validate as EvidenceBundle without editing LOCKED."""
+    from validator.retrieval.models import QUERY_FORMS, EvidenceBundle, PASSAGE_CEILING
+    from validator.schemas import AccessScope, Provenance
+
+    assert PASSAGE_CEILING == 8
+    for path in (HAPPY, CONFLICT, MISSING):
+        fixture = load_report_fixture(path)
+        for attachment in fixture.attachments:
+            bundle = attachment.d1_bundle
+            assert bundle is not None
+            EvidenceBundle.model_validate(bundle.model_dump(mode="json"))
+            assert len(bundle.passages) <= PASSAGE_CEILING
+            assert [item.form for item in bundle.queries] == list(QUERY_FORMS)
+            for passage in bundle.passages:
+                assert passage.provenance is Provenance.INDEPENDENT
+                assert passage.access_scope is AccessScope.D1
+                assert passage.rank is not None and passage.rank >= 1
+                assert passage.retrieval_round == 1
+
+
+def test_gather_hook_calls_retrieval_wing_api_only(monkeypatch: pytest.MonkeyPatch):
+    """Live D1 uses gather(claim_text, config, claim_id); no gold D0 payload."""
+    import validator.retrieve as retrieve_mod
+    from validator.decompose import decompose
+    from validator.fixture_pipeline import _bind_claim
+    from validator.retrieval.config import load_retrieval_config
+    from validator.runner import DEFAULT_RETRIEVAL_CONFIG, gather_bundle
+
+    fixture = load_report_fixture(HAPPY)
+    assert fixture.decompose is not None
+    result = decompose(fixture.decompose)
+    bound, _ = _bind_claim(
+        result.claims[0],
+        "scifact:900042",
+        {result.claims[0].claim_id: "scifact:900042"},
+    )
+    seen: dict[str, object] = {}
+
+    def fake_gather(claim_or_neutral_question, config, claim_id):
+        seen["args"] = (claim_or_neutral_question, config, claim_id)
+        assert isinstance(claim_or_neutral_question, str)
+        assert "asserted_answer" not in claim_or_neutral_question
+        assert bound.asserted_answer not in claim_or_neutral_question
+        assert claim_id == "scifact:900042"
+        assert fixture.attachments[0].d0_evidence  # gold D0 exists but is not an arg
+        return fixture.attachments[0].d1_bundle
+
+    monkeypatch.setattr(retrieve_mod, "gather", fake_gather)
+    config = load_retrieval_config(ROOT / DEFAULT_RETRIEVAL_CONFIG)
+    bundle = gather_bundle(bound, config)
+    assert seen["args"] == (neutral_gather_text(bound), config, "scifact:900042")
+    assert bundle is not None and bundle.claim_id == "scifact:900042"
+    assert DEFAULT_RETRIEVAL_CONFIG.as_posix() == "configs/retrieval/scifact_bm25.yaml"
+
+
 def test_judgment_modules_still_do_not_call_the_retriever():
     text = (ROOT / "src" / "validator" / "fixture_pipeline.py").read_text(encoding="utf-8")
-    assert "validator.retrieve" not in text
+    assert "from validator.retrieve" not in text
+    assert "import validator.retrieve" not in text
     assert "retrieval.bm25" not in text
     runner = (ROOT / "src" / "validator" / "runner.py").read_text(encoding="utf-8")
-    assert "neutral_gather_text(claim)" in runner
+    assert "from validator.retrieve import gather" in runner
     assert "gather(neutral_gather_text(claim), config, claim.claim_id)" in runner
+    assert "gather-claims" in runner
+    assert "configs/retrieval/scifact_bm25.yaml" in runner
+    assert "retrieval.bm25" not in runner
+    assert "rank_bm25" not in runner.casefold()
+    assert "1 / (60 + rank)" not in runner
 
 
 def test_neutral_gather_text_rejects_a_leaking_question():
