@@ -5,5 +5,6 @@ mapping and ``validator.validator_v.runner`` for the CLI.
 """
 
 from validator.validator_v.labels import FOUR_WAY_TO_NATIVE, map_four_way_label
+from validator.validator_v.runner import PHASE3_B2_CLAIM_IDS
 
-__all__ = ["FOUR_WAY_TO_NATIVE", "map_four_way_label"]
+__all__ = ["FOUR_WAY_TO_NATIVE", "PHASE3_B2_CLAIM_IDS", "map_four_way_label"]

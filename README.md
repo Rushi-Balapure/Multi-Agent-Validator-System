@@ -45,4 +45,4 @@ PYTHONPATH=src python3 -m validator.validator_v \
   --run-sidecar artifacts/validator_v/run.json
 ```
 
-`--gather` is opt-in. It calls Retrieval Wing `gather(neutral_question, config, claim_id)` for the first `--limit` development manifest ids (same order as B2) and does not pass gold D0. `bash scripts/validator_v_smoke.sh` is the offline check. `VALIDATOR_V_SMOKE_OUT` overrides its output directory.
+`--gather` is opt-in. It calls Retrieval Wing `gather(neutral_question, config, claim_id)` for development claim ids in B2 order (config `claim_ids`, or `--claim-ids`, or the first `--limit` locked development manifest ids) and does not pass gold D0. Offline smoke: `bash scripts/validator_v_smoke.sh`. Phase-3 Turing-Machine live gather (BM25 index + LM Studio `http://127.0.0.1:1234/v1`): `bash scripts/validator_v_phase3_gather_smoke.sh`. `VALIDATOR_V_SMOKE_OUT` / `VALIDATOR_V_PHASE3_OUT` override output directories.
