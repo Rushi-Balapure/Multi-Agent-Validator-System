@@ -15,6 +15,7 @@ from validator.evidence_reader import (
     shuffle_passages,
 )
 from validator.fixture_pipeline import load_fixture, reader_payload
+from validator.live_judgment import isolated_reader_request
 
 ROOT = Path(__file__).resolve().parents[1]
 COMPLETE = ROOT / "tests" / "fixtures" / "judgment" / "complete.json"
@@ -104,3 +105,22 @@ def test_shuffle_is_deterministic_and_ignores_claim_text():
         "D1:3:0-1",
     ]
     assert [item.span_id for item in once] != [item.span_id for item in passages]
+
+
+def test_live_reader_request_rejects_asserted_answer():
+    payload = {
+        "neutral_question": "What did abstracts report about compound MX-42 in mice?",
+        "passages": [_passage("D1:1:0-5", 1, "compound MX-42 memory retention in mice")],
+        "asserted_answer": LEAK,
+    }
+    with pytest.raises(IsolationError, match="asserted_answer"):
+        isolated_reader_request(payload)
+
+
+def test_live_reader_request_from_the_fixture_has_no_asserted_answer():
+    fixture = load_fixture(COMPLETE)
+    request = isolated_reader_request(reader_payload(fixture.claim, fixture.d1_bundle))
+    blob = json.dumps(request)
+    assert set(request) == {"neutral_question", "passages"}
+    assert "asserted_answer" not in blob
+    assert LEAK not in blob
