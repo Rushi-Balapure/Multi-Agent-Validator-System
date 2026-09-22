@@ -22,3 +22,13 @@ PYTHONPATH=src python3 -m validator.same_evidence.runner \
   --output artifacts/same_evidence_b2/predictions.jsonl \
   --run-sidecar artifacts/same_evidence_b2/run.json
 ```
+
+## Phase-1 offline smoke
+
+No GPU, no LM Studio, and no SciFact download. Dry-runs the B2 mock (`MockClient`, the client `--dry-run` selects) on a MIT synthetic claim (`tests/fixtures/phase1/example_claim.json`), then scores the committed Eval Forge fixture with `evaluation.score_predictions`. If pinned raw files are already under `data/raw/scifact/`, the script also runs `validator.same_evidence.runner --dry-run --limit 1`. It never downloads.
+
+```bash
+bash scripts/phase1_smoke.sh
+```
+
+Writes `artifacts/phase1_smoke/predictions.jsonl`, `run.json`, and `metrics.json` (gitignored). `PHASE1_SMOKE_OUT` overrides that directory.

@@ -1,0 +1,21 @@
+{
+  "license": "MIT. Synthetic example written for this repository. Not a SciFact claim, abstract, or redistributed corpus dump.",
+  "claim_id": "example:vitamin-tablet",
+  "split_role": "example",
+  "normalized_claim": "In this made-up winter study, a vitamin tablet shortened colds in healthy adults.",
+  "cited_doc_ids": [900001],
+  "native_label_space": "scifact_SUPPORT_CONTRADICT",
+  "gold_evidence_bundle": [
+    {
+      "doc_id": 900001,
+      "title": "Synthetic abstract: winter vitamin tablet",
+      "abstract": [
+        "This passage is original example text for an offline smoke test.",
+        "It is not copied from a published corpus."
+      ],
+      "structured": false,
+      "rationales": [],
+      "snapshot_hash": "0d1f1a780214936535733cbc2066eb5fb5404245b21fc4df469e94ea2f8990f0"
+    }
+  ]
+}
