@@ -8,15 +8,17 @@ From the repository root, after the pinned SciFact files are present:
         --output artifacts/same_evidence_b2/predictions.jsonl \\
         --run-sidecar artifacts/same_evidence_b2/run.json
 
-``--dry-run`` uses the documented mock in ``b2.py`` and does not open a socket.
-The urllib OpenAI-compatible client is used only for ``--live`` (or when the
-config sets ``dry_run: false``). ``base_url`` must be a loopback or RFC1918
-private-LAN endpoint. The default config points at LM Studio on this machine,
-``http://127.0.0.1:1234/v1``, with model id ``qwen2.5-coder-1.5b-instruct``.
-An RFC1918 address such as ``http://192.168.1.10:1234/v1`` is also allowed
-from another machine on the private LAN. Loopback remains valid for a local proxy.
-Public DNS names and non-private addresses are refused, including redirects.
-A missing D0 join exits 2. An empty SciFact evidence object does not.
+``--dry-run`` uses the documented mock in ``b2.py`` and does not open a socket
+(``inference_mode=mock``). The urllib OpenAI-compatible client is used only for
+``--live`` (or when the config sets ``dry_run: false``); successful live runs
+record ``inference_mode=live`` on each prediction row and in the run sidecar.
+``base_url`` must be a loopback or RFC1918 private-LAN endpoint. The default
+config points at LM Studio on this machine, ``http://127.0.0.1:1234/v1``, with
+model id ``qwen2.5-coder-1.5b-instruct``. An RFC1918 address such as
+``http://192.168.1.10:1234/v1`` is also allowed from another machine on the
+private LAN. Loopback remains valid for a local proxy. Public DNS names and
+non-private addresses are refused, including redirects. A missing D0 join
+exits 2. An empty SciFact evidence object does not.
 """
 
 from __future__ import annotations
@@ -278,7 +280,7 @@ def execute(args: argparse.Namespace) -> None:
         "adaptation": config.adaptation,
         "adaptation_note": config.adaptation_note.strip(),
         "inference_mode": mode,
-        "model_invoked": mode == "endpoint",
+        "model_invoked": mode == "live",
         "mock_label_formula": MOCK_LABEL_FORMULA if mode == "mock" else None,
         "prediction_label_space": config.prediction_label_space,
         "native_label_space": config.native_label_space,
