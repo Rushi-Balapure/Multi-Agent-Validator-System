@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -13,6 +14,17 @@ from validator.retrieval.paths import REPO_ROOT
 
 _SHA256 = r"^[a-f0-9]{64}$"
 _CLAIM_ID = re.compile(r"^scifact:\d+$")
+# Research-plan round-2 rules. Recorded in config and locked; gather does not run them.
+_ROUND2_START = (
+    "unresolved_question",
+    "scope_mismatch",
+    "contradictory_evidence",
+)
+_ROUND2_STOP = (
+    "exhausted_budget",
+    "no_new_eligible_documents",
+    "complete_bounded_evidence",
+)
 
 
 class QueryTemplates(BaseModel):
@@ -30,6 +42,50 @@ class QueryTemplates(BaseModel):
             if "{text}" not in getattr(self, name):
                 raise ValueError(f"{name} template must contain {{text}}")
         return self
+
+
+class Round2Flags(BaseModel):
+    """Prep notes for a later retrieval round. This MR does not run round 2.
+
+    ``enabled`` is locked false. ``start_when`` and ``stop_when`` are the
+    research-plan rules (unresolved question, scope mismatch, or contradictory
+    evidence; stop on exhausted budget, no new eligible documents, or a
+    complete bounded evidence record). ``retrieval_round`` on the parent
+    config stays 1.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: Literal[False] = False
+    start_when: list[str] = Field(default_factory=lambda: list(_ROUND2_START))
+    stop_when: list[str] = Field(default_factory=lambda: list(_ROUND2_STOP))
+
+    @model_validator(mode="after")
+    def locked_prep_notes(self) -> Round2Flags:
+        if tuple(self.start_when) != _ROUND2_START:
+            raise ValueError(
+                "round2.start_when is locked to unresolved_question, "
+                "scope_mismatch, contradictory_evidence"
+            )
+        if tuple(self.stop_when) != _ROUND2_STOP:
+            raise ValueError(
+                "round2.stop_when is locked to exhausted_budget, "
+                "no_new_eligible_documents, complete_bounded_evidence"
+            )
+        return self
+
+
+class RrfFlags(BaseModel):
+    """Prep notes for reciprocal-rank fusion. This MR does not fuse ranks.
+
+    ``enabled`` is locked false and ``k`` is locked to 60, the usual
+    ``1 / (k + rank)`` constant. Product rerank stays ``max_bm25``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: Literal[False] = False
+    k: Literal[60] = 60
 
 
 class RetrievalConfig(BaseModel):
@@ -56,6 +112,8 @@ class RetrievalConfig(BaseModel):
     rerank: str = Field(pattern=r"^max_bm25$")
     query_templates: QueryTemplates
     fixed_claim_ids: list[str] = Field(min_length=10, max_length=10)
+    round2: Round2Flags = Field(default_factory=Round2Flags)
+    rrf: RrfFlags = Field(default_factory=RrfFlags)
 
     @model_validator(mode="after")
     def ten_project_claim_ids(self) -> RetrievalConfig:

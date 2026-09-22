@@ -1,7 +1,9 @@
 # Retrieval wing: SciFact BM25 index and independent gatherer.
 # BM25 is pure-Python Okapi, matching rank_bm25 BM25Okapi (k1=1.5, b=0.75,
 # epsilon idf floor) without a numpy dependency. No stemmer.
-# Dense retrieval and reciprocal-rank fusion are not in this MR.
+# Dense retrieval is not in this MR. Round 2 and reciprocal-rank fusion are
+# recorded below and locked off (round2.enabled false, rrf.enabled false).
+# Product rerank stays max_bm25. retrieval_round stays 1.
 #
 # doc_id is the SciFact S2ORC integer. Project claim ids follow the corpus-lock
 # loader: scifact:{native_id}. The ten ids below are the first ten native ids
@@ -10,12 +12,18 @@
 # From the repository root:
 #   PYTHONPATH=src python3 -m validator.retrieve index \
 #     --config configs/retrieval/scifact_bm25.yaml
+#   PYTHONPATH=src python3 -m validator.retrieve gather-claims \
+#     --config configs/retrieval/scifact_bm25.yaml \
+#     --limit 5 \
+#     --output artifacts/retrieval/dev5_bundles.jsonl
 #   PYTHONPATH=src python3 -m validator.retrieve gather-dev10 \
 #     --config configs/retrieval/scifact_bm25.yaml \
 #     --output artifacts/retrieval/dev10_bundles.jsonl
 #
-# Writes artifacts/retrieval/dev10_bundles.jsonl (gitignored). The index build
-# refuses to run unless corpus.jsonl matches corpus_hash.
+# gather-claims writes EvidenceBundles for --claim-ids or the first --limit
+# development manifest ids (default 5). gather-dev10 still writes the 10
+# pinned ids. Both JSONL paths are gitignored. The index build refuses to
+# run unless corpus.jsonl matches corpus_hash.
 
 schema_version: scifact-bm25-gather-v1
 dataset: scifact
@@ -32,6 +40,21 @@ epsilon: 0.25
 top_k_per_query: 20
 max_passages: 8
 retrieval_round: 1
+# Round 2 is not executed. start_when / stop_when are research-plan prep notes.
+round2:
+  enabled: false
+  start_when:
+    - unresolved_question
+    - scope_mismatch
+    - contradictory_evidence
+  stop_when:
+    - exhausted_budget
+    - no_new_eligible_documents
+    - complete_bounded_evidence
+# Reciprocal-rank fusion is not the product path. k is locked at 60.
+rrf:
+  enabled: false
+  k: 60
 tokenizer: alnum_lower_v1
 rerank: max_bm25
 query_templates:
