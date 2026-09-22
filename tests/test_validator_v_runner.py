@@ -24,6 +24,7 @@ from validator.schemas import Run, ScientificLabel
 from validator.validator_v.labels import FOUR_WAY_TO_NATIVE, map_four_way_label
 from validator.validator_v.runner import (
     DEVELOPMENT_CLAIM_BUDGET,
+    PHASE3_B2_CLAIM_IDS,
     execute,
     main,
     parse_args,
@@ -321,8 +322,7 @@ def test_gather_passes_the_neutral_question_and_not_gold_d0(
         )
         == 0
     )
-    retrieval = load_retrieval_config(ROOT / "configs" / "retrieval" / "scifact_bm25.yaml")
-    expected_id = retrieve_mod.resolve_gather_claim_ids(retrieval, limit=1)[0]
+    expected_id = PHASE3_B2_CLAIM_IDS[0]
     expected_question = (
         (ROOT / "prompts" / "validator_v" / "neutral_question_v1.txt")
         .read_text(encoding="utf-8")
@@ -343,6 +343,118 @@ def test_gather_passes_the_neutral_question_and_not_gold_d0(
     assert sidecar["input_source"] == "gather"
     assert sidecar["n_predictions"] == 1
     assert sidecar["development_claim_budget"] == 20
+    assert sidecar["claim_ids"] == [expected_id]
+    assert sidecar["run"]["run_id"].startswith("validator-v-gather-development-s0-n1-")
+    assert sidecar["run"]["run_id"] != "validator-v-development-s0-n3-d5cecb97c55b"
+
+
+def test_gather_preserves_phase3_b2_claim_id_order(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Mocked gather over the 20 B2 ids writes predictions/run.json with method_id=V."""
+    _block_network(monkeypatch)
+    import validator.retrieve as retrieve_mod
+    import validator.validator_v.runner as batch
+
+    happy = load_report_fixture(HAPPY)
+    template_bundle = happy.attachments[0].d1_bundle
+    assert template_bundle is not None
+    gather_order: list[str] = []
+
+    def fake_gather(claim_or_neutral_question, config, claim_id):
+        assert isinstance(claim_or_neutral_question, str)
+        gather_order.append(claim_id)
+        return template_bundle.model_copy(update={"claim_id": claim_id})
+
+    def fake_texts(claim_ids, _path):
+        assert list(claim_ids) == list(PHASE3_B2_CLAIM_IDS)
+        return {claim_id: f"claim text for {claim_id}" for claim_id in claim_ids}
+
+    monkeypatch.setattr(retrieve_mod, "gather", fake_gather)
+    monkeypatch.setattr(retrieve_mod, "load_claim_texts", fake_texts)
+    predictions = tmp_path / "predictions.jsonl"
+    sidecar_path = tmp_path / "run.json"
+    claim_ids_arg = ",".join(PHASE3_B2_CLAIM_IDS)
+    assert (
+        main(
+            [
+                "--config",
+                str(CONFIG),
+                "--gather",
+                "--claim-ids",
+                claim_ids_arg,
+                "--limit",
+                "20",
+                "--output",
+                str(predictions),
+                "--run-sidecar",
+                str(sidecar_path),
+            ]
+        )
+        == 0
+    )
+    rows = _rows(predictions)
+    assert [row["claim_id"] for row in rows] == list(PHASE3_B2_CLAIM_IDS)
+    assert gather_order == list(PHASE3_B2_CLAIM_IDS)
+    assert len(rows) == DEVELOPMENT_CLAIM_BUDGET
+    for row in rows:
+        assert row["method_id"] == "V"
+        assert row["adaptation"] == "V"
+        assert row["system_id"] == "validator_v"
+        assert row["label"] in NATIVE
+        assert row["label_4way"] in FOUR_WAY
+        assert row["inference_mode"] == "mock"
+        assert row["evidence_scope"] == "D0_union_D1"
+    sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
+    assert sidecar["method_id"] == "V"
+    assert sidecar["input_source"] == "gather"
+    assert sidecar["n_predictions"] == 20
+    assert sidecar["claim_ids"] == list(PHASE3_B2_CLAIM_IDS)
+    assert sidecar["run"]["run_id"].startswith("validator-v-gather-development-s0-n20-")
+    assert "n3-" not in sidecar["run"]["run_id"]
+    schema = json.loads((ROOT / "schemas" / "mavs_run_record.schema.json").read_text(encoding="utf-8"))
+    assert list(Draft202012Validator(schema).iter_errors(sidecar["run"])) == []
+    import io
+    from contextlib import redirect_stdout
+
+    buffer = io.StringIO()
+    with pytest.raises(SystemExit) as exited:
+        with redirect_stdout(buffer):
+            parse_args(["--help"])
+    assert exited.value.code == 0
+    help_out = buffer.getvalue()
+    assert "scifact:0,scifact:2,scifact:4" in help_out
+    assert "scifact:27" in help_out
+    assert "--claim-ids" in help_out
+
+
+def test_claim_ids_without_gather_is_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    _block_network(monkeypatch)
+    assert (
+        main(
+            [
+                "--config",
+                str(CONFIG),
+                "--claim-ids",
+                "scifact:0",
+                "--output",
+                str(tmp_path / "x.jsonl"),
+                "--run-sidecar",
+                str(tmp_path / "x.json"),
+            ]
+        )
+        == 2
+    )
+    assert not (tmp_path / "x.jsonl").exists()
+
+
+def test_phase3_claim_ids_match_development_manifest_prefix():
+    retrieval = load_retrieval_config(ROOT / "configs" / "retrieval" / "scifact_bm25.yaml")
+    from validator.retrieve import resolve_gather_claim_ids
+
+    assert list(PHASE3_B2_CLAIM_IDS) == resolve_gather_claim_ids(retrieval, limit=20)
+    config = yaml.safe_load(CONFIG.read_text(encoding="utf-8"))
+    assert config["claim_ids"] == list(PHASE3_B2_CLAIM_IDS)
 
 
 def test_live_is_refused_for_a_dry_run_fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):

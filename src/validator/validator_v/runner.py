@@ -17,18 +17,35 @@ The default path is offline. It runs fixture reports through
 EvidenceBundles) and records ``inference_mode=mock``. It does not open a
 socket.
 
-``--gather`` is opt-in. It loads the first ``--limit`` development claim
-texts (manifest order, the same order as B2) and calls Retrieval Wing
-``gather(neutral_question, config, claim_id)`` via ``validator.runner.gather_bundle``.
-Gold D0, asserted answers, and original citations are not arguments. The
+``--gather`` is opt-in. It judges development claims in B2 order and calls
+Retrieval Wing ``gather(neutral_question, config, claim_id)`` via
+``validator.runner.gather_bundle``. Claim selection is ``--claim-ids``, else
+config ``claim_ids``, else the first ``--limit`` locked development manifest
+ids. Gold D0, asserted answers, and original citations are not arguments. The
 citation auditor receives an empty D0 list and fail-closes. ``--live`` calls
 the local reader and judge; pytest does not pass it.
+
+Phase-3 B2 alignment (run ``same-evidence-b2-development-s0-n20-dac855c4e2ae``)::
+
+    scifact:0,scifact:2,scifact:4,scifact:6,scifact:9,scifact:10,scifact:11,
+    scifact:12,scifact:14,scifact:15,scifact:17,scifact:18,scifact:19,
+    scifact:20,scifact:21,scifact:22,scifact:24,scifact:25,scifact:26,scifact:27
 
 From the repository root::
 
     PYTHONPATH=src python3 -m validator.validator_v \\
         --config configs/validator_v/development.yaml \\
         --dry-run \\
+        --output artifacts/validator_v/predictions.jsonl \\
+        --run-sidecar artifacts/validator_v/run.json
+
+    PYTHONPATH=src python3 -m validator.validator_v \\
+        --config configs/validator_v/development.yaml \\
+        --gather --live --limit 20 \\
+        --claim-ids scifact:0,scifact:2,scifact:4,scifact:6,scifact:9,\\
+scifact:10,scifact:11,scifact:12,scifact:14,scifact:15,scifact:17,\\
+scifact:18,scifact:19,scifact:20,scifact:21,scifact:22,scifact:24,\\
+scifact:25,scifact:26,scifact:27 \\
         --output artifacts/validator_v/predictions.jsonl \\
         --run-sidecar artifacts/validator_v/run.json
 """
@@ -90,6 +107,31 @@ METHOD_ID = "V"
 DEVELOPMENT_CLAIM_BUDGET = 20
 CORPUS_CONFIG = "configs/corpus/scifact.yaml"
 
+# First 20 locked development ids, same order as B2 live run
+# same-evidence-b2-development-s0-n20-dac855c4e2ae (Retrieval Wing confirmed).
+PHASE3_B2_CLAIM_IDS: tuple[str, ...] = (
+    "scifact:0",
+    "scifact:2",
+    "scifact:4",
+    "scifact:6",
+    "scifact:9",
+    "scifact:10",
+    "scifact:11",
+    "scifact:12",
+    "scifact:14",
+    "scifact:15",
+    "scifact:17",
+    "scifact:18",
+    "scifact:19",
+    "scifact:20",
+    "scifact:21",
+    "scifact:22",
+    "scifact:24",
+    "scifact:25",
+    "scifact:26",
+    "scifact:27",
+)
+
 _EXECUTION_TOKENS = {
     ExecutionStatus.COMPLETED: "ok",
     ExecutionStatus.FAILED: "failed",
@@ -133,6 +175,7 @@ class ValidatorVConfig(BaseModel):
     retrieval_config: str = Field(min_length=1)
     neutral_question: str = Field(min_length=1)
     reports: list[str] = Field(min_length=1)
+    claim_ids: list[str] | None = None
     output: OutputPaths
 
 
@@ -142,7 +185,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "Run Stack V over a development budget of at most 20 claims and write "
             "predictions.jsonl plus run.json. The default is an offline fixture-report "
             "dry-run (inference_mode=mock). --gather calls Retrieval Wing "
-            "gather(neutral_question, config, claim_id) with claim text only."
+            "gather(neutral_question, config, claim_id) with claim text only. "
+            "Phase-3 B2 order (20 ids): "
+            + ",".join(PHASE3_B2_CLAIM_IDS)
         )
     )
     parser.add_argument(
@@ -167,8 +212,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--gather",
         action="store_true",
         help=(
-            "Judge the first --limit development claims. D1 comes from "
-            "gather(neutral_question, config, claim_id). Gold D0 is not loaded."
+            "Judge development claims via gather(neutral_question, config, claim_id). "
+            "Ids come from --claim-ids, else config claim_ids, else the first --limit "
+            "locked development manifest ids (B2 order). Gold D0 is not loaded."
+        ),
+    )
+    parser.add_argument(
+        "--claim-ids",
+        default=None,
+        help=(
+            "Comma-separated project claim ids for --gather, in judgment order. "
+            f"Phase-3 B2 list (cap {DEVELOPMENT_CLAIM_BUDGET}): "
+            + ",".join(PHASE3_B2_CLAIM_IDS)
         ),
     )
     parser.add_argument(
@@ -278,6 +333,8 @@ def prediction_row(
 
 
 def _mode(args: argparse.Namespace, config: ValidatorVConfig) -> Literal["fixture", "gather"]:
+    if args.claim_ids is not None and not args.gather:
+        raise ValidatorVError("--claim-ids requires --gather")
     if args.dry_run and (args.live or args.gather):
         raise ValidatorVError("pass only one of --dry-run and --gather/--live")
     if args.gather:
@@ -298,6 +355,31 @@ def _limit(args: argparse.Namespace, config: ValidatorVConfig) -> int:
             f"limit must be from 1 to {DEVELOPMENT_CLAIM_BUDGET} development claims"
         )
     return limit
+
+
+def _resolve_gather_claim_ids(
+    args: argparse.Namespace,
+    config: ValidatorVConfig,
+    retrieval: Any,
+    *,
+    limit: int,
+) -> list[str]:
+    """Claim ids for --gather: CLI, else config, else manifest prefix. Order preserved."""
+    from validator.retrieve import resolve_gather_claim_ids
+
+    explicit: str | list[str] | None
+    if args.claim_ids is not None:
+        explicit = args.claim_ids
+    elif config.claim_ids:
+        explicit = list(config.claim_ids)
+    else:
+        explicit = None
+    selected = resolve_gather_claim_ids(retrieval, claim_ids=explicit, limit=limit)
+    if len(selected) > DEVELOPMENT_CLAIM_BUDGET:
+        raise ValidatorVError(
+            f"gather selected {len(selected)} claims; the development budget is {DEVELOPMENT_CLAIM_BUDGET}"
+        )
+    return selected
 
 
 def _per_report_budget(remaining: int) -> int:
@@ -478,19 +560,23 @@ def _rows_from_gather(
     root: Path,
     config: ValidatorVConfig,
     *,
-    limit: int,
+    claim_ids: list[str],
     inference_mode: Literal["mock", "live"],
     live: LoadedLive | None,
     client: Any,
     pinned: str,
+    retrieval: Any | None = None,
 ) -> tuple[list[dict[str, Any]], bool]:
     from validator.retrieval.config import load_retrieval_config
-    from validator.retrieve import load_claim_texts, resolve_gather_claim_ids
+    from validator.retrieve import load_claim_texts
 
-    retrieval_path = _resolve(root, config.retrieval_config)
+    if retrieval is None:
+        retrieval_path = _resolve(root, config.retrieval_config)
+        try:
+            retrieval = load_retrieval_config(retrieval_path)
+        except (RetrievalError, OSError, ValueError) as exc:
+            raise ValidatorVError(str(exc), exit_code=1) from exc
     try:
-        retrieval = load_retrieval_config(retrieval_path)
-        claim_ids = resolve_gather_claim_ids(retrieval, limit=limit)
         texts = load_claim_texts(claim_ids, retrieval.resolve(retrieval.claims_jsonl))
     except (RetrievalError, OSError, ValueError) as exc:
         raise ValidatorVError(str(exc), exit_code=1) from exc
@@ -532,6 +618,8 @@ def _rows_from_gather(
             sealed_reader=staged.sealed_reader,
         )
         rows.append(prediction_row(verdict, inference_mode=inference_mode))
+    if [row["claim_id"] for row in rows] != claim_ids:
+        raise ValidatorVError("gather prediction claim_ids drifted from the requested order", exit_code=1)
     return rows, False
 
 
@@ -574,14 +662,22 @@ def execute(args: argparse.Namespace, *, client: Any = None) -> None:
     pinned = _pinned_corpus_hash(root)
     started = datetime.now(timezone.utc)
     if source == "gather":
+        from validator.retrieval.config import load_retrieval_config
+
+        try:
+            retrieval = load_retrieval_config(_resolve(root, config.retrieval_config))
+            claim_ids = _resolve_gather_claim_ids(args, config, retrieval, limit=limit)
+        except (RetrievalError, OSError, ValueError) as exc:
+            raise ValidatorVError(str(exc), exit_code=1) from exc
         rows, partial = _rows_from_gather(
             root,
             config,
-            limit=limit,
+            claim_ids=claim_ids,
             inference_mode=inference_mode,
             live=live,
             client=client,
             pinned=pinned,
+            retrieval=retrieval,
         )
         input_source = "gather"
     else:
@@ -614,9 +710,11 @@ def execute(args: argparse.Namespace, *, client: Any = None) -> None:
         prompt_texts["judge"] = live.judge_prompt
     prompt_hash = _prompt_bundle_hash(prompt_texts)
     config_hash = sha256_file(config_path)
+    # Gather run_ids stay distinct from the offline fixture-report n3 dry-run.
+    run_prefix = "validator-v-gather" if input_source == "gather" else "validator-v"
     run = Run(
         run_id=(
-            f"validator-v-{config.split}-s{config.seed}-n{len(rows)}-{config_hash[:12]}"
+            f"{run_prefix}-{config.split}-s{config.seed}-n{len(rows)}-{config_hash[:12]}"
         ),
         question_id=None,
         split=config.split,
@@ -648,6 +746,7 @@ def execute(args: argparse.Namespace, *, client: Any = None) -> None:
         "input_source": input_source,
         "n_predictions": len(rows),
         "development_claim_budget": DEVELOPMENT_CLAIM_BUDGET,
+        "claim_ids": [row["claim_id"] for row in rows],
         "partial": partial,
         "prompt_hash_canonical": (
             "sha256 of utf-8 prompt name and file text pairs, sorted by name, joined with newlines"

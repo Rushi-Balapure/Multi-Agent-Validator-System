@@ -3,8 +3,9 @@
 # (supported→SUPPORT, contradicted→REFUTE, unaddressed and underdetermined→NEI).
 # Default is an offline fixture-report dry-run. --gather is opt-in and calls
 # Retrieval Wing gather(neutral_question, config, claim_id). It does not pass gold D0.
-# The development claim budget is 20. Each report still uses the staged
-# pipeline's per-report cap of 8.
+# claim_ids is the Phase-3 B2 development prefix (same order as
+# same-evidence-b2-development-s0-n20-dac855c4e2ae). Used only with --gather;
+# --dry-run still judges the report fixtures below. Cap is 20.
 system_id: validator_v
 method_id: V
 adaptation: V
@@ -24,6 +25,27 @@ four_way_label_space: mavs_four_way
 scored_evidence_scope: D0_union_D1
 retrieval_config: configs/retrieval/scifact_bm25.yaml
 neutral_question: prompts/validator_v/neutral_question_v1.txt
+claim_ids:
+  - "scifact:0"
+  - "scifact:2"
+  - "scifact:4"
+  - "scifact:6"
+  - "scifact:9"
+  - "scifact:10"
+  - "scifact:11"
+  - "scifact:12"
+  - "scifact:14"
+  - "scifact:15"
+  - "scifact:17"
+  - "scifact:18"
+  - "scifact:19"
+  - "scifact:20"
+  - "scifact:21"
+  - "scifact:22"
+  - "scifact:24"
+  - "scifact:25"
+  - "scifact:26"
+  - "scifact:27"
 reports:
   - tests/fixtures/judgment/e2e_happy.json
   - tests/fixtures/judgment/e2e_conflict.json
