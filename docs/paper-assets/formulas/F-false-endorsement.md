@@ -19,3 +19,4 @@
 
 - Failures / abstentions are not counted as supported predictions.
 - Bootstrap by question family (2000 resamples default); report 95% CI.
+- The comparison stub is [v_vs_b2_false_endorsement.md](../tables/v_vs_b2_false_endorsement.md). Until V predictions exist, that table leaves V pending and does not invent a score. `src/evaluation/bootstrap.py` stores the 2000-resample plan and does not emit an interval.
