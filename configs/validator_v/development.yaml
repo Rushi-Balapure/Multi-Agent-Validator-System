@@ -1,8 +1,9 @@
 # Stack V batch runner. method_id is V. The scored label is the reconciled
 # D0∪D1 four-way judgment mapped onto SUPPORT / REFUTE / NEI
 # (supported→SUPPORT, contradicted→REFUTE, unaddressed and underdetermined→NEI).
-# Default is an offline fixture-report dry-run. --gather is opt-in and calls
-# Retrieval Wing gather(neutral_question, config, claim_id). It does not pass gold D0.
+# Default is an offline fixture-report dry-run. --gather is opt-in: D1 via
+# Retrieval Wing gather(neutral_question, config, claim_id); D0 from SciFact
+# cited_doc_ids abstracts (provenance=original). Gold evidence is not loaded.
 # claim_ids is the Phase-3 B2 development prefix (same order as
 # same-evidence-b2-development-s0-n20-dac855c4e2ae). Used only with --gather;
 # --dry-run still judges the report fixtures below. Cap is 20.
