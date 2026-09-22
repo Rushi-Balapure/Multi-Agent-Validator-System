@@ -4,7 +4,13 @@ Pinned AllenAI SciFact release for the corpus-lock slice. Raw JSONL files are do
 
 ## Commands
 
-From the repository root, with `pydantic`, `jsonschema`, and `pyyaml` installed:
+Turing-Machine path: clone the repo and run from the repository root (the directory that contains `data/`). There is no machine-specific absolute path. Dependencies: `pydantic`, `jsonschema`, and `pyyaml`. The one command below is the bootstrap. It runs download_verify, then the smoke check, and exits non-zero on any mismatch. It does not rewrite `LOCKED.json`. Details: [BOOTSTRAP.md](BOOTSTRAP.md).
+
+```bash
+python3 -m data.bootstrap_scifact
+```
+
+The same two steps, if you run them separately:
 
 ```bash
 python3 -m data.pins.scifact.download_verify
@@ -13,7 +19,7 @@ python3 -m data.smoke_scifact_splits
 
 `python -m data.smoke_scifact_splits` is the same module when `python` is Python 3. This environment has `python3` on `PATH`.
 
-The smoke command downloads and verifies when the raw files are missing or do not match the pin. It prints the locked row counts, recomputes every manifest `ids_sha256`, and schema-validates one claim and evidence sample from development, calibration, and held_out_local_eval, plus one official-test claim without requiring labels.
+The smoke command downloads and verifies when the raw files are missing or do not match the pin. It prints the locked row counts, recomputes every manifest `ids_sha256`, and schema-validates one claim and evidence sample from development, calibration, and held_out_local_eval, plus one official-test claim without requiring labels. Expected counts on `SMOKE OK`: calibration 100, development 709, held_out_local_eval 300, official_test_unlabeled 300, corpus 5183. A hash or count mismatch fails the process. Do not regenerate splits or rewrite `LOCKED.json` to make it pass.
 
 ## Upstream
 
@@ -31,6 +37,8 @@ The smoke command downloads and verifies when the raw files are missing or do no
 | `data/pins/scifact/PIN.json` | Source URL, commit, tarball hash, file hashes, split policy (`locked=true`) |
 | `data/pins/scifact/LOCKED.json` | Lock record (`locked=true`) and manifest `ids_sha256` values |
 | `data/pins/scifact/download_verify.py` | Download, sha256 check, extract into `data/raw/scifact/` |
+| `data/bootstrap_scifact.py` | One-command bootstrap: download_verify, then smoke |
+| `data/pins/scifact/BOOTSTRAP.md` | Turing-Machine bootstrap note |
 | `data/pins/scifact/README.md` | This note |
 | `configs/corpus/scifact.yaml` | Points at the pin, lock, manifests, raw dir, and `corpus_hash` |
 | `data/scifact_loader.py` | Claim plus same-evidence / gold bundle loader |
