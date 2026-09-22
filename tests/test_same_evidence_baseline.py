@@ -36,14 +36,18 @@ from validator.same_evidence.b2 import (
     run_b2,
 )
 from validator.same_evidence.b2 import MockClient
+from data.scifact_loader import MANIFESTS, SciFactDataError, bundle_claim, snapshot_hash
 from validator.same_evidence.inputs import (
+    EXPECTED_CORPUS_HASH,
+    EXPECTED_MANIFESTS,
     BaselineDataError,
     GoldEvidenceDoc,
     MissingEvidenceJoinError,
     PredictInput,
     Rationale,
-    build_predict_input,
+    predict_input_from_bundle,
     repo_root,
+    translate_loader_error,
 )
 from validator.same_evidence.runner import main
 from validator.schemas import Run
@@ -52,16 +56,6 @@ ROOT = repo_root()
 PREDICTION_LABELS = {"SUPPORT", "REFUTE", "NEI"}
 FOUR_WAY = {"supported", "contradicted", "unaddressed", "underdetermined"}
 DOC_HASH = "a" * 64
-
-
-def _schemas():
-    from jsonschema import Draft202012Validator as Validator
-
-    def load(name: str):
-        schema = json.loads((ROOT / "schemas" / name).read_text(encoding="utf-8"))
-        return Validator(schema)
-
-    return load("scifact_claim_native.schema.json"), load("scifact_corpus_doc.schema.json")
 
 
 def _doc(doc_id: int = 10) -> dict:
@@ -116,118 +110,89 @@ def _run_b2(item: PredictInput) -> dict:
     )
 
 
-def _cli(args: list[str]) -> subprocess.CompletedProcess[str]:
-    env = os.environ.copy()
-    env["PYTHONPATH"] = str(ROOT / "src") + os.pathsep + env.get("PYTHONPATH", "")
-    return subprocess.run(
-        [sys.executable, "-m", "validator.same_evidence.runner", *args],
-        cwd=ROOT,
-        env=env,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
+def test_loader_manifest_paths_match_corpus_lock():
+    assert MANIFESTS == EXPECTED_MANIFESTS
+    assert EXPECTED_CORPUS_HASH == "b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62"
 
 
 def test_empty_evidence_joins_and_stays_nei_eligible():
-    claim_schema, doc_schema = _schemas()
-    item = build_predict_input(
+    doc = _doc()
+    bundle = bundle_claim(
         _claim(1, {}, [10]),
         split_role="development",
-        corpus={10: _doc()},
-        claim_schema=claim_schema,
-        doc_schema=doc_schema,
+        corpus={10: doc},
+        hashes={10: snapshot_hash(doc)},
     )
+    assert bundle.gold_labels == []
+    assert [item.doc_id for item in bundle.same_evidence] == [10]
+    item = predict_input_from_bundle(bundle, {10: doc})
     assert item.nei_eligible() is True
     assert item.gold_evidence_bundle[0].rationales == []
     assert item.native_label_space == "scifact_SUPPORT_CONTRADICT"
+    assert item.claim_id == "scifact:1"
     row = _run_b2(item)
     assert row["label"] in PREDICTION_LABELS
     assert row["rationale"]
 
 
 def test_missing_cited_doc_is_a_join_failure_even_when_evidence_is_empty():
-    claim_schema, doc_schema = _schemas()
-    with pytest.raises(MissingEvidenceJoinError, match="D0 evidence join failed"):
-        build_predict_input(
+    with pytest.raises(SciFactDataError, match="not in corpus.jsonl"):
+        bundle_claim(
             _claim(5, {}, [99]),
             split_role="development",
             corpus={10: _doc()},
-            claim_schema=claim_schema,
-            doc_schema=doc_schema,
+            hashes={},
         )
+    translated = translate_loader_error(
+        SciFactDataError("claim 5 cites doc_id 99, which is not in corpus.jsonl")
+    )
+    assert isinstance(translated, MissingEvidenceJoinError)
 
 
 def test_missing_evidence_object_is_not_treated_as_nei():
-    claim_schema, doc_schema = _schemas()
+    doc = _doc()
     native = _claim(6, {}, [10])
     del native["evidence"]
-    with pytest.raises(BaselineDataError, match="NEI-eligible"):
-        build_predict_input(
+    with pytest.raises(SciFactDataError, match="missing an evidence object"):
+        bundle_claim(
             native,
             split_role="development",
-            corpus={10: _doc()},
-            claim_schema=claim_schema,
-            doc_schema=doc_schema,
+            corpus={10: doc},
+            hashes={10: snapshot_hash(doc)},
         )
+    translated = translate_loader_error(SciFactDataError("claim 6 is missing an evidence object"))
+    assert type(translated) is BaselineDataError
+    assert "NEI-eligible" in str(translated)
 
 
 def test_cli_missing_join_exits_nonzero(tmp_path: Path):
-    corpus = tmp_path / "corpus.jsonl"
-    claims = tmp_path / "claims.jsonl"
-    corpus.write_text(json.dumps(_doc()) + "\n", encoding="utf-8")
-    claims.write_text(json.dumps(_claim(5, {}, [99])) + "\n", encoding="utf-8")
     predictions = tmp_path / "predictions.jsonl"
-    proc = _cli(
-        [
-            "--dry-run",
-            "--claims-jsonl",
-            str(claims),
-            "--corpus-jsonl",
-            str(corpus),
-            "--claim-ids",
-            "5",
-            "--output",
-            str(predictions),
-            "--run-sidecar",
-            str(tmp_path / "run.json"),
-        ]
+    sidecar = tmp_path / "run.json"
+    code = f"""
+from unittest.mock import patch
+from data.scifact_loader import SciFactDataError
+from validator.same_evidence.runner import main
+err = SciFactDataError("claim 5 cites doc_id 99, which is not in corpus.jsonl")
+with patch("validator.same_evidence.inputs.load_split", side_effect=err):
+    main([
+        "--dry-run", "--limit", "1",
+        "--output", {str(predictions)!r},
+        "--run-sidecar", {str(sidecar)!r},
+    ])
+"""
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(ROOT / "src") + os.pathsep + env.get("PYTHONPATH", "")
+    proc = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=ROOT,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
     )
     assert proc.returncode != 0
     assert "EVIDENCE JOIN MISSING" in proc.stderr
     assert not predictions.exists()
-
-
-def test_cli_empty_evidence_exits_zero(tmp_path: Path):
-    corpus = tmp_path / "corpus.jsonl"
-    claims = tmp_path / "claims.jsonl"
-    corpus.write_text(json.dumps(_doc()) + "\n", encoding="utf-8")
-    claims.write_text(json.dumps(_claim(7, {}, [10])) + "\n", encoding="utf-8")
-    predictions = tmp_path / "predictions.jsonl"
-    proc = _cli(
-        [
-            "--dry-run",
-            "--limit",
-            "1",
-            "--claims-jsonl",
-            str(claims),
-            "--corpus-jsonl",
-            str(corpus),
-            "--claim-ids",
-            "7",
-            "--output",
-            str(predictions),
-            "--run-sidecar",
-            str(tmp_path / "run.json"),
-        ]
-    )
-    assert proc.returncode == 0, proc.stderr
-    assert "EVIDENCE JOIN MISSING" not in proc.stderr
-    rows = [json.loads(line) for line in predictions.read_text(encoding="utf-8").splitlines()]
-    assert len(rows) == 1
-    assert rows[0]["claim_id"] == "scifact:7"
-    assert rows[0]["label"] in PREDICTION_LABELS
-    assert rows[0]["rationale"]
 
 
 def test_reader_payload_has_no_asserted_answer_or_rationales():
@@ -294,21 +259,7 @@ def test_dry_run_refuses_nonlocal_endpoint(tmp_path: Path):
     path = tmp_path / "cloud.yaml"
     path.write_text(yaml.safe_dump(config), encoding="utf-8")
     with pytest.raises(SystemExit) as exc:
-        main(
-            [
-                "--config",
-                str(path),
-                "--dry-run",
-                "--limit",
-                "1",
-                "--claims-jsonl",
-                str(tmp_path / "unused-claims.jsonl"),
-                "--corpus-jsonl",
-                str(tmp_path / "unused-corpus.jsonl"),
-                "--claim-ids",
-                "1",
-            ]
-        )
+        main(["--config", str(path), "--dry-run", "--limit", "1"])
     assert exc.value.code != 0
 
 
@@ -373,8 +324,7 @@ def test_dry_run_twenty_development_claims_without_network(tmp_path: Path, monke
     assert sidecar["run"]["split"] == "development"
     assert sidecar["run"]["model_id"] == "Qwen/Qwen2.5-1.5B-Instruct"
     assert sidecar["run"]["status"] == "completed"
-    corpus_cfg = yaml.safe_load((ROOT / "configs" / "corpus" / "scifact.yaml").read_text(encoding="utf-8"))
-    assert sidecar["run"]["corpus_hash"] == corpus_cfg["corpus_hash"]
+    assert sidecar["run"]["corpus_hash"] == EXPECTED_CORPUS_HASH
     config_bytes = (ROOT / "configs" / "baseline" / "same_evidence_b2.yaml").read_bytes()
     assert sidecar["run"]["config_hash"] == hashlib.sha256(config_bytes).hexdigest()
     prompt_texts = {

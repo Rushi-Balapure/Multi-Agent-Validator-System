@@ -10,7 +10,7 @@ Reproducible inference-time validator for scientific conclusions, plus a researc
 
 ## Same-evidence baseline (B2)
 
-Named adaptation of research-plan B2: a template neutral question, an isolated reader over the claim's original citations (D0), then a compare step. Predictions are SciFact `SUPPORT` / `REFUTE` / `NEI` (`CONTRADICT` maps to `REFUTE`). The dry-run uses a documented mock and does not retrieve documents.
+Named adaptation of research-plan B2: a template neutral question, an isolated reader over the claim's original citations (D0), then a compare step. Claims are loaded with `data.scifact_loader.load_split("development")`. Predictions are SciFact `SUPPORT` / `REFUTE` / `NEI` (`CONTRADICT` maps to `REFUTE`). The dry-run uses a documented mock and does not retrieve documents.
 
 ```bash
 python3 -m pip install -e ".[dev]"

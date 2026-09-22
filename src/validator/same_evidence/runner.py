@@ -45,7 +45,6 @@ from .inputs import (
     LoadedInputs,
     MissingEvidenceJoinError,
     load_development_inputs,
-    load_override_inputs,
     repo_root,
     sha256_file,
     sha256_text,
@@ -107,19 +106,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--limit", type=int, default=None, help="Override the config limit.")
     parser.add_argument("--output", default=None, help="Predictions JSONL path.")
     parser.add_argument("--run-sidecar", default=None, help="Run metadata JSON path.")
-    parser.add_argument(
-        "--claims-jsonl",
-        default=None,
-        help="Test seam. Requires --corpus-jsonl and --claim-ids. Not the locked development path.",
-    )
-    parser.add_argument("--corpus-jsonl", default=None, help="Test seam corpus JSONL.")
-    parser.add_argument(
-        "--claim-ids",
-        type=int,
-        nargs="*",
-        default=None,
-        help="Test seam claim ids, in the order to score.",
-    )
     return parser.parse_args(argv)
 
 
@@ -170,20 +156,7 @@ def _write_atomic(path: Path, text: str) -> None:
     temporary.replace(path)
 
 
-def _load_inputs(root: Path, config: BaselineConfig, args: argparse.Namespace, limit: int) -> LoadedInputs:
-    override_flags = [args.claims_jsonl, args.corpus_jsonl, args.claim_ids]
-    if any(flag is not None and flag != [] for flag in override_flags):
-        if not args.claims_jsonl or not args.corpus_jsonl or not args.claim_ids:
-            raise BaselineDataError(
-                "the test seam requires --claims-jsonl, --corpus-jsonl, and --claim-ids together"
-            )
-        return load_override_inputs(
-            root,
-            claims_path=Path(args.claims_jsonl),
-            corpus_path=Path(args.corpus_jsonl),
-            claim_ids=list(args.claim_ids),
-            split_role="override",
-        )
+def _load_inputs(root: Path, config: BaselineConfig, limit: int) -> LoadedInputs:
     return load_development_inputs(root, limit, config.corpus_config)
 
 
@@ -217,7 +190,7 @@ def execute(args: argparse.Namespace) -> None:
     limit = config.limit if args.limit is None else args.limit
     if limit < 1:
         raise BaselineDataError("limit must be at least 1")
-    loaded = _load_inputs(root, config, args, limit)
+    loaded = _load_inputs(root, config, limit)
     if len(loaded.inputs) != limit and loaded.input_source == "corpus_lock":
         raise BaselineDataError(
             f"expected {limit} development claims, joined {len(loaded.inputs)}"
