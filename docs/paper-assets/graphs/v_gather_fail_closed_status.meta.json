@@ -1,0 +1,18 @@
+{
+  "b2_run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
+  "counts_by_d1_label_4way": {
+    "supported": 19,
+    "unaddressed": 1
+  },
+  "counts_by_execution_status": {
+    "failed": 20
+  },
+  "figure_id": "v_gather_fail_closed_status",
+  "n_scored": 0,
+  "n_skipped_not_ok": 20,
+  "note": "Fail-closed gather: auditor does not load gold D0; all 20 rows are execution_status=failed and skipped by F-false-endorsement.",
+  "scoring_status": "skipped_not_ok",
+  "source_metrics": "docs/paper-assets/tables/validator_v_gather/v_gather_metrics.json",
+  "source_predictions": "docs/paper-assets/tables/validator_v_gather/predictions.jsonl",
+  "v_run_id": "validator-v-gather-development-s0-n20-90129d9056fd"
+}

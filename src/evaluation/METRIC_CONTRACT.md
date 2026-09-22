@@ -59,13 +59,22 @@ The scorer does not join the corpus. Rows without gold are skipped. The paper st
 
 `PYTHONPATH=src python -m evaluation.harness` compares method_id `B2` and optional `V` on `F-false-endorsement` (both denominators). The method_id enum is `B2` and `V` only. V predictions must use the same claim ids as the B2 prediction rows. A missing or empty V file leaves the V cell pending (`—` in the table). The harness does not copy B2 rates into that cell.
 
-The paper table is `docs/paper-assets/tables/v_vs_b2_false_endorsement.md`. Its B2 column is the checked-in live report `docs/paper-assets/tables/b2_live_n20_metrics.json` (run `same-evidence-b2-development-s0-n20-dac855c4e2ae`). The V column is the offline Stack V fixture-report dry-run `validator-v-development-s0-n3-d5cecb97c55b` (`docs/paper-assets/tables/validator_v/predictions.jsonl` + `run.json`). Those synthetic e2e claim ids are not in the locked development split, so scoring attaches `src/evaluation/fixtures/v_fixture_report_gold.json` rather than `--join-gold development`. Held-out run ids remain placeholders. Regenerating the filled table:
+The paper table is `docs/paper-assets/tables/v_vs_b2_false_endorsement.md`. Its B2 column is the checked-in live report `docs/paper-assets/tables/b2_live_n20_metrics.json` (run `same-evidence-b2-development-s0-n20-dac855c4e2ae`). The V column is Phase-3 gather live `validator-v-gather-development-s0-n20-90129d9056fd` (`docs/paper-assets/tables/validator_v_gather/predictions.jsonl` + `run.json`). Those rows share the B2 claim ids but every row is `execution_status=failed` (gather fail-closed D0), so the scorer reports `scoring_status=skipped_not_ok`, `n_skipped_not_ok=20`, `n_scored=0`, and FE cells are **N/A** — never invent 0.0 SUPPORT rates and never remap failed rows to scorables. Held-out run ids remain placeholders. Regenerating the paired gather table:
 
 ```bash
 PYTHONPATH=src python -m evaluation.harness \
   --paper-table \
-  --v-metrics-output docs/paper-assets/tables/validator_v/v_dry_run_metrics.json \
+  --v-metrics-output docs/paper-assets/tables/validator_v_gather/v_gather_metrics.json \
   --output docs/paper-assets/tables/v_vs_b2_false_endorsement.md
+```
+
+Offline fixture-report dry-run V (synthetic e2e claim ids, not the paired gather table):
+
+```bash
+PYTHONPATH=src python -m evaluation.harness \
+  --paper-table-fixture-v \
+  --v-metrics-output docs/paper-assets/tables/validator_v/v_dry_run_metrics.json \
+  --output /tmp/v_fixture_vs_b2.md
 ```
 
 Pending-only regeneration (omit V artifacts):
@@ -75,6 +84,11 @@ PYTHONPATH=src python -m evaluation.harness \
   --output docs/paper-assets/tables/v_vs_b2_false_endorsement.md
 ```
 
+Phase-3 figure drafts (from saved predictions/metrics only):
+
+```bash
+PYTHONPATH=src python -m evaluation.phase3_figures
+```
 ## Bootstrap-by-family timers
 
 `evaluation.bootstrap.BootstrapByFamilyConfig` stores the contract plan: question family by default, claim family as the other cluster key, `n_resamples=2000`, 95% interval, formula `F-false-endorsement`, methods `B2` and `V`. `describe_bootstrap_timer` returns that plan with `interval=None`. `bootstrap_by_family` raises `NotImplementedError` until V predictions exist. It does not draw resamples and it does not return a confidence interval.

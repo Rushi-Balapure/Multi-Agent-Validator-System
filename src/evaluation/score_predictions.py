@@ -238,6 +238,23 @@ def score_prediction_rows(
         pairs.append((gold, predicted))
 
     if not pairs:
+        # All rows not-ok (fail-closed / failed execution): report skips
+        # without inventing false-endorsement rates (0.0 would be a lie).
+        if len(rows) > 0 and skipped_not_ok == len(rows):
+            return {
+                "run_id": run_id,
+                "method_id": _method_id(rows),
+                "inference_mode": mode,
+                "prediction_label_space": PREDICTION_LABEL_SPACE,
+                "endorsement_label": ENDORSEMENT_LABEL,
+                "n_rows": len(rows),
+                "n_scored": 0,
+                "n_skipped_unlabeled": skipped_unlabeled,
+                "n_skipped_not_ok": skipped_not_ok,
+                "scoring_status": "skipped_not_ok",
+                "counts": None,
+                "metrics": [],
+            }
         raise ScoreError(
             "no rows with gold labels to score; add label_gold "
             "(SUPPORT, REFUTE, or NEI; CONTRADICT counts as REFUTE). "
@@ -346,6 +363,7 @@ def score_prediction_rows(
         "n_scored": len(pairs),
         "n_skipped_unlabeled": skipped_unlabeled,
         "n_skipped_not_ok": skipped_not_ok,
+        "scoring_status": "scored",
         "counts": {
             "run_id": run_id,
             "formula_id": _NATIVE_FORMULA,
