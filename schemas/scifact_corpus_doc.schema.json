@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mavs.local/schemas/scifact_corpus_doc.schema.json",
+  "title": "SciFactCorpusDoc",
+  "type": "object",
+  "required": [
+    "doc_id",
+    "title",
+    "abstract",
+    "structured"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "doc_id": {
+      "type": "integer"
+    },
+    "title": {
+      "type": "string"
+    },
+    "abstract": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "structured": {
+      "type": "boolean"
+    }
+  }
+}

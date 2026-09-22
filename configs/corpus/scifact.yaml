@@ -1,0 +1,25 @@
+# Frozen SciFact corpus for the corpus-lock slice.
+# Public SciFact development claims are held_out_local_eval, not a community test.
+dataset: scifact
+pin: data/pins/scifact/PIN.json
+lock: data/pins/scifact/LOCKED.json
+manifests_dir: manifests/scifact
+manifests:
+  source_train: manifests/scifact/scifact_train_all.json
+  calibration: manifests/scifact/scifact_calibration_v1.json
+  development: manifests/scifact/scifact_development_v1.json
+  held_out_local_eval: manifests/scifact/scifact_held_out_dev_v1.json
+  official_test_unlabeled: manifests/scifact/scifact_official_test_v1.json
+raw_dir: data/raw/scifact
+download: python3 -m data.pins.scifact.download_verify
+smoke: python3 -m data.smoke_scifact_splits
+doc_id_scheme: scifact_s2orc_integer
+calibration_salt: mavs-scifact-calibration-v1
+upstream_git_commit: 68b98a56d93e0f9da0d2aab4e6c3294699a0f72e
+upstream_repo: https://github.com/allenai/scifact
+data_url: https://scifact.s3-us-west-2.amazonaws.com/release/latest/data.tar.gz
+# SHA-256 of data/raw/scifact/corpus.jsonl (the frozen abstract corpus).
+corpus_hash: b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62
+corpus_hash_file: corpus.jsonl
+tarball_sha256: 11c621288d41ac144d29b13b0f8503b3820b7d6e8b1f6ff24dff335c196d76be
+snapshot_hash: sha256 of canonical corpus document JSON (sorted keys, compact separators, UTF-8)

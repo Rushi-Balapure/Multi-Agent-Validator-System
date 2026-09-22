@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Frozen SciFact release extracted by data/pins/scifact/download_verify.py.
+# Hashes live in data/pins/scifact/PIN.json. Do not commit the raw jsonl files.
+/data/raw/

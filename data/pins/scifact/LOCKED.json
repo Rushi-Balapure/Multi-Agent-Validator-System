@@ -1,0 +1,25 @@
+{
+  "corpus_lock_version": "scifact-corpus-lock-v1",
+  "status": "locked",
+  "locked": true,
+  "note": "Refuse silent regeneration. Any change requires a new versioned lock file and a new MR.",
+  "pin_path": "data/pins/scifact/PIN.json",
+  "manifest_paths": [
+    "manifests/scifact/scifact_train_all.json",
+    "manifests/scifact/scifact_calibration_v1.json",
+    "manifests/scifact/scifact_development_v1.json",
+    "manifests/scifact/scifact_held_out_dev_v1.json",
+    "manifests/scifact/scifact_official_test_v1.json"
+  ],
+  "tarball_sha256": "11c621288d41ac144d29b13b0f8503b3820b7d6e8b1f6ff24dff335c196d76be",
+  "manifest_ids_sha256": {
+    "scifact_train_all": "ad7e39aa19e1b37cbcf11820b9ff3dfe5d674578c4fba92e3db220816d0b2a04",
+    "scifact_calibration_v1": "6221cf17180dcad32e2655503d2138621701b8f3dfe32bd6afff4bcd9820b311",
+    "scifact_development_v1": "d1a5b5a09e7a61b3216b1d816d4cf1ea85426dfa721d8f0561ba5dd3bd30c2dd",
+    "scifact_held_out_dev_v1": "f454ba3f4706f9623699bdf722a170c1b97f28b74c325c927d428a2d81279b92",
+    "scifact_official_test_v1": "b08b7a25df70a05fe97c7bbbdad2e218985431d1508159b9c9033867d9d991df"
+  },
+  "locked_at": "2026-09-22T12:31:00+05:30",
+  "locked_by": "Corpus Lock via Arch Lead assign (scaffold fc64256)",
+  "base_commit": "fc64256a318588e3fb16ef05471acdbeccf7a228"
+}

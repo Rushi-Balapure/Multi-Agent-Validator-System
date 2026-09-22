@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mavs.local/schemas/mavs_evidence_record.schema.json",
+  "title": "MavsEvidenceRecord",
+  "type": "object",
+  "required": [
+    "doc_id",
+    "snapshot_hash",
+    "text_span",
+    "access_scope"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "doc_id": {
+      "type": [
+        "integer",
+        "string"
+      ]
+    },
+    "doi": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "pmid": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "snapshot_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "text_span": {
+      "type": "string"
+    },
+    "offsets": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sentence_idxs": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "query": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "rank": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "retrieval_round": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "provenance": {
+      "type": "string",
+      "enum": [
+        "original",
+        "independent",
+        "corpus_gold"
+      ]
+    },
+    "deduplication_group": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "access_scope": {
+      "type": "string",
+      "enum": [
+        "D0",
+        "D1",
+        "D0_union_D1",
+        "corpus"
+      ]
+    }
+  }
+}

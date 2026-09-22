@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mavs.local/schemas/mavs_label_record.schema.json",
+  "title": "MavsLabelRecord",
+  "type": "object",
+  "required": [
+    "claim_id",
+    "evidence_scope",
+    "label",
+    "label_space"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "claim_id": {
+      "type": "string"
+    },
+    "evidence_scope": {
+      "type": "string",
+      "enum": [
+        "D0",
+        "D1",
+        "D0_union_D1",
+        "native_scifact"
+      ]
+    },
+    "label_space": {
+      "type": "string",
+      "enum": [
+        "scifact_native",
+        "mavs_four_way"
+      ]
+    },
+    "label": {
+      "type": "string"
+    },
+    "rationale_codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cited_span_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "raw_scores": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "calibrated_probabilities": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "execution_status": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "uncertainty_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "gold_provenance": {
+      "type": "string",
+      "enum": [
+        "upstream_scifact",
+        "human_annotation",
+        "none"
+      ],
+      "description": "upstream_scifact only for native SUPPORT/CONTRADICT (or empty evidence). Never invent labels."
+    }
+  }
+}

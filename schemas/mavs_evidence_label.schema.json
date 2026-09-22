@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mavs.local/schemas/mavs_evidence_label.schema.json",
+  "title": "MavsEvidenceLabel",
+  "type": "string",
+  "enum": [
+    "supported",
+    "contradicted",
+    "unaddressed",
+    "underdetermined"
+  ],
+  "description": "Four-way project labels for custom/agentic annotation. Native SciFact gold remains SUPPORT|CONTRADICT (or NEI via empty evidence). Do not invent four-way gold for official SciFact splits."
+}
