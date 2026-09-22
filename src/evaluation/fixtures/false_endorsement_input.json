@@ -1,0 +1,8 @@
+[
+  {"run_id": "fixture-fe-001", "method_id": "B2", "question_id": "q1", "claim_id": "c1", "label_gold": "supported", "label_pred": "supported", "execution_status": "ok"},
+  {"run_id": "fixture-fe-001", "method_id": "B2", "question_id": "q1", "claim_id": "c2", "label_gold": "refuted", "label_pred": "supported", "execution_status": "ok"},
+  {"run_id": "fixture-fe-001", "method_id": "B2", "question_id": "q2", "claim_id": "c3", "label_gold": "unaddressed", "label_pred": "refuted", "execution_status": "ok"},
+  {"run_id": "fixture-fe-001", "method_id": "B2", "question_id": "q2", "claim_id": "c4", "label_gold": "underdetermined", "label_pred": "unaddressed", "execution_status": "ok"},
+  {"run_id": "fixture-fe-001", "method_id": "B2", "question_id": "q3", "claim_id": "c5", "label_gold": "supported", "label_pred": "refuted", "execution_status": "ok"},
+  {"run_id": "fixture-fe-001", "method_id": "B2", "question_id": "q3", "claim_id": "c6", "label_gold": "refuted", "label_pred": "supported", "execution_status": "fail"}
+]

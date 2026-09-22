@@ -1,0 +1,8 @@
+{
+  "formula_id": "F-false-endorsement",
+  "false_endorsement_gold_nonsup": 0.3333333333333333,
+  "false_endorsement_pred_sup": 0.5,
+  "n_false_endorsements": 1,
+  "n_gold_nonsupported": 3,
+  "n_predicted_supported": 2
+}
