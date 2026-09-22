@@ -1,0 +1,33 @@
+# Stack V batch runner. method_id is V. The scored label is the reconciled
+# D0∪D1 four-way judgment mapped onto SUPPORT / REFUTE / NEI
+# (supported→SUPPORT, contradicted→REFUTE, unaddressed and underdetermined→NEI).
+# Default is an offline fixture-report dry-run. --gather is opt-in and calls
+# Retrieval Wing gather(neutral_question, config, claim_id). It does not pass gold D0.
+# The development claim budget is 20. Each report still uses the staged
+# pipeline's per-report cap of 8.
+system_id: validator_v
+method_id: V
+adaptation: V
+adaptation_note: >
+  Independent retrieval plus staged D0 union D1 judgment.
+  Eval reads the reconciled four-way label mapped onto SUPPORT, REFUTE, or NEI.
+split: development
+limit: 20
+seed: 0
+model_id: qwen2.5-coder-1.5b-instruct
+base_url: http://127.0.0.1:1234/v1
+temperature: 0
+timeout_seconds: 30
+dry_run: true
+prediction_label_space: scifact_SUPPORT_REFUTE_NEI
+four_way_label_space: mavs_four_way
+scored_evidence_scope: D0_union_D1
+retrieval_config: configs/retrieval/scifact_bm25.yaml
+neutral_question: prompts/validator_v/neutral_question_v1.txt
+reports:
+  - tests/fixtures/judgment/e2e_happy.json
+  - tests/fixtures/judgment/e2e_conflict.json
+  - tests/fixtures/judgment/e2e_missing_citation.json
+output:
+  predictions: artifacts/validator_v/predictions.jsonl
+  run_sidecar: artifacts/validator_v/run.json

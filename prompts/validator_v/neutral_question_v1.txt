@@ -1,0 +1,3 @@
+What do abstracts report about the following topic?
+
+Topic: {claim}

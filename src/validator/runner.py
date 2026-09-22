@@ -22,6 +22,10 @@ From the repository root::
         --config configs/retrieval/scifact_bm25.yaml \\
         --limit 5 \\
         --output artifacts/retrieval/dev5_bundles.jsonl
+
+Eval predictions (``method_id=V``, ``predictions.jsonl`` and ``run.json``)
+are written by ``python -m validator.validator_v``. This module stays the
+one-report verdict CLI.
 """
 
 from __future__ import annotations
