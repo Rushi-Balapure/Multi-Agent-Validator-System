@@ -1,0 +1,20 @@
+{
+  "b2_run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
+  "counts_by_d1_label_4way": {
+    "contradicted": 1,
+    "supported": 18,
+    "unaddressed": 1
+  },
+  "counts_by_execution_status": {
+    "failed": 1,
+    "ok": 19
+  },
+  "figure_id": "v_gather_cited_d0_status",
+  "n_scored": 19,
+  "n_skipped_not_ok": 1,
+  "note": "Cited-D0 gather execution_status from saved predictions. Failed rows are skipped by F-false-endorsement; not remapped.",
+  "scoring_status": "scored",
+  "source_metrics": "docs/paper-assets/tables/validator_v_gather_cited_d0/v_gather_cited_d0_metrics.json",
+  "source_predictions": "docs/paper-assets/tables/validator_v_gather_cited_d0/predictions.jsonl",
+  "v_run_id": "validator-v-gather-development-s0-n20-3c856362819b"
+}

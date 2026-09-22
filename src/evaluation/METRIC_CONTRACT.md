@@ -59,12 +59,12 @@ The scorer does not join the corpus. Rows without gold are skipped. The paper st
 
 `PYTHONPATH=src python -m evaluation.harness` compares method_id `B2` and optional `V` on `F-false-endorsement` (both denominators). The method_id enum is `B2` and `V` only. V predictions must use the same claim ids as the B2 prediction rows. A missing or empty V file leaves the V cell pending (`—` in the table). The harness does not copy B2 rates into that cell.
 
-The paper table is `docs/paper-assets/tables/v_vs_b2_false_endorsement.md`. Its B2 column is the checked-in live report `docs/paper-assets/tables/b2_live_n20_metrics.json` (run `same-evidence-b2-development-s0-n20-dac855c4e2ae`). The V column is Phase-3 gather live `validator-v-gather-development-s0-n20-90129d9056fd` (`docs/paper-assets/tables/validator_v_gather/predictions.jsonl` + `run.json`). Those rows share the B2 claim ids but every row is `execution_status=failed` (gather fail-closed D0), so the scorer reports `scoring_status=skipped_not_ok`, `n_skipped_not_ok=20`, `n_scored=0`, and FE cells are **N/A** — never invent 0.0 SUPPORT rates and never remap failed rows to scorables. Held-out run ids remain placeholders. Regenerating the paired gather table:
+The paper table is `docs/paper-assets/tables/v_vs_b2_false_endorsement.md`. Its B2 column is the checked-in live report `docs/paper-assets/tables/b2_live_n20_metrics.json` (run `same-evidence-b2-development-s0-n20-dac855c4e2ae`). The V column is Phase-3 cited-D0 gather live `validator-v-gather-development-s0-n20-3c856362819b` (`docs/paper-assets/tables/validator_v_gather_cited_d0/predictions.jsonl` + `run.json`). Those rows share the B2 claim ids; 19 are `execution_status=ok` and 1 is failed, so the scorer reports `n_scored=19`, `n_skipped_not_ok=1`, and both FE denominators from scored rows only. Failures are never remapped to scorables. Fail-closed gather (#23) under `docs/paper-assets/tables/validator_v_gather/` (`validator-v-gather-development-s0-n20-90129d9056fd`, `n_skipped_not_ok=20`, FE N/A) is kept as comparison history and is not overwritten. Held-out run ids remain placeholders. Regenerating the paired cited-D0 table:
 
 ```bash
 PYTHONPATH=src python -m evaluation.harness \
   --paper-table \
-  --v-metrics-output docs/paper-assets/tables/validator_v_gather/v_gather_metrics.json \
+  --v-metrics-output docs/paper-assets/tables/validator_v_gather_cited_d0/v_gather_cited_d0_metrics.json \
   --output docs/paper-assets/tables/v_vs_b2_false_endorsement.md
 ```
 

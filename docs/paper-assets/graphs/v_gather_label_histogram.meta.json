@@ -1,13 +1,16 @@
 {
+  "b2_run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
   "counts_by_label": {
-    "NEI": 20
+    "NEI": 19,
+    "SUPPORT": 1
   },
   "counts_by_label_4way": {
-    "underdetermined": 20
+    "supported": 1,
+    "underdetermined": 19
   },
   "figure_id": "v_gather_label_histogram",
   "n_rows": 20,
-  "note": "Histogram of artifact `label` fields only. All rows are execution_status=failed; labels are not FE-scored.",
-  "source_predictions": "docs/paper-assets/tables/validator_v_gather/predictions.jsonl",
-  "v_run_id": "validator-v-gather-development-s0-n20-90129d9056fd"
+  "note": "Histogram of artifact `label` fields only from cited-D0 gather. n_skipped_not_ok=1; n_scored=19.",
+  "source_predictions": "docs/paper-assets/tables/validator_v_gather_cited_d0/predictions.jsonl",
+  "v_run_id": "validator-v-gather-development-s0-n20-3c856362819b"
 }

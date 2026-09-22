@@ -2,7 +2,8 @@
 
 Reads saved files under ``docs/paper-assets/tables/`` and writes SVG + PNG
 drafts plus ``.meta.json`` citing run_ids. Does not invent metric values:
-V gather FE rates are drawn as N/A when ``scoring_status=skipped_not_ok``.
+cited-D0 V FE rates come from scored metrics; fail-closed history figures
+cite the #23 gather set without overwriting those tables.
 
     PYTHONPATH=src python -m evaluation.phase3_figures
 """
@@ -19,12 +20,39 @@ from typing import Any, Mapping, Sequence
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUT = ROOT / "docs" / "paper-assets" / "graphs"
-V_PRED = ROOT / "docs" / "paper-assets" / "tables" / "validator_v_gather" / "predictions.jsonl"
-V_SIDE = ROOT / "docs" / "paper-assets" / "tables" / "validator_v_gather" / "run.json"
+V_PRED = (
+    ROOT
+    / "docs"
+    / "paper-assets"
+    / "tables"
+    / "validator_v_gather_cited_d0"
+    / "predictions.jsonl"
+)
+V_SIDE = (
+    ROOT / "docs" / "paper-assets" / "tables" / "validator_v_gather_cited_d0" / "run.json"
+)
 V_METRICS = (
+    ROOT
+    / "docs"
+    / "paper-assets"
+    / "tables"
+    / "validator_v_gather_cited_d0"
+    / "v_gather_cited_d0_metrics.json"
+)
+# Fail-closed #23 comparison history (not overwritten).
+FAIL_CLOSED_PRED = (
+    ROOT / "docs" / "paper-assets" / "tables" / "validator_v_gather" / "predictions.jsonl"
+)
+FAIL_CLOSED_SIDE = (
+    ROOT / "docs" / "paper-assets" / "tables" / "validator_v_gather" / "run.json"
+)
+FAIL_CLOSED_METRICS = (
     ROOT / "docs" / "paper-assets" / "tables" / "validator_v_gather" / "v_gather_metrics.json"
 )
 B2_METRICS = ROOT / "docs" / "paper-assets" / "tables" / "b2_live_n20_metrics.json"
+CITED_D0_RUN = "validator-v-gather-development-s0-n20-3c856362819b"
+FAIL_CLOSED_RUN = "validator-v-gather-development-s0-n20-90129d9056fd"
+B2_RUN = "same-evidence-b2-development-s0-n20-dac855c4e2ae"
 
 
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -176,7 +204,7 @@ def _svg_bars(
         f'font-family="Helvetica, Arial, sans-serif" font-size="11">'
         f"{_escape(y_caption)}</text>",
     ]
-    colors = ["#2e5c8a", "#46825a", "#a0a0a0", "#8a5a2e"]
+    colors = ["#2e5c8a", "#46825a", "#8a5a2e", "#5a6a8a"]
     for i, (label, value, display) in enumerate(categories):
         x = margin_l + slot * i + (slot - bar_w) / 2
         if value is None:
@@ -233,31 +261,50 @@ def build_fe_compare(
     gold = _fe_metric(b2_report, "false_endorsement_gold_nonsup")
     pred = _fe_metric(b2_report, "false_endorsement_pred_sup")
     v_skipped = v_report.get("scoring_status") == "skipped_not_ok"
+    if v_skipped:
+        v_gold: float | None = None
+        v_pred: float | None = None
+        v_gold_disp = "N/A"
+        v_pred_disp = "N/A"
+        v_fe_rates = None
+        y_caption = "rate (V FE = N/A)"
+        note = (
+            "V FE rates are N/A because every gather row is execution_status "
+            "not ok (fail-closed D0). Values are taken only from saved metrics."
+        )
+    else:
+        v_gold = _fe_metric(v_report, "false_endorsement_gold_nonsup")
+        v_pred = _fe_metric(v_report, "false_endorsement_pred_sup")
+        v_gold_disp = f"{v_gold:.4f}"
+        v_pred_disp = f"{v_pred:.4f}"
+        v_fe_rates = {
+            "false_endorsement_gold_nonsup": v_gold,
+            "false_endorsement_pred_sup": v_pred,
+        }
+        y_caption = "F-false-endorsement rate"
+        note = (
+            "V FE rates from scored cited-D0 metrics "
+            f"(n_scored={v_report.get('n_scored')}, "
+            f"n_skipped_not_ok={v_report.get('n_skipped_not_ok')}). "
+            "Values are taken only from saved metrics."
+        )
     categories = [
         ("B2 FE gold-nonsup", gold, f"{gold:.4f}"),
         ("B2 FE pred-sup", pred, f"{pred:.4f}"),
-        (
-            "V FE (both)",
-            None if v_skipped else None,
-            "N/A" if v_skipped else "—",
-        ),
-        (
-            "V n_skipped_not_ok",
-            float(v_report["n_skipped_not_ok"]) / max(int(v_report["n_rows"]), 1),
-            f'{v_report["n_skipped_not_ok"]}/{v_report["n_rows"]}',
-        ),
+        ("V FE gold-nonsup", v_gold, v_gold_disp),
+        ("V FE pred-sup", v_pred, v_pred_disp),
     ]
     stem = out_dir / "fe_bar_v_vs_b2"
     svg = _svg_bars(
-        title="F-false-endorsement: V gather vs B2 live",
-        subtitle=f"B2 `{b2_run}` · V `{v_run}` (fail-closed skips, not invented FE)",
+        title="F-false-endorsement: V cited-D0 vs B2 live",
+        subtitle=f"B2 `{b2_run}` · V `{v_run}`",
         categories=categories,
-        y_caption="rate (V FE = N/A)",
+        y_caption=y_caption,
     )
     stem.with_suffix(".svg").write_text(svg + "\n", encoding="utf-8")
     _write_bar_chart_png(
         stem.with_suffix(".png"),
-        title="F-false-endorsement: V gather vs B2 live",
+        title="F-false-endorsement: V cited-D0 vs B2 live",
         labels=[c[0] for c in categories],
         values=[c[1] for c in categories],
         value_labels=[c[2] for c in categories],
@@ -279,11 +326,8 @@ def build_fe_compare(
             "v_scoring_status": v_report.get("scoring_status"),
             "v_n_skipped_not_ok": v_report.get("n_skipped_not_ok"),
             "v_n_scored": v_report.get("n_scored"),
-            "v_fe_rates": None,
-            "note": (
-                "V FE rates are N/A because every gather row is execution_status "
-                "not ok (fail-closed D0). Values are taken only from saved metrics."
-            ),
+            "v_fe_rates": v_fe_rates,
+            "note": note,
         },
     )
 
@@ -304,11 +348,10 @@ def build_v_histograms(
     four = Counter(str(r.get("label_4way")) for r in rows)
     d1 = Counter(str(r.get("d1_label_4way")) for r in rows)
 
-    # Label histogram (native predicted label on the artifact)
     cats = [(lab, float(count), str(count)) for lab, count in sorted(labels.items())]
     stem = out_dir / "v_gather_label_histogram"
     svg = _svg_bars(
-        title="V gather predicted label histogram",
+        title="V cited-D0 gather predicted label histogram",
         subtitle=f"run `{run_id}` · n={len(rows)} rows from saved predictions.jsonl",
         categories=cats,
         y_caption="count",
@@ -316,7 +359,7 @@ def build_v_histograms(
     stem.with_suffix(".svg").write_text(svg + "\n", encoding="utf-8")
     _write_bar_chart_png(
         stem.with_suffix(".png"),
-        title="V gather predicted label histogram",
+        title="V cited-D0 gather predicted label histogram",
         labels=[c[0] for c in cats],
         values=[c[1] for c in cats],
         value_labels=[c[2] for c in cats],
@@ -326,25 +369,27 @@ def build_v_histograms(
         {
             "figure_id": "v_gather_label_histogram",
             "v_run_id": run_id,
+            "b2_run_id": B2_RUN,
             "source_predictions": str(V_PRED.relative_to(ROOT)),
             "counts_by_label": dict(labels),
             "counts_by_label_4way": dict(four),
             "n_rows": len(rows),
             "note": (
-                "Histogram of artifact `label` fields only. All rows are "
-                "execution_status=failed; labels are not FE-scored."
+                "Histogram of artifact `label` fields only from cited-D0 gather. "
+                f"n_skipped_not_ok={v_report.get('n_skipped_not_ok')}; "
+                f"n_scored={v_report.get('n_scored')}."
             ),
         },
     )
 
-    # Fail-closed / execution status
     cats2 = [(lab, float(count), str(count)) for lab, count in sorted(status.items())]
-    stem2 = out_dir / "v_gather_fail_closed_status"
+    stem2 = out_dir / "v_gather_cited_d0_status"
     svg2 = _svg_bars(
-        title="V gather execution_status (fail-closed D0)",
+        title="V cited-D0 gather execution_status",
         subtitle=(
             f"run `{run_id}` · n_skipped_not_ok="
-            f'{v_report.get("n_skipped_not_ok")}/{v_report.get("n_rows")}'
+            f'{v_report.get("n_skipped_not_ok")}/{v_report.get("n_rows")} · '
+            f'n_scored={v_report.get("n_scored")}'
         ),
         categories=cats2,
         y_caption="count",
@@ -352,7 +397,7 @@ def build_v_histograms(
     stem2.with_suffix(".svg").write_text(svg2 + "\n", encoding="utf-8")
     _write_bar_chart_png(
         stem2.with_suffix(".png"),
-        title="V gather execution_status",
+        title="V cited-D0 gather execution_status",
         labels=[c[0] for c in cats2],
         values=[c[1] for c in cats2],
         value_labels=[c[2] for c in cats2],
@@ -360,9 +405,9 @@ def build_v_histograms(
     _write_meta(
         Path(str(stem2) + ".meta.json"),
         {
-            "figure_id": "v_gather_fail_closed_status",
+            "figure_id": "v_gather_cited_d0_status",
             "v_run_id": run_id,
-            "b2_run_id": "same-evidence-b2-development-s0-n20-dac855c4e2ae",
+            "b2_run_id": B2_RUN,
             "source_predictions": str(V_PRED.relative_to(ROOT)),
             "source_metrics": str(V_METRICS.relative_to(ROOT)),
             "counts_by_execution_status": dict(status),
@@ -371,8 +416,64 @@ def build_v_histograms(
             "n_scored": v_report.get("n_scored"),
             "scoring_status": v_report.get("scoring_status"),
             "note": (
-                "Fail-closed gather: auditor does not load gold D0; all 20 rows "
-                "are execution_status=failed and skipped by F-false-endorsement."
+                "Cited-D0 gather execution_status from saved predictions. "
+                "Failed rows are skipped by F-false-endorsement; not remapped."
+            ),
+        },
+    )
+
+
+def build_fail_closed_history(
+    *,
+    rows: Sequence[Mapping[str, Any]],
+    v_report: Mapping[str, Any],
+    sidecar: Mapping[str, Any],
+    out_dir: Path,
+) -> None:
+    """Keep the #23 fail-closed status figure as comparison history."""
+    run = sidecar.get("run", {})
+    run_id = run.get("run_id") if isinstance(run, Mapping) else None
+    if not isinstance(run_id, str):
+        run_id = str(v_report["run_id"])
+    status = Counter(str(r.get("execution_status")) for r in rows)
+    d1 = Counter(str(r.get("d1_label_4way")) for r in rows)
+    cats = [(lab, float(count), str(count)) for lab, count in sorted(status.items())]
+    stem = out_dir / "v_gather_fail_closed_status"
+    svg = _svg_bars(
+        title="V gather execution_status (fail-closed D0, #23 history)",
+        subtitle=(
+            f"run `{run_id}` · n_skipped_not_ok="
+            f'{v_report.get("n_skipped_not_ok")}/{v_report.get("n_rows")}'
+        ),
+        categories=cats,
+        y_caption="count",
+    )
+    stem.with_suffix(".svg").write_text(svg + "\n", encoding="utf-8")
+    _write_bar_chart_png(
+        stem.with_suffix(".png"),
+        title="V gather execution_status (fail-closed history)",
+        labels=[c[0] for c in cats],
+        values=[c[1] for c in cats],
+        value_labels=[c[2] for c in cats],
+    )
+    _write_meta(
+        Path(str(stem) + ".meta.json"),
+        {
+            "figure_id": "v_gather_fail_closed_status",
+            "v_run_id": run_id,
+            "b2_run_id": B2_RUN,
+            "source_predictions": str(FAIL_CLOSED_PRED.relative_to(ROOT)),
+            "source_metrics": str(FAIL_CLOSED_METRICS.relative_to(ROOT)),
+            "counts_by_execution_status": dict(status),
+            "counts_by_d1_label_4way": dict(d1),
+            "n_skipped_not_ok": v_report.get("n_skipped_not_ok"),
+            "n_scored": v_report.get("n_scored"),
+            "scoring_status": v_report.get("scoring_status"),
+            "note": (
+                "Comparison history (#23): fail-closed gather; auditor does not "
+                "load gold D0; all 20 rows are execution_status=failed and "
+                "skipped by F-false-endorsement. Tables under "
+                "validator_v_gather/ are not overwritten by cited-D0."
             ),
         },
     )
@@ -392,6 +493,12 @@ def main(argv: Sequence[str] | None = None) -> None:
     build_v_histograms(
         rows=rows, v_report=v_report, sidecar=sidecar, out_dir=out_dir
     )
+    fc_rows = _read_jsonl(FAIL_CLOSED_PRED)
+    fc_side = json.loads(FAIL_CLOSED_SIDE.read_text(encoding="utf-8"))
+    fc_report = json.loads(FAIL_CLOSED_METRICS.read_text(encoding="utf-8"))
+    build_fail_closed_history(
+        rows=fc_rows, v_report=fc_report, sidecar=fc_side, out_dir=out_dir
+    )
     readme = out_dir / "README.md"
     readme.write_text(
         "# Graphs\n\n"
@@ -399,19 +506,21 @@ def main(argv: Sequence[str] | None = None) -> None:
         "files only (`python -m evaluation.phase3_figures`).\n\n"
         "| Figure | Files | Source run_ids |\n"
         "| --- | --- | --- |\n"
-        "| FE bar compare (V gather vs B2 live) | "
+        "| FE bar compare (V cited-D0 vs B2 live) | "
         "`fe_bar_v_vs_b2.svg` / `.png` / `.meta.json` | "
-        "`validator-v-gather-development-s0-n20-90129d9056fd`, "
-        "`same-evidence-b2-development-s0-n20-dac855c4e2ae` |\n"
-        "| V gather label histogram | "
+        f"`{CITED_D0_RUN}`, `{B2_RUN}` |\n"
+        "| V cited-D0 label histogram | "
         "`v_gather_label_histogram.svg` / `.png` / `.meta.json` | "
-        "`validator-v-gather-development-s0-n20-90129d9056fd` |\n"
-        "| V gather fail-closed status | "
+        f"`{CITED_D0_RUN}` |\n"
+        "| V cited-D0 execution status | "
+        "`v_gather_cited_d0_status.svg` / `.png` / `.meta.json` | "
+        f"`{CITED_D0_RUN}` |\n"
+        "| V gather fail-closed status (#23 history) | "
         "`v_gather_fail_closed_status.svg` / `.png` / `.meta.json` | "
-        "`validator-v-gather-development-s0-n20-90129d9056fd` |\n\n"
-        "V FE rates are N/A in the bar chart: every gather row is "
-        "`execution_status=failed` (`n_skipped_not_ok=20`). "
-        "No invented SUPPORT rates.\n",
+        f"`{FAIL_CLOSED_RUN}` |\n\n"
+        "Cited-D0 V FE rates are scored (`n_scored=19`, `n_skipped_not_ok=1`). "
+        "Fail-closed tables under `docs/paper-assets/tables/validator_v_gather/` "
+        "remain comparison history and are not overwritten.\n",
         encoding="utf-8",
     )
     print(f"wrote figures under {out_dir}")
