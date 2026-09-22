@@ -10,8 +10,11 @@ adaptation_note: >
 split: development
 limit: 20
 seed: 0
-model_id: Qwen/Qwen2.5-1.5B-Instruct
-base_url: http://127.0.0.1:8000/v1
+# LM Studio on the private LAN (OpenAI-compatible). model_id is the id LM Studio serves.
+# Loopback (127.0.0.1 / localhost) is still accepted for a local proxy.
+# dry_run stays true for CI and offline runs; pass --live to call the endpoint.
+model_id: qwen2.5-coder-1.5b-instruct
+base_url: http://192.168.1.10:1234/v1
 temperature: 0
 timeout_seconds: 30
 dry_run: true
