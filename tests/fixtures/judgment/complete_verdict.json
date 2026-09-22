@@ -1,0 +1,111 @@
+{
+  "fixture_id": "judgment-complete-v1",
+  "judgments": [
+    {
+      "claim_id": "scifact:900042",
+      "evidence_scope": "D1",
+      "label_space": "mavs_four_way",
+      "label": "supported",
+      "rationale_codes": [
+        "supporting_direction"
+      ],
+      "cited_span_ids": [
+        "D1:880042:0-84"
+      ],
+      "raw_scores": null,
+      "calibrated_probabilities": null,
+      "execution_status": "completed",
+      "uncertainty_reasons": [],
+      "gold_provenance": "none"
+    },
+    {
+      "claim_id": "scifact:900042",
+      "evidence_scope": "D0",
+      "label_space": "mavs_four_way",
+      "label": "supported",
+      "rationale_codes": [
+        "supporting_direction"
+      ],
+      "cited_span_ids": [
+        "D0:770001:0-82"
+      ],
+      "raw_scores": null,
+      "calibrated_probabilities": null,
+      "execution_status": "completed",
+      "uncertainty_reasons": [],
+      "gold_provenance": "none"
+    }
+  ],
+  "report_verdict": {
+    "claim_coverage": {
+      "claim_id": "scifact:900042",
+      "claims_in_report": 1,
+      "claims_judged": 1,
+      "partial": false,
+      "unchecked_spans": []
+    },
+    "central_claim_outcomes": [
+      {
+        "claim_id": "scifact:900042",
+        "central": true,
+        "d0_label": "supported",
+        "d1_label": "supported",
+        "agreed_label": "supported"
+      }
+    ],
+    "inference_link_status": [
+      {
+        "claim_id": "scifact:900042",
+        "depends_on": [],
+        "status": "valid",
+        "note": "No dependency was declared. Both completed judgments support the atomic claim, so the inference link is valid. This does not add a causal or transitive conclusion."
+      }
+    ],
+    "conflicts_d0_d1": [],
+    "display_explanation": "Claim: In the mouse model, compound MX-42 increased memory retention.\nEvidence verdict: supported [D1:880042:0-84].\nWhy: In the mouse model, compound MX-42 increased memory retention compared with vehicle. [D1:880042:0-84]\nWhat is uncertain: None recorded.\nSearch scope: corpus hash b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62; 2 independent passages; retrieval round 1.\nOriginal citations: adequate.\nReconciler: D0 and D1 both assign supported, and no D0 versus D1 conflict is recorded [D0:770001:0-82] [D1:880042:0-84]. Inference link: valid.\nNext useful check: No further check is recorded on this claim.",
+    "limitations": [
+      "Labels describe the supplied evidence collection only, not an unrestricted scientific conclusion.",
+      "This fixture run uses deterministic lexical rules. Live model prompts are a later slice and were not called.",
+      "Numerical calibration is unvalidated. Raw scores and calibrated probabilities are null."
+    ]
+  },
+  "citation_flags": [
+    {
+      "claim_id": "scifact:900042",
+      "span_id": "D0:770001:0-82",
+      "doc_id": 770001,
+      "adequacy": "adequate",
+      "defects": []
+    }
+  ],
+  "reconciler_notes": [
+    {
+      "code": "labels_agree",
+      "note": "D0 and D1 both assign supported, and no D0 versus D1 conflict is recorded."
+    },
+    {
+      "code": "inference_link_valid",
+      "note": "No dependency was declared. Both completed judgments support the atomic claim, so the inference link is valid. This does not add a causal or transitive conclusion."
+    }
+  ],
+  "claim_card": {
+    "claim": "In the mouse model, compound MX-42 increased memory retention.",
+    "evidence_verdict": "Evidence verdict: supported [D1:880042:0-84].",
+    "why": [
+      "Why: In the mouse model, compound MX-42 increased memory retention compared with vehicle. [D1:880042:0-84]"
+    ],
+    "what_is_uncertain": "None recorded.",
+    "search_scope": "corpus hash b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62; 2 independent passages; retrieval round 1.",
+    "original_citations": "adequate",
+    "next_useful_check": "No further check is recorded on this claim.",
+    "display_text": "Claim: In the mouse model, compound MX-42 increased memory retention.\nEvidence verdict: supported [D1:880042:0-84].\nWhy: In the mouse model, compound MX-42 increased memory retention compared with vehicle. [D1:880042:0-84]\nWhat is uncertain: None recorded.\nSearch scope: corpus hash b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62; 2 independent passages; retrieval round 1.\nOriginal citations: adequate.\nReconciler: D0 and D1 both assign supported, and no D0 versus D1 conflict is recorded [D0:770001:0-82] [D1:880042:0-84]. Inference link: valid.\nNext useful check: No further check is recorded on this claim."
+  },
+  "sealed_reader": {
+    "neutral_question": "What did abstracts report about compound MX-42 and memory retention in the mouse model?",
+    "answer": "In the mouse model, compound MX-42 increased memory retention compared with vehicle. [D1:880042:0-84]",
+    "cited_span_ids": [
+      "D1:880042:0-84"
+    ],
+    "seal": "e9f65b142bfd6fe4fc06c4c5b2a280c0d471f76be25104588eef55ab38733aea"
+  }
+}
