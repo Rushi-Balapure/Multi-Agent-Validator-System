@@ -35,6 +35,7 @@ and do not alter the mock formula.
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import json
 import random
 import urllib.error
@@ -100,13 +101,49 @@ def normalize_label(raw: str) -> str:
     )
 
 
-def assert_loopback(base_url: str) -> None:
-    """Refuse cloud APIs and any host that is not the local model endpoint."""
-    parsed = urllib.parse.urlparse(base_url)
-    if parsed.scheme not in {"http", "https"} or parsed.hostname not in {"127.0.0.1", "localhost"}:
+_LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost"})
+_RFC1918_NETWORKS = (
+    ipaddress.IPv4Network("10.0.0.0/8"),
+    ipaddress.IPv4Network("172.16.0.0/12"),
+    ipaddress.IPv4Network("192.168.0.0/16"),
+)
+
+
+def _is_local_or_private_host(hostname: str | None) -> bool:
+    """True for loopback names or an RFC1918 IPv4 literal. DNS names are not resolved."""
+    if not hostname:
+        return False
+    host = hostname.lower()
+    if host in _LOOPBACK_HOSTS:
+        return True
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    if not isinstance(address, ipaddress.IPv4Address):
+        return False
+    return any(address in network for network in _RFC1918_NETWORKS)
+
+
+def _is_local_or_private_endpoint(url: str) -> bool:
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme not in {"http", "https"}:
+        return False
+    return _is_local_or_private_host(parsed.hostname)
+
+
+def assert_local_or_private(base_url: str) -> None:
+    """Allow loopback or an RFC1918 private host. Refuse public names and addresses.
+
+    Permitted hosts are ``127.0.0.1``, ``localhost``, and IPv4 addresses in
+    ``10.0.0.0/8``, ``172.16.0.0/12``, or ``192.168.0.0/16``. Other DNS names
+    are refused without resolution, so a public name cannot pass by pointing
+    at a private address. Redirects use the same rule.
+    """
+    if not _is_local_or_private_endpoint(base_url):
         raise BaselineDataError(
-            f"refusing non-local endpoint {base_url}; "
-            "the same-evidence baseline does not call cloud APIs or external corpora"
+            f"refusing endpoint {base_url}; "
+            "only loopback (127.0.0.1, localhost) and RFC1918 private addresses are allowed"
         )
 
 
@@ -303,26 +340,31 @@ class MockClient:
         return label, mock_rationale(label)
 
 
-class _LoopbackRedirectHandler(urllib.request.HTTPRedirectHandler):
+class _LocalOrPrivateRedirectHandler(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
-        host = urllib.parse.urlparse(newurl).hostname
-        if host not in {"127.0.0.1", "localhost"}:
-            raise BaselineDataError(f"refusing redirect off the local endpoint to {newurl}")
+        if not _is_local_or_private_endpoint(newurl):
+            raise BaselineDataError(
+                f"refusing redirect off the local or private-LAN endpoint to {newurl}"
+            )
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
 class OpenAICompatibleClient:
-    """Chat client for a local OpenAI-compatible server. No API key is hardcoded."""
+    """Chat client for an OpenAI-compatible loopback or private-LAN server.
+
+    No API key is hardcoded. Public and cloud hosts are refused, including
+    redirects that would leave the private network.
+    """
 
     inference_mode = "endpoint"
 
     def __init__(self, *, base_url: str, model_id: str, temperature: float, timeout_seconds: float) -> None:
-        assert_loopback(base_url)
+        assert_local_or_private(base_url)
         self.base_url = base_url.rstrip("/")
         self.model_id = model_id
         self.temperature = temperature
         self.timeout_seconds = timeout_seconds
-        self._opener = urllib.request.build_opener(_LoopbackRedirectHandler)
+        self._opener = urllib.request.build_opener(_LocalOrPrivateRedirectHandler)
 
     def read(self, payload: dict, system_prompt: str) -> tuple[str, list[int]]:
         assert_reader_isolated(payload)

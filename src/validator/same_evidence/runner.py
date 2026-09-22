@@ -9,9 +9,14 @@ From the repository root, after the pinned SciFact files are present:
         --run-sidecar artifacts/same_evidence_b2/run.json
 
 ``--dry-run`` uses the documented mock in ``b2.py`` and does not open a socket.
-The local OpenAI-compatible client is used only for ``--live`` (or when the
-config sets ``dry_run: false``). ``base_url`` must be loopback. A missing D0
-join exits 2. An empty SciFact evidence object does not.
+The urllib OpenAI-compatible client is used only for ``--live`` (or when the
+config sets ``dry_run: false``). ``base_url`` must be a loopback or RFC1918
+private-LAN endpoint. The default config points at LM Studio on this machine,
+``http://127.0.0.1:1234/v1``, with model id ``qwen2.5-coder-1.5b-instruct``.
+An RFC1918 address such as ``http://192.168.1.10:1234/v1`` is also allowed
+from another machine on the private LAN. Loopback remains valid for a local proxy.
+Public DNS names and non-private addresses are refused, including redirects.
+A missing D0 join exits 2. An empty SciFact evidence object does not.
 """
 
 from __future__ import annotations
@@ -37,7 +42,7 @@ from .b2 import (
     LabelError,
     MockClient,
     OpenAICompatibleClient,
-    assert_loopback,
+    assert_local_or_private,
     run_b2,
 )
 from .inputs import (
@@ -101,7 +106,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--live",
         action="store_true",
-        help="Call the local OpenAI-compatible endpoint. Falls back to the mock only if configured.",
+        help=(
+            "Call the OpenAI-compatible loopback or private-LAN endpoint. "
+            "Falls back to the mock only if configured."
+        ),
     )
     parser.add_argument("--limit", type=int, default=None, help="Override the config limit.")
     parser.add_argument("--output", default=None, help="Predictions JSONL path.")
@@ -185,7 +193,7 @@ def execute(args: argparse.Namespace) -> None:
     config = load_config(config_path)
     if config.system_id != SYSTEM_ID:
         raise BaselineDataError(f"system_id must be {SYSTEM_ID}")
-    assert_loopback(config.base_url)
+    assert_local_or_private(config.base_url)
     dry_run = _dry_run(args, config)
     limit = config.limit if args.limit is None else args.limit
     if limit < 1:

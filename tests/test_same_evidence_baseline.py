@@ -20,6 +20,7 @@ import os
 import socket
 import subprocess
 import sys
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -28,7 +29,10 @@ import yaml
 from jsonschema import Draft202012Validator
 
 from validator.same_evidence.b2 import (
+    BaselineDataError as EndpointPolicyError,
     LabelError,
+    _LocalOrPrivateRedirectHandler,
+    assert_local_or_private,
     mock_compare_label,
     mock_reader_answer,
     normalize_label,
@@ -253,7 +257,67 @@ def test_four_way_labels_are_rejected(raw: str):
         normalize_label(raw)
 
 
-def test_dry_run_refuses_nonlocal_endpoint(tmp_path: Path):
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://192.168.1.10:1234/v1",
+        "http://127.0.0.1:8000/v1",
+        "http://localhost:8000/v1",
+        "https://10.0.0.1/v1",
+        "http://10.255.255.255/v1",
+        "http://172.16.0.1/v1",
+        "http://172.31.255.255/v1",
+    ],
+)
+def test_local_or_private_endpoint_is_accepted(url: str):
+    assert_local_or_private(url)
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://api.openai.com/v1",
+        "http://8.8.8.8/v1",
+        "http://172.15.255.255/v1",
+        "http://172.32.0.1/v1",
+        "http://11.0.0.1/v1",
+        "http://192.169.0.1/v1",
+        "https://example.com/v1",
+        "ftp://192.168.1.10/v1",
+    ],
+)
+def test_public_or_non_http_endpoint_is_refused(url: str):
+    with pytest.raises(EndpointPolicyError):
+        assert_local_or_private(url)
+
+
+def test_redirect_cannot_leave_local_or_private_hosts():
+    handler = _LocalOrPrivateRedirectHandler()
+    request = urllib.request.Request("http://192.168.1.10:1234/v1/chat/completions")
+    allowed = handler.redirect_request(
+        request,
+        None,
+        302,
+        "Found",
+        {},
+        "http://10.0.0.5:1234/v1/chat/completions",
+    )
+    assert urllib.parse.urlparse(allowed.full_url).hostname == "10.0.0.5"
+    for target in ("https://api.openai.com/v1/chat/completions", "http://8.8.8.8/v1/chat/completions"):
+        with pytest.raises(EndpointPolicyError, match="redirect"):
+            handler.redirect_request(request, None, 302, "Found", {}, target)
+
+
+def test_committed_b2_config_points_at_lm_studio_loopback():
+    config = yaml.safe_load((ROOT / "configs" / "baseline" / "same_evidence_b2.yaml").read_text(encoding="utf-8"))
+    assert config["base_url"] == "http://127.0.0.1:1234/v1"
+    assert config["model_id"] == "qwen2.5-coder-1.5b-instruct"
+    assert config["dry_run"] is True
+    assert_local_or_private(config["base_url"])
+    assert_local_or_private("http://192.168.1.10:1234/v1")
+
+
+def test_dry_run_refuses_public_endpoint(tmp_path: Path):
     config = yaml.safe_load((ROOT / "configs" / "baseline" / "same_evidence_b2.yaml").read_text(encoding="utf-8"))
     config["base_url"] = "https://api.openai.com/v1"
     path = tmp_path / "cloud.yaml"
@@ -322,7 +386,7 @@ def test_dry_run_twenty_development_claims_without_network(tmp_path: Path, monke
     errors = list(Draft202012Validator(schema).iter_errors(sidecar["run"]))
     assert errors == []
     assert sidecar["run"]["split"] == "development"
-    assert sidecar["run"]["model_id"] == "Qwen/Qwen2.5-1.5B-Instruct"
+    assert sidecar["run"]["model_id"] == "qwen2.5-coder-1.5b-instruct"
     assert sidecar["run"]["status"] == "completed"
     assert sidecar["run"]["corpus_hash"] == EXPECTED_CORPUS_HASH
     config_bytes = (ROOT / "configs" / "baseline" / "same_evidence_b2.yaml").read_bytes()
