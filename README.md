@@ -6,6 +6,7 @@ Reproducible inference-time validator for scientific conclusions, plus a researc
 
 - Research plan: [Validator_Agent_Two_Month_Research_Plan.pdf](Validator_Agent_Two_Month_Research_Plan.pdf)
 - Implementation plan: [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)
+- Paper draft: [paper/main.pdf](paper/main.pdf) (`paper/main.tex`)
 - Paper graphs and formula notes: [docs/paper-assets/](docs/paper-assets/)
 
 ## Same-evidence baseline (B2)
@@ -46,3 +47,22 @@ PYTHONPATH=src python3 -m validator.validator_v \
 ```
 
 `--gather` is opt-in. It calls Retrieval Wing `gather(neutral_question, config, claim_id)` for development claim ids in B2 order (config `claim_ids`, or `--claim-ids`, or the first `--limit` locked development manifest ids) and does not pass gold D0. Offline smoke: `bash scripts/validator_v_smoke.sh`. Phase-3 Turing-Machine live gather (BM25 index + LM Studio `http://127.0.0.1:1234/v1`): `bash scripts/validator_v_phase3_gather_smoke.sh`. `VALIDATOR_V_SMOKE_OUT` / `VALIDATOR_V_PHASE3_OUT` override output directories.
+
+## Paper draft PDF
+
+Tables and figures from scored artifacts, then two `pdflatex` passes:
+
+```bash
+PYTHONPATH=src python3 scripts/paper/make_tables.py
+PYTHONPATH=src python3 scripts/paper/make_figures.py
+bash scripts/paper/build_pdf.sh
+```
+
+Equivalent direct command (requires TeX Live `pdflatex`):
+
+```bash
+pdflatex -interaction=nonstopmode -halt-on-error -output-directory paper paper/main.tex
+pdflatex -interaction=nonstopmode -halt-on-error -output-directory paper paper/main.tex
+```
+
+Writes `paper/main.pdf`.
