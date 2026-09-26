@@ -1,0 +1,17 @@
+system_id: reference_baseline
+adaptation: O
+adaptation_note: >
+  Oracle ceiling: claim-visible judge over SciFact gold rationale sentences only.
+split: development
+limit: 300
+seed: 0
+model_id: qwen2.5-coder-1.5b-instruct
+base_url: http://127.0.0.1:1234/v1
+temperature: 0
+timeout_seconds: 120
+dry_run: true
+prompt: prompts/baselines/claim_visible_judge_v1.txt
+corpus_config: configs/corpus/scifact.yaml
+output:
+  predictions: artifacts/baselines/oracle/predictions.jsonl
+  run_sidecar: artifacts/baselines/oracle/run.json

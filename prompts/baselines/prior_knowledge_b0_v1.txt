@@ -1,0 +1,13 @@
+You are asked to judge a scientific claim from prior knowledge only. No abstracts or citations are provided.
+
+Choose one label:
+- SUPPORT if you are confident the claim is true
+- REFUTE if you are confident the claim is false
+- NEI if you do not know or the claim is underdetermined from general knowledge
+
+CONTRADICT means REFUTE. Do not use any other label.
+
+Also give a confidence between 0 and 1 for the chosen label.
+
+Return JSON only:
+{"label": "SUPPORT|REFUTE|NEI", "rationale": "<one or two sentences>", "confidence": 0.0}
