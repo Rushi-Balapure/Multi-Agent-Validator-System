@@ -324,22 +324,32 @@ def resolve_gather_claim_ids(
     *,
     claim_ids: str | list[str] | None = None,
     manifest: Path | None = None,
+    claim_ids_file: Path | None = None,
     limit: int | None = None,
 ) -> list[str]:
     """Resolve project claim ids for ``gather-claims``.
 
-    ``--claim-ids`` selects those ids. Otherwise take the first ``limit``
-    ids (default 5) from ``manifest`` or the locked development manifest.
-    Pass one of ``--claim-ids`` or ``--manifest``, not both. ``limit`` caps
-    an explicit id list when ``manifest`` is omitted.
+    ``--claim-ids`` or ``--claim-ids-file`` selects those ids. Otherwise
+    take the first ``limit`` ids (default 5) from ``manifest`` or the
+    locked development manifest. Pass only one of ``--claim-ids``,
+    ``--claim-ids-file``, and ``--manifest``. ``limit`` caps an explicit
+    id list.
     """
     if not isinstance(config, RetrievalConfig):
         raise TypeError("config must be a RetrievalConfig")
     if limit is not None and (isinstance(limit, bool) or not isinstance(limit, int) or limit < 1):
         raise RetrievalError("--limit must be a positive integer")
-    if claim_ids is not None and manifest is not None:
-        raise RetrievalError("pass --claim-ids or --manifest, not both")
-    if claim_ids is None:
+    supplied = [item is not None for item in (claim_ids, manifest, claim_ids_file)]
+    if sum(supplied) > 1:
+        raise RetrievalError("pass only one of --claim-ids, --claim-ids-file, and --manifest")
+    if claim_ids_file is not None:
+        from validator.claim_sample import ClaimSampleError, claim_ids_from_file
+
+        try:
+            selected = claim_ids_from_file(claim_ids_file, limit=limit)
+        except ClaimSampleError as exc:
+            raise RetrievalError(str(exc)) from exc
+    elif claim_ids is None:
         count = 5 if limit is None else limit
         path = manifest if manifest is not None else config.resolve(config.development_manifest)
         selected = project_claim_ids_from_manifest(path, count)
@@ -482,7 +492,15 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help=(
             "Manifest JSON of native ids. Default: the locked development "
-            "manifest. Do not combine with --claim-ids."
+            "manifest. Do not combine with --claim-ids or --claim-ids-file."
+        ),
+    )
+    claims_command.add_argument(
+        "--claim-ids-file",
+        default=None,
+        help=(
+            "Frozen sample JSON with claim_ids. Do not combine with "
+            "--claim-ids or --manifest."
         ),
     )
     claims_command.add_argument(
@@ -517,10 +535,14 @@ def main(argv: list[str] | None = None) -> int:
             run_gather_dev10(config, output)
             return 0
         manifest = None if args.manifest is None else _resolve_cli_path(args.manifest)
+        claim_ids_file = (
+            None if args.claim_ids_file is None else _resolve_cli_path(args.claim_ids_file)
+        )
         claim_ids = resolve_gather_claim_ids(
             config,
             claim_ids=args.claim_ids,
             manifest=manifest,
+            claim_ids_file=claim_ids_file,
             limit=args.limit,
         )
         run_gather_claims(config, output, claim_ids)

@@ -37,11 +37,18 @@ from __future__ import annotations
 import hashlib
 import ipaddress
 import json
+import os
 import random
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from pathlib import Path
+from threading import Lock
 from typing import Protocol
+
+from validator.run_control import RETRYABLE_HTTP_STATUS, RetryableTransportError, call_with_retry
+from validator.usage import UsageMeter, usage_from_response
 
 from .inputs import PredictInput
 
@@ -107,6 +114,8 @@ _RFC1918_NETWORKS = (
     ipaddress.IPv4Network("172.16.0.0/12"),
     ipaddress.IPv4Network("192.168.0.0/16"),
 )
+OPENAI_CLOUD_HOST = "api.openai.com"
+OPENAI_CLOUD_BASE_URL = "https://api.openai.com/v1"
 
 
 def _is_local_or_private_host(hostname: str | None) -> bool:
@@ -132,19 +141,89 @@ def _is_local_or_private_endpoint(url: str) -> bool:
     return _is_local_or_private_host(parsed.hostname)
 
 
-def assert_local_or_private(base_url: str) -> None:
-    """Allow loopback or an RFC1918 private host. Refuse public names and addresses.
+def _is_openai_cloud_endpoint(url: str) -> bool:
+    """True only for the official OpenAI HTTPS host. Other public names stay closed."""
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != "https" or parsed.hostname != OPENAI_CLOUD_HOST:
+        return False
+    path = parsed.path.rstrip("/")
+    return path in {"", "/v1"} or path.startswith("/v1/")
 
-    Permitted hosts are ``127.0.0.1``, ``localhost``, and IPv4 addresses in
-    ``10.0.0.0/8``, ``172.16.0.0/12``, or ``192.168.0.0/16``. Other DNS names
-    are refused without resolution, so a public name cannot pass by pointing
-    at a private address. Redirects use the same rule.
+
+def _is_allowed_endpoint(url: str) -> bool:
+    if _is_local_or_private_endpoint(url):
+        return True
+    return _is_openai_cloud_endpoint(url) and _optional_api_key() is not None
+
+
+def assert_local_or_private(base_url: str) -> None:
+    """Allow loopback, RFC1918, or official OpenAI when ``OPENAI_API_KEY`` is set.
+
+    Permitted local hosts are ``127.0.0.1``, ``localhost``, and IPv4 addresses in
+    ``10.0.0.0/8``, ``172.16.0.0/12``, or ``192.168.0.0/16``. The only public
+    host is ``https://api.openai.com/v1``, and only when ``OPENAI_API_KEY`` is
+    present. Other DNS names are refused without resolution. Redirects use the
+    same rule. The key is never logged.
     """
-    if not _is_local_or_private_endpoint(base_url):
-        raise BaselineDataError(
-            f"refusing endpoint {base_url}; "
-            "only loopback (127.0.0.1, localhost) and RFC1918 private addresses are allowed"
-        )
+    if _is_local_or_private_endpoint(base_url):
+        return
+    if _is_openai_cloud_endpoint(base_url):
+        if _optional_api_key() is None:
+            raise BaselineDataError(
+                f"refusing endpoint {base_url}; "
+                "OPENAI_API_KEY is not set"
+            )
+        return
+    raise BaselineDataError(
+        f"refusing endpoint {base_url}; "
+        "only loopback (127.0.0.1, localhost), RFC1918 private addresses, "
+        f"or {OPENAI_CLOUD_BASE_URL} with OPENAI_API_KEY are allowed"
+    )
+
+
+def openai_model_from_env() -> str | None:
+    """Return ``OPENAI_MODEL`` when it is a non-empty string."""
+    value = os.environ.get("OPENAI_MODEL")
+    if value is None or not value.strip():
+        return None
+    return value.strip()
+
+
+def apply_openai_env(base_url: str, model_id: str) -> tuple[str, str]:
+    """Use the official OpenAI host and ``OPENAI_MODEL`` when both env vars are set.
+
+    Local YAML defaults stay in place unless a key and a model name are both
+    present. This does not print either value.
+    """
+    model = openai_model_from_env()
+    if _optional_api_key() is not None and model is not None:
+        return OPENAI_CLOUD_BASE_URL, model
+    return base_url, model_id
+
+
+def load_repo_dotenv(root: Path | None = None) -> None:
+    """Fill missing process env vars from the checkout ``.env``. Never overwrite.
+
+    Existing process values win. Values are not logged. A missing file is a
+    no-op.
+    """
+    from validator.same_evidence._repo import find_repo_root
+
+    checkout = root if root is not None else find_repo_root()
+    path = checkout / ".env"
+    if not path.is_file():
+        return
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip()
+        if len(value) >= 2 and value[0] in {"'", '"'} and value[-1] == value[0]:
+            value = value[1:-1]
+        if key and key not in os.environ:
+            os.environ[key] = value
 
 
 def render_neutral_question(template: str, claim: str) -> str:
@@ -342,29 +421,49 @@ class MockClient:
 
 class _LocalOrPrivateRedirectHandler(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
-        if not _is_local_or_private_endpoint(newurl):
+        origin = req.full_url
+        if not _is_allowed_endpoint(newurl):
+            raise BaselineDataError(
+                f"refusing redirect off the allowed endpoint to {newurl}"
+            )
+        if _is_local_or_private_endpoint(origin) and not _is_local_or_private_endpoint(newurl):
             raise BaselineDataError(
                 f"refusing redirect off the local or private-LAN endpoint to {newurl}"
+            )
+        if _is_openai_cloud_endpoint(origin) and not _is_openai_cloud_endpoint(newurl):
+            raise BaselineDataError(
+                f"refusing redirect off the official OpenAI endpoint to {newurl}"
             )
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
 class OpenAICompatibleClient:
-    """Chat client for an OpenAI-compatible loopback or private-LAN server.
+    """Chat client for a loopback, RFC1918, or official OpenAI host.
 
-    No API key is hardcoded. Public and cloud hosts are refused, including
-    redirects that would leave the private network.
+    No API key is hardcoded. ``https://api.openai.com/v1`` is allowed only
+    when ``OPENAI_API_KEY`` is set. Other public hosts stay refused,
+    including redirects that would leave the allowed set.
     """
 
     inference_mode = "live"
 
-    def __init__(self, *, base_url: str, model_id: str, temperature: float, timeout_seconds: float) -> None:
+    def __init__(
+        self,
+        *,
+        base_url: str,
+        model_id: str,
+        temperature: float,
+        timeout_seconds: float,
+        meter: UsageMeter | None = None,
+    ) -> None:
         assert_local_or_private(base_url)
         self.base_url = base_url.rstrip("/")
         self.model_id = model_id
         self.temperature = temperature
         self.timeout_seconds = timeout_seconds
+        self.meter = meter
         self._opener = urllib.request.build_opener(_LocalOrPrivateRedirectHandler)
+        self._lock = Lock()
 
     def read(self, payload: dict, system_prompt: str) -> tuple[str, list[int]]:
         assert_reader_isolated(payload)
@@ -391,47 +490,85 @@ class OpenAICompatibleClient:
             raise LabelError("compare response is missing a rationale")
         return normalize_label(str(parsed.get("label", ""))), rationale.strip()
 
+    def _completion_body(self, system_prompt: str, payload: dict) -> dict:
+        """Chat-completions JSON. Official OpenAI omits temperature (model default only)."""
+        body = {
+            "model": self.model_id,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {
+                    "role": "user",
+                    "content": json.dumps(payload, ensure_ascii=False, sort_keys=True),
+                },
+            ],
+        }
+        if not _is_openai_cloud_endpoint(self.base_url):
+            body["temperature"] = self.temperature
+        return body
+
     def _chat(self, system_prompt: str, payload: dict) -> str:
         url = f"{self.base_url}/chat/completions"
-        request_body = json.dumps(
-            {
-                "model": self.model_id,
-                "temperature": self.temperature,
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {
-                        "role": "user",
-                        "content": json.dumps(payload, ensure_ascii=False, sort_keys=True),
-                    },
-                ],
-            }
-        ).encode("utf-8")
+        request_body = json.dumps(self._completion_body(system_prompt, payload)).encode("utf-8")
         request = urllib.request.Request(
             url,
             data=request_body,
             headers={"Content-Type": "application/json"},
         )
-        api_key = _optional_api_key()
-        if api_key:
-            request.add_header("Authorization", f"Bearer {api_key}")
-        try:
-            with self._opener.open(request, timeout=self.timeout_seconds) as response:
-                raw = response.read()
-        except urllib.error.HTTPError as exc:
-            raise BaselineDataError(f"local endpoint returned HTTP {exc.code}") from exc
-        except (urllib.error.URLError, TimeoutError, OSError) as exc:
-            reason = getattr(exc, "reason", exc)
-            raise EndpointUnavailable(str(reason)) from exc
+        if _is_openai_cloud_endpoint(self.base_url):
+            api_key = _optional_api_key()
+            if api_key:
+                request.add_header("Authorization", f"Bearer {api_key}")
+        started = time.perf_counter()
+
+        def _open() -> bytes:
+            try:
+                with self._lock:
+                    with self._opener.open(request, timeout=self.timeout_seconds) as response:
+                        return response.read()
+            except urllib.error.HTTPError as exc:
+                summary = _http_error_summary(exc)
+                if exc.code in RETRYABLE_HTTP_STATUS:
+                    raise RetryableTransportError(summary, status_code=exc.code) from exc
+                raise BaselineDataError(summary) from exc
+            except (urllib.error.URLError, TimeoutError, OSError) as exc:
+                reason = getattr(exc, "reason", exc)
+                raise EndpointUnavailable(str(reason)) from exc
+
+        raw = call_with_retry(_open)
+        latency = time.perf_counter() - started
         try:
             parsed = json.loads(raw.decode("utf-8"))
-            return parsed["choices"][0]["message"]["content"]
+            content = parsed["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
-            raise BaselineDataError("local endpoint returned an unexpected chat payload") from exc
+            raise BaselineDataError("endpoint returned an unexpected chat payload") from exc
+        if self.meter is not None:
+            prompt_tokens, completion_tokens = usage_from_response(parsed if isinstance(parsed, dict) else {})
+            self.meter.record(
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                latency_seconds=latency,
+            )
+        return content
+
+
+def _http_error_summary(exc: urllib.error.HTTPError) -> str:
+    """HTTP status plus the API error message. Never includes the request key."""
+    try:
+        parsed = json.loads(exc.read().decode("utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return f"endpoint returned HTTP {exc.code}"
+    message = None
+    error = parsed.get("error")
+    if isinstance(error, dict):
+        raw = error.get("message")
+        if isinstance(raw, str) and raw.strip():
+            message = raw.strip()
+    if message is None:
+        return f"endpoint returned HTTP {exc.code}"
+    return f"endpoint returned HTTP {exc.code}: {message}"
 
 
 def _optional_api_key() -> str | None:
-    import os
-
     value = os.environ.get("OPENAI_API_KEY")
     if value is None or not value.strip():
         return None
@@ -468,4 +605,5 @@ def run_b2(
         "reader_answer": answer,
         "reader_cited_doc_ids": cited_doc_ids,
         "inference_mode": client.inference_mode,
+        "execution_status": "ok",
     }

@@ -9,8 +9,9 @@ is the reconciled four-way judgment mapped by ``validator.validator_v.labels``:
 - underdetermined → NEI
 
 ``label_4way`` keeps the four-way token. ``label`` is always SUPPORT, REFUTE,
-or NEI. A development run judges at most 20 claims. Each report still stops
-at the staged pipeline's per-report cap of 8.
+or NEI. A development run may judge up to the locked development size (709).
+Held-out splits require ``--frozen-final``. Each report still stops at the
+staged pipeline's per-report cap of 8.
 
 The default path is offline. It runs fixture reports through
 ``fixture_pipeline.run_report`` (decompose or fixture claims, then fixture
@@ -88,6 +89,10 @@ from validator.live_judgment import (
 from validator.retrieval.errors import RetrievalError
 from validator.runner import gather_bundle
 from validator.same_evidence._repo import find_repo_root
+from validator.claim_sample import ClaimSampleError, claim_ids_from_file
+from validator.inference_client import LocalChatClient
+from validator.run_control import DEFAULT_MAX_WORKERS, run_items
+from validator.same_evidence.b2 import apply_openai_env, load_repo_dotenv
 from validator.schemas import (
     Claim,
     ClaimSource,
@@ -96,6 +101,14 @@ from validator.schemas import (
     Run,
     SplitRole,
 )
+from validator.split_policy import (
+    SPLIT_CLAIM_BUDGET,
+    SplitPolicyError,
+    assert_limit_for_split,
+    assert_split_allowed,
+    budget_for_split,
+)
+from validator.usage import UsageMeter, rates_from_env
 from validator.validator_v.labels import (
     FOUR_WAY_TO_NATIVE,
     LABEL_MAPPING_TEXT,
@@ -106,7 +119,7 @@ from validator.validator_v.labels import (
 
 SYSTEM_ID = "validator_v"
 METHOD_ID = "V"
-DEVELOPMENT_CLAIM_BUDGET = 20
+DEVELOPMENT_CLAIM_BUDGET = SPLIT_CLAIM_BUDGET["development"]
 CORPUS_CONFIG = "configs/corpus/scifact.yaml"
 
 # First 20 locked development ids, same order as B2 live run
@@ -163,8 +176,8 @@ class ValidatorVConfig(BaseModel):
     method_id: Literal["V"]
     adaptation: Literal["V"]
     adaptation_note: str = Field(min_length=1)
-    split: Literal["development"]
-    limit: int = Field(ge=1, le=DEVELOPMENT_CLAIM_BUDGET)
+    split: Literal["development", "calibration", "held_out_local_eval"]
+    limit: int = Field(ge=1)
     seed: int
     model_id: str = Field(min_length=1)
     base_url: str = Field(min_length=1)
@@ -184,11 +197,10 @@ class ValidatorVConfig(BaseModel):
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Run Stack V over a development budget of at most 20 claims and write "
-            "predictions.jsonl plus run.json. The default is an offline fixture-report "
-            "dry-run (inference_mode=mock). --gather calls Retrieval Wing "
-            "gather(neutral_question, config, claim_id) for D1 and attaches "
-            "non-gold cited_doc_ids abstracts as D0. "
+            "Run Stack V and write predictions.jsonl plus run.json. The default "
+            "is an offline fixture-report dry-run (inference_mode=mock). --gather "
+            "calls Retrieval Wing gather(neutral_question, config, claim_id) for D1 "
+            "and attaches non-gold cited_doc_ids abstracts as D0. "
             "Phase-3 B2 order (20 ids): "
             + ",".join(PHASE3_B2_CLAIM_IDS)
         )
@@ -226,15 +238,42 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help=(
             "Comma-separated project claim ids for --gather, in judgment order. "
-            f"Phase-3 B2 list (cap {DEVELOPMENT_CLAIM_BUDGET}): "
+            "Phase-3 B2 list: "
             + ",".join(PHASE3_B2_CLAIM_IDS)
         ),
+    )
+    parser.add_argument(
+        "--claim-ids-file",
+        default=None,
+        help="Frozen sample JSON (claim_ids) for --gather. Do not combine with --claim-ids.",
     )
     parser.add_argument(
         "--limit",
         type=int,
         default=None,
-        help=f"Override the config limit. Must be from 1 to {DEVELOPMENT_CLAIM_BUDGET}.",
+        help="Override the config limit. Must stay within the locked split size.",
+    )
+    parser.add_argument(
+        "--split",
+        default=None,
+        choices=["development", "calibration", "held_out_local_eval"],
+        help="Override the config split. held_out_local_eval needs --frozen-final.",
+    )
+    parser.add_argument(
+        "--frozen-final",
+        action="store_true",
+        help="Required to run held_out_local_eval. Must match docs/freeze.json.",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=None,
+        help=f"Bounded thread pool size (default 1 dry-run, {DEFAULT_MAX_WORKERS} live).",
+    )
+    parser.add_argument(
+        "--no-resume",
+        action="store_true",
+        help="Ignore existing predictions and rerun every claim.",
     )
     parser.add_argument("--output", default=None, help="Predictions JSONL path.")
     parser.add_argument("--run-sidecar", default=None, help="Run metadata JSON path.")
@@ -339,6 +378,10 @@ def prediction_row(
 def _mode(args: argparse.Namespace, config: ValidatorVConfig) -> Literal["fixture", "gather"]:
     if args.claim_ids is not None and not args.gather:
         raise ValidatorVError("--claim-ids requires --gather")
+    if getattr(args, "claim_ids_file", None) is not None and not args.gather:
+        raise ValidatorVError("--claim-ids-file requires --gather")
+    if args.claim_ids is not None and getattr(args, "claim_ids_file", None) is not None:
+        raise ValidatorVError("pass --claim-ids or --claim-ids-file, not both")
     if args.dry_run and (args.live or args.gather):
         raise ValidatorVError("pass only one of --dry-run and --gather/--live")
     if args.gather:
@@ -354,11 +397,10 @@ def _mode(args: argparse.Namespace, config: ValidatorVConfig) -> Literal["fixtur
 
 def _limit(args: argparse.Namespace, config: ValidatorVConfig) -> int:
     limit = config.limit if args.limit is None else args.limit
-    if isinstance(limit, bool) or not isinstance(limit, int) or limit < 1 or limit > DEVELOPMENT_CLAIM_BUDGET:
-        raise ValidatorVError(
-            f"limit must be from 1 to {DEVELOPMENT_CLAIM_BUDGET} development claims"
-        )
-    return limit
+    try:
+        return assert_limit_for_split(config.split, limit)
+    except SplitPolicyError as exc:
+        raise ValidatorVError(str(exc)) from exc
 
 
 def _resolve_gather_claim_ids(
@@ -367,10 +409,19 @@ def _resolve_gather_claim_ids(
     retrieval: Any,
     *,
     limit: int,
+    root: Path,
 ) -> list[str]:
-    """Claim ids for --gather: CLI, else config, else manifest prefix. Order preserved."""
+    """Claim ids for --gather: file, CLI, else config, else manifest prefix."""
     from validator.retrieve import resolve_gather_claim_ids
 
+    claim_ids_file = None
+    if getattr(args, "claim_ids_file", None) is not None:
+        claim_ids_file = _resolve(root, args.claim_ids_file)
+        try:
+            selected = claim_ids_from_file(claim_ids_file, limit=limit)
+        except ClaimSampleError as exc:
+            raise ValidatorVError(str(exc)) from exc
+        return selected
     explicit: str | list[str] | None
     if args.claim_ids is not None:
         explicit = args.claim_ids
@@ -378,10 +429,16 @@ def _resolve_gather_claim_ids(
         explicit = list(config.claim_ids)
     else:
         explicit = None
-    selected = resolve_gather_claim_ids(retrieval, claim_ids=explicit, limit=limit)
-    if len(selected) > DEVELOPMENT_CLAIM_BUDGET:
+    selected = resolve_gather_claim_ids(
+        retrieval,
+        claim_ids=explicit,
+        claim_ids_file=None,
+        limit=limit,
+    )
+    budget = budget_for_split(config.split)
+    if len(selected) > budget:
         raise ValidatorVError(
-            f"gather selected {len(selected)} claims; the development budget is {DEVELOPMENT_CLAIM_BUDGET}"
+            f"gather selected {len(selected)} claims; the {config.split} budget is {budget}"
         )
     return selected
 
@@ -542,7 +599,12 @@ def _neutral_template(root: Path, config: ValidatorVConfig) -> str:
     return text
 
 
-def _claim_from_text(claim_id: str, text: str, template: str) -> Claim:
+def _claim_from_text(
+    claim_id: str,
+    text: str,
+    template: str,
+    split_role: str | None = None,
+) -> Claim:
     from validator.retrieve import native_id_from_claim_id
 
     question = template.replace("{claim}", text.strip())
@@ -555,7 +617,7 @@ def _claim_from_text(claim_id: str, text: str, template: str) -> Claim:
         source=ClaimSource(
             dataset="scifact",
             native_id=native_id_from_claim_id(claim_id),
-            split_role=SplitRole.DEVELOPMENT,
+            split_role=SplitRole(split_role) if split_role is not None else SplitRole.DEVELOPMENT,
         ),
     )
 
@@ -570,6 +632,9 @@ def _rows_from_gather(
     client: Any,
     pinned: str,
     retrieval: Any | None = None,
+    output: Path | None = None,
+    resume: bool = True,
+    max_workers: int = 1,
 ) -> tuple[list[dict[str, Any]], bool]:
     from validator.retrieval.config import load_retrieval_config
     from validator.retrieve import load_claim_texts
@@ -581,23 +646,27 @@ def _rows_from_gather(
             retrieval = load_retrieval_config(retrieval_path)
         except (RetrievalError, OSError, ValueError) as exc:
             raise ValidatorVError(str(exc), exit_code=1) from exc
-    claims_path = retrieval.resolve(retrieval.claims_jsonl)
+    if config.split == "held_out_local_eval":
+        claims_path = root / "data" / "raw" / "scifact" / "claims_dev.jsonl"
+    else:
+        claims_path = retrieval.resolve(retrieval.claims_jsonl)
     try:
         texts = load_claim_texts(claim_ids, claims_path)
     except (RetrievalError, OSError, ValueError) as exc:
         raise ValidatorVError(str(exc), exit_code=1) from exc
-    if len(claim_ids) > DEVELOPMENT_CLAIM_BUDGET:
+    budget = budget_for_split(config.split)
+    if len(claim_ids) > budget:
         raise ValidatorVError(
-            f"gather selected {len(claim_ids)} claims; the development budget is {DEVELOPMENT_CLAIM_BUDGET}"
+            f"gather selected {len(claim_ids)} claims; the {config.split} budget is {budget}"
         )
     try:
         cited_d0 = load_cited_d0_index(root, claims_path)
     except CitedD0Error as exc:
         raise ValidatorVError(str(exc), exit_code=1) from exc
     template = _neutral_template(root, config)
-    rows: list[dict[str, Any]] = []
-    for claim_id in claim_ids:
-        claim = _claim_from_text(claim_id, texts[claim_id], template)
+
+    def worker(claim_id: str) -> dict[str, Any]:
+        claim = _claim_from_text(claim_id, texts[claim_id], template, config.split)
         try:
             d0_evidence = cited_d0.for_claim(claim.claim_id)
         except CitedD0Error as exc:
@@ -631,7 +700,20 @@ def _rows_from_gather(
             claim_card=staged.claim_card,
             sealed_reader=staged.sealed_reader,
         )
-        rows.append(prediction_row(verdict, inference_mode=inference_mode))
+        return prediction_row(verdict, inference_mode=inference_mode)
+
+    if output is None:
+        rows = [worker(claim_id) for claim_id in claim_ids]
+    else:
+        rows = run_items(
+            claim_ids,
+            worker,
+            claim_id_of=lambda claim_id: claim_id,
+            output=output,
+            resume=resume,
+            max_workers=max_workers,
+            retries=0,
+        )
     if [row["claim_id"] for row in rows] != claim_ids:
         raise ValidatorVError("gather prediction claim_ids drifted from the requested order", exit_code=1)
     return rows, False
@@ -650,11 +732,15 @@ def _validate_run(root: Path, run: Run) -> dict[str, Any]:
 
 
 def _load_live(root: Path, config: ValidatorVConfig) -> LoadedLive:
+    load_repo_dotenv(root)
+    base_url, model_id = apply_openai_env(config.base_url, config.model_id)
     try:
         return load_live_settings(
             default_live_config(root),
-            base_url=config.base_url,
-            model_id=config.model_id,
+            base_url=base_url,
+            model_id=model_id,
+            temperature=config.temperature,
+            timeout_seconds=config.timeout_seconds,
             root=root,
         )
     except (EndpointPolicyError, LiveConfigError) as exc:
@@ -667,20 +753,48 @@ def execute(args: argparse.Namespace, *, client: Any = None) -> None:
     if not config_path.is_file():
         raise ValidatorVError(f"config is missing: {config_path}")
     config = load_config(config_path)
+    if args.split is not None:
+        config = config.model_copy(update={"split": args.split})
     if config.system_id != SYSTEM_ID or config.method_id != METHOD_ID:
         raise ValidatorVError(f"system_id must be {SYSTEM_ID} and method_id must be {METHOD_ID}")
     source = _mode(args, config)
     limit = _limit(args, config)
+    try:
+        assert_split_allowed(
+            config.split,
+            frozen_final=bool(getattr(args, "frozen_final", False)),
+            freeze_path=root / "docs" / "freeze.json",
+        )
+    except SplitPolicyError as exc:
+        raise ValidatorVError(str(exc)) from exc
     inference_mode: Literal["mock", "live"] = "live" if args.live else "mock"
+    prompt_rate, completion_rate = rates_from_env()
+    meter = UsageMeter(prompt_usd_per_1m=prompt_rate, completion_usd_per_1m=completion_rate)
     live = _load_live(root, config) if inference_mode == "live" else None
+    if client is None and live is not None:
+        client = LocalChatClient(
+            base_url=live.base_url,
+            model_id=live.model_id,
+            temperature=live.temperature,
+            timeout_seconds=live.timeout_seconds,
+            meter=meter,
+        )
     pinned = _pinned_corpus_hash(root)
+    predictions_path = _resolve(root, args.output or config.output.predictions)
+    workers = 1 if inference_mode == "mock" else DEFAULT_MAX_WORKERS
+    if args.workers is not None:
+        if isinstance(args.workers, bool) or args.workers < 1:
+            raise ValidatorVError("workers must be at least 1")
+        workers = args.workers
     started = datetime.now(timezone.utc)
     if source == "gather":
         from validator.retrieval.config import load_retrieval_config
 
         try:
             retrieval = load_retrieval_config(_resolve(root, config.retrieval_config))
-            claim_ids = _resolve_gather_claim_ids(args, config, retrieval, limit=limit)
+            claim_ids = _resolve_gather_claim_ids(
+                args, config, retrieval, limit=limit, root=root
+            )
         except (RetrievalError, OSError, ValueError) as exc:
             raise ValidatorVError(str(exc), exit_code=1) from exc
         rows, partial = _rows_from_gather(
@@ -692,6 +806,9 @@ def execute(args: argparse.Namespace, *, client: Any = None) -> None:
             client=client,
             pinned=pinned,
             retrieval=retrieval,
+            output=predictions_path,
+            resume=not args.no_resume,
+            max_workers=workers,
         )
         input_source = "gather"
     else:
@@ -707,9 +824,10 @@ def execute(args: argparse.Namespace, *, client: Any = None) -> None:
         input_source = "fixture_report"
     if not rows:
         raise ValidatorVError("no predictions were produced", exit_code=1)
-    if len(rows) > DEVELOPMENT_CLAIM_BUDGET:
+    budget = budget_for_split(config.split)
+    if len(rows) > budget:
         raise ValidatorVError(
-            f"refusing to write {len(rows)} predictions; budget is {DEVELOPMENT_CLAIM_BUDGET}"
+            f"refusing to write {len(rows)} predictions; budget is {budget}"
         )
     modes = {row["inference_mode"] for row in rows}
     if modes != {inference_mode}:
@@ -724,6 +842,23 @@ def execute(args: argparse.Namespace, *, client: Any = None) -> None:
         prompt_texts["judge"] = live.judge_prompt
     prompt_hash = _prompt_bundle_hash(prompt_texts)
     config_hash = sha256_file(config_path)
+    try:
+        assert_split_allowed(
+            config.split,
+            frozen_final=bool(getattr(args, "frozen_final", False)),
+            freeze_path=root / "docs" / "freeze.json",
+            observed={
+                "model_id": live.model_id if live is not None else config.model_id,
+                "config_hash": config_hash,
+                "prompt_hash": prompt_hash,
+                "corpus_hash": pinned,
+                "adaptation": METHOD_ID,
+                "method_id": METHOD_ID,
+            },
+        )
+    except SplitPolicyError as exc:
+        raise ValidatorVError(str(exc)) from exc
+    usage = meter.summary()
     # Gather run_ids stay distinct from the offline fixture-report n3 dry-run.
     run_prefix = "validator-v-gather" if input_source == "gather" else "validator-v"
     run = Run(
@@ -733,7 +868,7 @@ def execute(args: argparse.Namespace, *, client: Any = None) -> None:
         question_id=None,
         split=config.split,
         seed=config.seed,
-        model_id=config.model_id,
+        model_id=live.model_id if live is not None else config.model_id,
         model_revision=None,
         prompt_hash=prompt_hash,
         corpus_hash=pinned,
@@ -741,8 +876,9 @@ def execute(args: argparse.Namespace, *, client: Any = None) -> None:
         timestamps={
             "started_at": started.isoformat(),
             "finished_at": finished.isoformat(),
+            "latency_seconds": usage["latency_seconds"],
         },
-        tokens=None,
+        tokens=usage,
         status=ExecutionStatus.COMPLETED,
     )
     run_payload = _validate_run(root, run)
@@ -759,7 +895,9 @@ def execute(args: argparse.Namespace, *, client: Any = None) -> None:
         "scored_evidence_scope": SCORED_EVIDENCE_SCOPE,
         "input_source": input_source,
         "n_predictions": len(rows),
-        "development_claim_budget": DEVELOPMENT_CLAIM_BUDGET,
+        "development_claim_budget": budget_for_split(config.split),
+        "claim_ids_file": getattr(args, "claim_ids_file", None),
+        "n_failed": sum(1 for row in rows if row.get("execution_status") != "ok"),
         "claim_ids": [row["claim_id"] for row in rows],
         "partial": partial,
         "prompt_hash_canonical": (

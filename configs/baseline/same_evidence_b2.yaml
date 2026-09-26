@@ -14,10 +14,12 @@ seed: 0
 # Default is loopback. model_id is the id LM Studio serves.
 # RFC1918 hosts such as http://192.168.1.10:1234/v1 are also allowed from another LAN box.
 # dry_run stays true for CI and offline runs; pass --live to call the endpoint.
+# --live uses OPENAI_MODEL at https://api.openai.com/v1 when OPENAI_API_KEY
+# and OPENAI_MODEL are set (see .env.example).
 model_id: qwen2.5-coder-1.5b-instruct
 base_url: http://127.0.0.1:1234/v1
 temperature: 0
-timeout_seconds: 30
+timeout_seconds: 120
 dry_run: true
 mock_if_unavailable: true
 native_label_space: scifact_SUPPORT_CONTRADICT

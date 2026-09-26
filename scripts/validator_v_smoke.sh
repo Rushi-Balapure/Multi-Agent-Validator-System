@@ -7,19 +7,22 @@ set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root"
 export PYTHONPATH="${root}/src${PYTHONPATH:+:$PYTHONPATH}"
+# Honour the caller's interpreter so a virtualenv that holds the dependencies
+# can run this script without them also being installed for bare python3.
+PYBIN="${MAVS_PYTHON:-python3}"
 
 out="${VALIDATOR_V_SMOKE_OUT:-artifacts/validator_v_smoke}"
 mkdir -p "$out"
 predictions="${out}/predictions.jsonl"
 sidecar="${out}/run.json"
 
-python3 -m validator.validator_v \
+"$PYBIN" -m validator.validator_v \
   --config configs/validator_v/development.yaml \
   --dry-run \
   --output "$predictions" \
   --run-sidecar "$sidecar"
 
-python3 - "$predictions" "$sidecar" <<'PY'
+"$PYBIN" - "$predictions" "$sidecar" <<'PY'
 import json
 import sys
 from pathlib import Path

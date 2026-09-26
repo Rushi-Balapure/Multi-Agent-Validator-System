@@ -34,7 +34,11 @@ import yaml
 from jsonschema import Draft202012Validator
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from validator.claim_sample import ClaimSampleError, claim_ids_from_file
+from validator.run_control import DEFAULT_MAX_WORKERS, run_items
 from validator.schemas import ExecutionStatus, Run
+from validator.split_policy import SplitPolicyError, assert_limit_for_split, assert_split_allowed
+from validator.usage import UsageMeter, rates_from_env
 
 from .b2 import (
     MOCK_LABEL_FORMULA,
@@ -44,14 +48,16 @@ from .b2 import (
     LabelError,
     MockClient,
     OpenAICompatibleClient,
+    apply_openai_env,
     assert_local_or_private,
+    load_repo_dotenv,
     run_b2,
 )
 from .inputs import (
     BaselineDataError,
     LoadedInputs,
     MissingEvidenceJoinError,
-    load_development_inputs,
+    load_split_inputs,
     repo_root,
     sha256_file,
     sha256_text,
@@ -81,7 +87,7 @@ class BaselineConfig(BaseModel):
     system_id: Literal["same_evidence_baseline"]
     adaptation: Literal["B2"]
     adaptation_note: str = Field(min_length=1)
-    split: Literal["development"]
+    split: Literal["development", "calibration", "held_out_local_eval"]
     limit: int = Field(ge=1)
     seed: int
     model_id: str = Field(min_length=1)
@@ -114,6 +120,33 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument("--limit", type=int, default=None, help="Override the config limit.")
+    parser.add_argument(
+        "--split",
+        default=None,
+        choices=["development", "calibration", "held_out_local_eval"],
+        help="Override the config split. held_out_local_eval needs --frozen-final.",
+    )
+    parser.add_argument(
+        "--claim-ids-file",
+        default=None,
+        help="Frozen sample JSON (claim_ids). B2 and V must share the same file.",
+    )
+    parser.add_argument(
+        "--frozen-final",
+        action="store_true",
+        help="Required to run held_out_local_eval. Must match docs/freeze.json.",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=None,
+        help=f"Bounded thread pool size (default 1 dry-run, {DEFAULT_MAX_WORKERS} live).",
+    )
+    parser.add_argument(
+        "--no-resume",
+        action="store_true",
+        help="Ignore existing predictions and rerun every claim.",
+    )
     parser.add_argument("--output", default=None, help="Predictions JSONL path.")
     parser.add_argument("--run-sidecar", default=None, help="Run metadata JSON path.")
     return parser.parse_args(argv)
@@ -166,8 +199,44 @@ def _write_atomic(path: Path, text: str) -> None:
     temporary.replace(path)
 
 
-def _load_inputs(root: Path, config: BaselineConfig, limit: int) -> LoadedInputs:
-    return load_development_inputs(root, limit, config.corpus_config)
+def _load_inputs(
+    root: Path,
+    config: BaselineConfig,
+    limit: int,
+    claim_ids: list[str] | None,
+) -> LoadedInputs:
+    return load_split_inputs(
+        root,
+        config.split,
+        limit=limit,
+        corpus_config=config.corpus_config,
+        claim_ids=claim_ids,
+    )
+
+
+def _resolve_claim_ids(root: Path, args: argparse.Namespace, limit: int) -> list[str] | None:
+    if args.claim_ids_file is None:
+        return None
+    path = _resolve(root, args.claim_ids_file)
+    try:
+        return claim_ids_from_file(path, limit=limit)
+    except ClaimSampleError as exc:
+        raise BaselineDataError(str(exc)) from exc
+
+
+def _failed_b2_row(item, *, reason: str, inference_mode: str) -> dict:
+    return {
+        "claim_id": item.claim_id,
+        "label": "NEI",
+        "rationale": f"fail-closed: {reason}",
+        "adaptation": "B2",
+        "system_id": SYSTEM_ID,
+        "neutral_question": None,
+        "reader_answer": None,
+        "reader_cited_doc_ids": [],
+        "inference_mode": inference_mode,
+        "execution_status": "failed",
+    }
 
 
 def _dry_run(args: argparse.Namespace, config: BaselineConfig) -> bool:
@@ -193,36 +262,76 @@ def execute(args: argparse.Namespace) -> None:
     root = repo_root()
     config_path = _resolve(root, args.config)
     config = load_config(config_path)
+    if args.split is not None:
+        config = config.model_copy(update={"split": args.split})
     if config.system_id != SYSTEM_ID:
         raise BaselineDataError(f"system_id must be {SYSTEM_ID}")
-    assert_local_or_private(config.base_url)
+    load_repo_dotenv(root)
     dry_run = _dry_run(args, config)
-    limit = config.limit if args.limit is None else args.limit
-    if limit < 1:
-        raise BaselineDataError("limit must be at least 1")
-    loaded = _load_inputs(root, config, limit)
-    if len(loaded.inputs) != limit and loaded.input_source == "corpus_lock":
+    base_url, model_id = config.base_url, config.model_id
+    if not dry_run:
+        base_url, model_id = apply_openai_env(base_url, model_id)
+    assert_local_or_private(base_url)
+    try:
+        limit = assert_limit_for_split(
+            config.split, config.limit if args.limit is None else args.limit
+        )
+        assert_split_allowed(
+            config.split,
+            frozen_final=bool(args.frozen_final),
+            freeze_path=root / "docs" / "freeze.json",
+        )
+    except SplitPolicyError as exc:
+        raise BaselineDataError(str(exc)) from exc
+    claim_ids = _resolve_claim_ids(root, args, limit)
+    loaded = _load_inputs(root, config, limit, claim_ids)
+    if claim_ids is None and len(loaded.inputs) != limit and loaded.input_source == "corpus_lock":
         raise BaselineDataError(
-            f"expected {limit} development claims, joined {len(loaded.inputs)}"
+            f"expected {limit} {config.split} claims, joined {len(loaded.inputs)}"
         )
     prompt_texts = _load_prompts(root, config)
     prompt_hash = _prompt_bundle_hash(prompt_texts)
     config_hash = sha256_file(config_path)
+    try:
+        assert_split_allowed(
+            config.split,
+            frozen_final=bool(args.frozen_final),
+            freeze_path=root / "docs" / "freeze.json",
+            observed={
+                "model_id": model_id,
+                "config_hash": config_hash,
+                "prompt_hash": prompt_hash,
+                "corpus_hash": loaded.corpus_hash,
+                "adaptation": config.adaptation,
+                "method_id": config.adaptation,
+            },
+        )
+    except SplitPolicyError as exc:
+        raise BaselineDataError(str(exc)) from exc
     started = datetime.now(timezone.utc)
+    prompt_rate, completion_rate = rates_from_env()
+    meter = UsageMeter(prompt_usd_per_1m=prompt_rate, completion_usd_per_1m=completion_rate)
     client: MockClient | OpenAICompatibleClient
     if dry_run:
         client = MockClient(config.seed)
     else:
         client = OpenAICompatibleClient(
-            base_url=config.base_url,
-            model_id=config.model_id,
+            base_url=base_url,
+            model_id=model_id,
             temperature=config.temperature,
             timeout_seconds=config.timeout_seconds,
+            meter=meter,
         )
-    rows: list[dict] = []
-    for index, item in enumerate(loaded.inputs):
+    predictions_path = _resolve(root, args.output or config.output.predictions)
+    workers = 1 if dry_run else (args.workers if args.workers is not None else DEFAULT_MAX_WORKERS)
+    if args.workers is not None:
+        workers = args.workers
+        if workers < 1:
+            raise BaselineDataError("workers must be at least 1")
+
+    def worker(item):
         try:
-            row = run_b2(
+            return run_b2(
                 item,
                 seed=config.seed,
                 neutral_template=prompt_texts["neutral_question"],
@@ -231,38 +340,63 @@ def execute(args: argparse.Namespace) -> None:
                 client=client,
             )
         except EndpointUnavailable as exc:
-            if index != 0 or not config.mock_if_unavailable:
-                raise ModelError(
-                    f"local endpoint unavailable ({exc}). "
-                    "Refusing to mix endpoint and mock rows."
-                    if index != 0
-                    else f"local endpoint unavailable ({exc})."
-                ) from exc
-            print(
-                f"local endpoint unavailable ({exc}); using the documented mock",
-                file=sys.stderr,
+            if not config.mock_if_unavailable:
+                return _failed_b2_row(item, reason=str(exc), inference_mode="live")
+            # First-claim mock fallback stays sequential-only.
+            raise
+        except (ModelError, IsolationError, LabelError) as exc:
+            return _failed_b2_row(
+                item,
+                reason=str(exc),
+                inference_mode=client.inference_mode,
             )
-            client = MockClient(config.seed)
-            row = run_b2(
+
+    try:
+        rows = run_items(
+            loaded.inputs,
+            worker,
+            claim_id_of=lambda item: item.claim_id,
+            output=predictions_path,
+            resume=not args.no_resume,
+            max_workers=workers,
+            retries=0,
+        )
+    except EndpointUnavailable as exc:
+        if not config.mock_if_unavailable:
+            raise ModelError(f"local endpoint unavailable ({exc}).") from exc
+        print(
+            f"local endpoint unavailable ({exc}); using the documented mock",
+            file=sys.stderr,
+        )
+        client = MockClient(config.seed)
+        rows = run_items(
+            loaded.inputs,
+            lambda item: run_b2(
                 item,
                 seed=config.seed,
                 neutral_template=prompt_texts["neutral_question"],
                 reader_prompt=prompt_texts["reader"],
                 compare_prompt=prompt_texts["compare"],
                 client=client,
-            )
-        rows.append(row)
+            ),
+            claim_id_of=lambda item: item.claim_id,
+            output=predictions_path,
+            resume=False,
+            max_workers=1,
+            retries=0,
+        )
     finished = datetime.now(timezone.utc)
     mode = client.inference_mode
     if len(rows) != len(loaded.inputs):
         raise BaselineDataError("prediction count does not match the joined claims")
     run_split = loaded.split_role
+    usage = meter.summary()
     run = Run(
         run_id=f"same-evidence-b2-{run_split}-s{config.seed}-n{len(rows)}-{config_hash[:12]}",
         question_id=None,
         split=run_split,
         seed=config.seed,
-        model_id=config.model_id,
+        model_id=model_id,
         model_revision=None,
         prompt_hash=prompt_hash,
         corpus_hash=loaded.corpus_hash,
@@ -270,8 +404,9 @@ def execute(args: argparse.Namespace) -> None:
         timestamps={
             "started_at": started.isoformat(),
             "finished_at": finished.isoformat(),
+            "latency_seconds": usage["latency_seconds"],
         },
-        tokens=None,
+        tokens=usage,
         status=ExecutionStatus.COMPLETED,
     )
     run_payload = _validate_run(root, run)
@@ -286,6 +421,9 @@ def execute(args: argparse.Namespace) -> None:
         "native_label_space": config.native_label_space,
         "input_source": loaded.input_source,
         "n_predictions": len(rows),
+        "n_failed": sum(1 for row in rows if row.get("execution_status") == "failed"),
+        "claim_ids": [row["claim_id"] for row in rows],
+        "claim_ids_file": args.claim_ids_file,
         "n_nei_eligible_empty_evidence": sum(1 for item in loaded.inputs if item.nei_eligible()),
         "prompt_hash_canonical": (
             "sha256 of utf-8 prompt name and file text pairs, sorted by name, joined with newlines"
@@ -321,7 +459,15 @@ def main(argv: list[str] | None = None) -> None:
     except MissingEvidenceJoinError as exc:
         print(f"EVIDENCE JOIN MISSING: {exc}", file=sys.stderr)
         raise SystemExit(2) from exc
-    except (BaselineDataError, ModelError, IsolationError, LabelError, EndpointUnavailable) as exc:
+    except (
+        BaselineDataError,
+        ModelError,
+        IsolationError,
+        LabelError,
+        EndpointUnavailable,
+        ClaimSampleError,
+        SplitPolicyError,
+    ) as exc:
         print(f"BASELINE FAILED: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc
 

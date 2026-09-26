@@ -137,6 +137,32 @@ def walk_keys(value):
             yield from walk_keys(child)
 
 
+def test_claim_ids_file_selects_sample_order(tmp_path: Path):
+    from validator.claim_sample import build_claim_sample, dump_claim_sample
+    from validator.retrieve import resolve_gather_claim_ids
+    from validator.retrieval.config import load_retrieval_config
+
+    sample = build_claim_sample(
+        sample_id="tiny",
+        split_role="development",
+        seed=0,
+        native_ids=[9, 2, 4],
+        source_manifest="manifests/scifact/scifact_development_v1.json",
+    )
+    path = tmp_path / "ids.json"
+    dump_claim_sample(sample, path)
+    retrieval = load_retrieval_config(REPO_ROOT / "configs" / "retrieval" / "scifact_bm25.yaml")
+    assert resolve_gather_claim_ids(retrieval, claim_ids_file=path) == [
+        "scifact:9",
+        "scifact:2",
+        "scifact:4",
+    ]
+    assert resolve_gather_claim_ids(retrieval, claim_ids_file=path, limit=2) == [
+        "scifact:9",
+        "scifact:2",
+    ]
+
+
 def test_fixed_claim_ids_match_development_manifest_prefix():
     config = load_retrieval_config(REPO_ROOT / "configs" / "retrieval" / "scifact_bm25.yaml")
     manifest = load_manifest(REPO_ROOT / "manifests" / "scifact" / "scifact_development_v1.json")
