@@ -7,11 +7,17 @@
 # base_url: http://127.0.0.1:1234/v1
 # RFC1918 hosts such as http://192.168.1.10:1234/v1 are also allowed.
 # Public hostnames and non-private addresses are refused, including redirects.
-# No cloud API is configured.
+# Official OpenAI is allowed when OPENAI_API_KEY is set. Live runners then
+# apply OPENAI_MODEL from the checkout .env (for example gpt-6-luna) and
+# https://api.openai.com/v1. The key is never committed.
 model_id: qwen2.5-coder-1.5b-instruct
 base_url: http://127.0.0.1:1234/v1
 temperature: 0
-timeout_seconds: 30
+timeout_seconds: 120
 prompts:
   reader: prompts/judgment/reader_live_v1.txt
   judge: prompts/judgment/judge_live_v1.txt
+  # D0 audit uses the same model as the D1 judge so the two evidence scopes are
+  # judged by one mechanism. A rule-based D0 against a model-based D1 makes
+  # every reconciliation a mechanism artifact rather than evidence disagreement.
+  citation_auditor: prompts/judgment/citation_auditor_live_v1.txt

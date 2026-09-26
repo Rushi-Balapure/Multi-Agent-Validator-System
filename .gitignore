@@ -223,3 +223,11 @@ __marimo__/
 
 # Retrieval index and EvidenceBundle outputs. Rebuilt from the pinned corpus hash.
 /artifacts/
+
+# LaTeX aux from paper/build_pdf.sh. Keep paper/main.pdf.
+paper/*.aux
+paper/*.out
+paper/*.toc
+paper/*.fls
+paper/*.fdb_latexmk
+paper/*.synctex.gz

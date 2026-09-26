@@ -51,8 +51,12 @@ class CitationAudit(BaseModel):
     flags: list[CitationFlag]
 
 
-def audit_citations(claim: Claim, d0_evidence: list[Evidence]) -> CitationAudit:
-    """Judge citation faithfulness from D0 alone."""
+def assert_d0_boundary(d0_evidence: list[Evidence]) -> None:
+    """Refuse anything outside ORIGINAL/D0.
+
+    Shared by the offline rule-based audit and the live model audit so both
+    arms enforce the same citation-scope boundary.
+    """
     if not isinstance(d0_evidence, list):
         raise IsolationError("citation auditor accepts only a list of D0 evidence")
     for evidence in d0_evidence:
@@ -67,6 +71,46 @@ def audit_citations(claim: Claim, d0_evidence: list[Evidence]) -> CitationAudit:
                 "citation auditor refuses provenance other than original"
             )
 
+
+def structural_defect(claim: Claim, evidence: Evidence) -> tuple[PassageView | None, CitationFlag | None]:
+    """Classify one citation before any judging mechanism runs.
+
+    A structural defect is a missing span or a non-original provenance. It does
+    not depend on what a rule or a model concludes about the claim, so the
+    offline and live audits share it. Returns the citable view, or the defect
+    flag when the citation cannot be used at all.
+    """
+    span = evidence_span_id(evidence)
+    if span is None or evidence.provenance is not Provenance.ORIGINAL:
+        defects = []
+        if span is None:
+            defects.append("missing_required_citation")
+        if evidence.provenance is not Provenance.ORIGINAL:
+            defects.append("missing_provenance")
+        return None, CitationFlag(
+            claim_id=claim.claim_id,
+            span_id=span,
+            doc_id=evidence.doc_id,
+            adequacy="inadequate",
+            defects=defects,
+        )
+    return PassageView(span_id=span, text=evidence.text_span), None
+
+
+def failed_audit(
+    claim: Claim,
+    *,
+    reason: str,
+    flags: list[CitationFlag] | None = None,
+) -> CitationAudit:
+    """Fail-closed D0 audit. The label is a schema token, never model text."""
+    return _failed_audit(claim, reason=reason, flags=flags)
+
+
+def audit_citations(claim: Claim, d0_evidence: list[Evidence]) -> CitationAudit:
+    """Judge citation faithfulness from D0 alone using the deterministic rules."""
+    assert_d0_boundary(d0_evidence)
+
     if not d0_evidence:
         return _failed_audit(claim, reason="missing_required_citation")
 
@@ -74,25 +118,11 @@ def audit_citations(claim: Claim, d0_evidence: list[Evidence]) -> CitationAudit:
     usable: list[PassageView] = []
     failed = False
     for evidence in d0_evidence:
-        span = evidence_span_id(evidence)
-        if span is None or evidence.provenance is not Provenance.ORIGINAL:
+        view, defect = structural_defect(claim, evidence)
+        if view is None:
             failed = True
-            defects = []
-            if span is None:
-                defects.append("missing_required_citation")
-            if evidence.provenance is not Provenance.ORIGINAL:
-                defects.append("missing_provenance")
-            flags.append(
-                CitationFlag(
-                    claim_id=claim.claim_id,
-                    span_id=span,
-                    doc_id=evidence.doc_id,
-                    adequacy="inadequate",
-                    defects=defects,
-                )
-            )
+            flags.append(defect)
             continue
-        view = PassageView(span_id=span, text=evidence.text_span)
         usable.append(view)
         flags.append(_flag_for_passage(claim, evidence, view))
 

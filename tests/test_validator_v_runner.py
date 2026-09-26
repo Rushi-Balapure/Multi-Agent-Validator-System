@@ -120,7 +120,7 @@ def test_dry_run_writes_predictions_and_run_sidecar(tmp_path: Path, monkeypatch:
     assert sidecar["inference_mode"] == "mock"
     assert sidecar["model_invoked"] is False
     assert sidecar["n_predictions"] == 3
-    assert sidecar["development_claim_budget"] == 20
+    assert sidecar["development_claim_budget"] == 709
     assert sidecar["input_source"] == "fixture_report"
     assert sidecar["label_mapping"] == {
         "supported": "SUPPORT",
@@ -174,7 +174,7 @@ def test_dry_run_writes_predictions_and_run_sidecar(tmp_path: Path, monkeypatch:
     assert comparison.claim_ids == tuple(sorted(row["claim_id"] for row in scored))
 
 
-def test_limit_keeps_a_fixture_subset_and_rejects_more_than_twenty(
+def test_limit_keeps_a_fixture_subset_and_rejects_over_split_budget(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
     _block_network(monkeypatch)
@@ -206,7 +206,7 @@ def test_limit_keeps_a_fixture_subset_and_rejects_more_than_twenty(
                 str(CONFIG),
                 "--dry-run",
                 "--limit",
-                "21",
+                "710",
                 "--output",
                 str(tmp_path / "over.jsonl"),
                 "--run-sidecar",
@@ -372,7 +372,7 @@ def test_gather_attaches_non_gold_cited_d0_and_not_gold_evidence(
     sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
     assert sidecar["input_source"] == "gather"
     assert sidecar["n_predictions"] == 1
-    assert sidecar["development_claim_budget"] == 20
+    assert sidecar["development_claim_budget"] == 709
     assert sidecar["claim_ids"] == [expected_id]
     assert sidecar["run"]["run_id"].startswith("validator-v-gather-development-s0-n1-")
     assert sidecar["run"]["run_id"] != "validator-v-development-s0-n3-d5cecb97c55b"
@@ -438,7 +438,7 @@ def test_gather_preserves_phase3_b2_claim_id_order(
     rows = _rows(predictions)
     assert [row["claim_id"] for row in rows] == list(PHASE3_B2_CLAIM_IDS)
     assert gather_order == list(PHASE3_B2_CLAIM_IDS)
-    assert len(rows) == DEVELOPMENT_CLAIM_BUDGET
+    assert len(rows) == len(PHASE3_B2_CLAIM_IDS)
     for row in rows:
         assert row["method_id"] == "V"
         assert row["adaptation"] == "V"
@@ -475,6 +475,52 @@ def test_gather_preserves_phase3_b2_claim_id_order(
     assert "cited_doc_ids" in help_out
 
 
+def test_claim_ids_file_without_gather_is_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    _block_network(monkeypatch)
+    assert (
+        main(
+            [
+                "--config",
+                str(CONFIG),
+                "--claim-ids-file",
+                "data/manifests/dev300_seed42.json",
+                "--output",
+                str(tmp_path / "x.jsonl"),
+                "--run-sidecar",
+                str(tmp_path / "x.json"),
+            ]
+        )
+        == 2
+    )
+    assert not (tmp_path / "x.jsonl").exists()
+
+
+def test_held_out_without_frozen_final_is_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    _block_network(monkeypatch)
+    config = yaml.safe_load(CONFIG.read_text(encoding="utf-8"))
+    config["split"] = "held_out_local_eval"
+    config["limit"] = 1
+    path = tmp_path / "held.yaml"
+    path.write_text(yaml.safe_dump(config), encoding="utf-8")
+    assert (
+        main(
+            [
+                "--config",
+                str(path),
+                "--dry-run",
+                "--limit",
+                "1",
+                "--output",
+                str(tmp_path / "x.jsonl"),
+                "--run-sidecar",
+                str(tmp_path / "x.json"),
+            ]
+        )
+        == 2
+    )
+    assert not (tmp_path / "x.jsonl").exists()
+
+
 def test_claim_ids_without_gather_is_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     _block_network(monkeypatch)
     assert (
@@ -506,6 +552,9 @@ def test_phase3_claim_ids_match_development_manifest_prefix():
 
 def test_live_is_refused_for_a_dry_run_fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     _block_network(monkeypatch)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_MODEL", raising=False)
+    monkeypatch.setattr("validator.validator_v.runner.load_repo_dotenv", lambda root=None: None)
     assert (
         main(
             [
@@ -527,6 +576,9 @@ def test_live_is_refused_for_a_dry_run_fixture(tmp_path: Path, monkeypatch: pyte
 
 def test_live_client_records_inference_mode_live(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     _block_network(monkeypatch)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_MODEL", raising=False)
+    monkeypatch.setattr("validator.validator_v.runner.load_repo_dotenv", lambda root=None: None)
     fixture = json.loads(CONFLICT.read_text(encoding="utf-8"))
     fixture["dry_run"] = False
     fixture_path = tmp_path / "live_report.json"
@@ -590,6 +642,7 @@ def test_smoke_script_exits_zero(tmp_path: Path):
     env = os.environ.copy()
     env["PYTHONPATH"] = str(ROOT / "src") + os.pathsep + env.get("PYTHONPATH", "")
     env["VALIDATOR_V_SMOKE_OUT"] = str(tmp_path / "smoke")
+    env["MAVS_PYTHON"] = sys.executable
     proc = subprocess.run(
         ["bash", str(ROOT / "scripts" / "validator_v_smoke.sh")],
         cwd=ROOT,

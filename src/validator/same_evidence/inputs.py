@@ -133,14 +133,14 @@ def sha256_text(text: str) -> str:
 
 
 class LoadedInputs(BaseModel):
-    """Development claims selected for one baseline run, plus the corpus hash."""
+    """Claims selected for one baseline run, plus the corpus hash."""
 
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True)
 
     split_role: str
     inputs: list[PredictInput]
     corpus_hash: str = Field(pattern=_SHA256)
-    input_source: Literal["corpus_lock"]
+    input_source: Literal["corpus_lock", "claim_ids_file"]
 
 
 def _schema_validator(root: Path, name: str):
@@ -333,13 +333,34 @@ def load_development_inputs(
     root: Path,
     limit: int,
     corpus_config: str = "configs/corpus/scifact.yaml",
+    claim_ids: list[str] | None = None,
 ) -> LoadedInputs:
-    """Load the first ``limit`` development claims from ``data.scifact_loader.load_split``."""
+    """Load development claims: explicit ids, else the first ``limit`` from the split."""
+    return load_split_inputs(
+        root,
+        "development",
+        limit=limit,
+        corpus_config=corpus_config,
+        claim_ids=claim_ids,
+    )
+
+
+def load_split_inputs(
+    root: Path,
+    split: str,
+    *,
+    limit: int,
+    corpus_config: str = "configs/corpus/scifact.yaml",
+    claim_ids: list[str] | None = None,
+) -> LoadedInputs:
+    """Load claims from a locked split, optionally selecting an explicit id list."""
     if limit < 1:
         raise BaselineDataError("limit must be at least 1")
+    if split not in EXPECTED_COUNTS:
+        raise BaselineDataError(f"unknown split {split!r}")
     corpus_hash = _assert_corpus_lock(root, corpus_config)
     try:
-        bundles = load_split("development", root)
+        bundles = load_split(split, root)
     except SciFactDataError as exc:
         raise translate_loader_error(exc) from exc
     except FileNotFoundError as exc:
@@ -348,17 +369,32 @@ def load_development_inputs(
             "Run python3 -m data.pins.scifact.download_verify. "
             "The baseline does not download or retrieve documents."
         ) from exc
-    if len(bundles) != EXPECTED_COUNTS["development"]:
+    if len(bundles) != EXPECTED_COUNTS[split]:
         raise BaselineDataError(
-            f"load_split('development') returned {len(bundles)} claims, expected 709"
+            f"load_split({split!r}) returned {len(bundles)} claims, "
+            f"expected {EXPECTED_COUNTS[split]}"
         )
-    if limit > len(bundles):
-        raise BaselineDataError(f"limit {limit} exceeds the development split ({len(bundles)})")
     corpus = load_corpus(root / "data" / "raw" / "scifact")
-    selected = [predict_input_from_bundle(bundle, corpus) for bundle in bundles[:limit]]
+    if claim_ids is not None:
+        by_id = {bundle.claim.claim_id: bundle for bundle in bundles}
+        missing = [claim_id for claim_id in claim_ids if claim_id not in by_id]
+        if missing:
+            raise BaselineDataError(
+                f"{len(missing)} claim ids are not in the {split} split: {missing[:5]}"
+            )
+        selected_ids = claim_ids[:limit]
+        selected = [predict_input_from_bundle(by_id[claim_id], corpus) for claim_id in selected_ids]
+        source: Literal["corpus_lock", "claim_ids_file"] = "claim_ids_file"
+    else:
+        if limit > len(bundles):
+            raise BaselineDataError(
+                f"limit {limit} exceeds the {split} split ({len(bundles)})"
+            )
+        selected = [predict_input_from_bundle(bundle, corpus) for bundle in bundles[:limit]]
+        source = "corpus_lock"
     return LoadedInputs(
-        split_role="development",
+        split_role=split,
         inputs=selected,
         corpus_hash=corpus_hash,
-        input_source="corpus_lock",
+        input_source=source,
     )

@@ -1,0 +1,146 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{amsmath}
+
+\title{A Staged Multi-Agent Validator for Scientific Claim Verification}
+\author{Multi-Agent Validator System}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We study an inference-time validator that checks scientific claims against
+original citations (D0) and independently retrieved abstracts (D1). The
+system stages a sealed evidence reader, a judge, a citation auditor, and a
+reconciler, then maps four-way internal labels onto SciFact's SUPPORT /
+REFUTE / NEI space. The preregistered primary comparison is false
+endorsement of Validator V versus same-evidence baseline B2. This paper
+reports a SciFact-native evaluation: we do not add human four-way gold or a
+human study. Those remain future work. If V does not reduce false
+endorsement relative to B2, we report that as a negative result on the same
+tables.
+\end{abstract}
+
+\section{Introduction}
+Large language models are increasingly used to write and check scientific
+claims. A system that endorses a claim the evidence does not support is
+more harmful than one that abstains. We ask whether a staged, evidence-first
+validator reduces that false-endorsement risk compared with a
+same-evidence baseline that already reads the original citations.
+
+Research questions retained in this paper:
+\begin{itemize}
+  \item RQ1 (primary): Does V reduce false endorsement versus B2 on SciFact?
+  \item RQ2 (descriptive only): How does V split predicted NEI into
+        unaddressed versus underdetermined? SciFact gold cannot score this.
+  \item RQ4 (secondary): How do local and API model families compare on
+        cost and the same metrics?
+\end{itemize}
+RQ3 (human study) is deferred.
+
+\section{Related work}
+Fact verification corpora such as FEVER and SciFact supply claim--evidence
+pairs with a three-way label space. LLM-as-judge work shows that a single
+model can assign those labels, but it also hallucinates support. Citation
+auditing and selective prediction (risk-coverage) are the closest
+mechanisms to our fail-closed auditor and confidence thresholds. We do not
+claim a reproduction of trained verifiers such as KGAT or ARISTO; named
+baselines here are prompt adaptations.
+
+\section{Method}
+The validator is a staged pipeline, not a single prompt.
+
+\paragraph{Reader.} A sealed, claim-blind reader sees a neutral question and
+shuffled passages. It must not see the asserted answer or gold rationales.
+
+\paragraph{Judge.} A claim-visible judge assigns a four-way label
+(supported, contradicted, unaddressed, underdetermined) to one evidence
+scope.
+
+\paragraph{Citation auditor.} D0 original citations are audited for
+adequacy. Structural defects and parse failures are fail-closed.
+
+\paragraph{Reconciler.} D0 and D1 judgments are combined. Agreement copies
+the shared four-way label. Conflict or a failed D0 audit is
+underdetermined, then mapped to NEI.
+
+\paragraph{Label mapping.} supported$\to$SUPPORT, contradicted$\to$REFUTE,
+unaddressed and underdetermined$\to$NEI. The mapping is the only bridge
+onto SciFact gold.
+
+\section{Experimental setup}
+\paragraph{Data.} SciFact abstracts, locked corpus hash in
+\texttt{configs/corpus/scifact.yaml}. Splits: calibration 100, development
+709, held-out local eval 300 (public SciFact dev), official test 300
+unlabeled. The n=300 development sample is a seeded draw
+(\texttt{data/manifests/dev300\_seed42.json}); the held-out 300 is unused
+until one frozen run.
+
+\paragraph{Design.} Evidence access (D0 vs D1) $\times$ reading policy
+(claim-visible vs neutral evidence-first). Cells: B1, B2, B3, V-D1, plus
+full V, prior-knowledge B0, and oracle O. Matched-budget B2@$k$ uses a
+token-matched self-consistency vote.
+
+\paragraph{Statistics.} Paired cluster bootstrap, 2000 resamples, 95\%
+percentile interval. Families are connected components over shared
+\texttt{cited\_doc\_ids}. Holm adjustment is applied to secondary metrics
+only. The primary metric is false endorsement on the gold non-support
+denominator.
+
+\paragraph{What we do not claim.} No human annotation, no four-way gold, no
+sentence-level official evidence score, no human study.
+
+\section{Results}
+On the frozen development 300 (gpt-6-luna), B2 scores micro-F1 $0.747$ and
+false endorsement $0.011$ $[0.000, 0.031]$. V never false-endorses on the
+$268$ paired execution-ok claims (FE $0.000$), but SUPPORT recall falls
+from $0.530$ to $0.383$ and $32$ V rows fail closed. The paired FE
+difference (V $-$ B2) is $-0.012$ $[-0.031, 0.000]$ and does not exclude
+zero ($p=0.46$). Following the preregistered decision rule, we report a
+null primary result: the staged validator does not significantly reduce
+false endorsement relative to B2.
+
+The claim-visible D0 judge (B1) is stronger on F1 ($0.840$) with FE
+$0.049$. Prior-knowledge B0 has FE $0.448$. The gold-rationale oracle
+reaches micro-F1 $0.857$. V-D1 (D1 arm only) has micro-F1 $0.743$ and FE
+$0.019$. Of V's $225$ predicted NEI rows, $60$ are unaddressed and $165$
+are underdetermined; SciFact gold cannot score that split.
+
+Held-out $300$ (one frozen run, $219$ families, $262$ paired claims)
+reproduces the same pattern: B2 micro-F1 $0.760$ and FE $0.013$
+$[0.000, 0.033]$; V FE $0.000$ with micro-F1 $0.618$ and $38$ fail-closed
+rows. The paired difference is $-0.013$ $[-0.033, 0.000]$ and still
+includes zero ($p=0.44$).
+
+\section{Analysis}
+If both methods rarely predict SUPPORT, RQ1 cannot discriminate endorsement
+errors and the interesting contrast is precision versus coverage
+(risk-coverage). V's reason codes (D0/D1 conflict, fail-closed, citation
+defects) are the descriptive RQ2 table.
+
+\section{Limitations and future work}
+SciFact NEI is not four-way gold. We do not recover unaddressed versus
+underdetermined as scored classes. Sentence-level evidence selection is
+unscored. The human study and agentic-annotation protocol remain future
+work. API model access and cost limit the number of families we can
+compare.
+
+\section{Ethics}
+The task is interpreting published abstracts, not giving medical advice.
+Outputs are labels and rationales over a frozen corpus. The API key is
+never logged or committed.
+
+\appendix
+\section{Prompts}
+Versioned templates live under \texttt{prompts/}. The run sidecar records
+the prompt-bundle hash.
+
+\section{Freeze file}
+The held-out run is allowed only when \texttt{--frozen-final} matches
+\texttt{docs/freeze.json} (config, prompt, corpus, and model hashes).
+
+\end{document}

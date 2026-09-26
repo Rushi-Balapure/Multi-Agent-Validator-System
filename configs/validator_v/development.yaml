@@ -6,7 +6,10 @@
 # cited_doc_ids abstracts (provenance=original). Gold evidence is not loaded.
 # claim_ids is the Phase-3 B2 development prefix (same order as
 # same-evidence-b2-development-s0-n20-dac855c4e2ae). Used only with --gather;
-# --dry-run still judges the report fixtures below. Cap is 20.
+# --dry-run still judges the report fixtures below.
+# Development budget is the locked split size (709). Held-out needs --frozen-final.
+# Live n=300 runs pass --limit 300 --claim-ids-file; do not edit this
+# default after freeze.json is written.
 system_id: validator_v
 method_id: V
 adaptation: V
@@ -16,10 +19,12 @@ adaptation_note: >
 split: development
 limit: 20
 seed: 0
+# --live applies OPENAI_MODEL and https://api.openai.com/v1 when both
+# OPENAI_API_KEY and OPENAI_MODEL are set in the environment or .env.
 model_id: qwen2.5-coder-1.5b-instruct
 base_url: http://127.0.0.1:1234/v1
 temperature: 0
-timeout_seconds: 30
+timeout_seconds: 120
 dry_run: true
 prediction_label_space: scifact_SUPPORT_REFUTE_NEI
 four_way_label_space: mavs_four_way

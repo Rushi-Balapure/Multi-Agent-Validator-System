@@ -7,6 +7,9 @@ set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root"
 export PYTHONPATH="${root}/src${PYTHONPATH:+:$PYTHONPATH}"
+# Honour the caller's interpreter so a virtualenv that holds the dependencies
+# can run this script without them also being installed for bare python3.
+PYBIN="${MAVS_PYTHON:-python3}"
 
 out="${PHASE1_SMOKE_OUT:-artifacts/phase1_smoke}"
 mkdir -p "$out"
@@ -14,7 +17,7 @@ predictions="${out}/predictions.jsonl"
 sidecar="${out}/run.json"
 metrics="${out}/metrics.json"
 
-python3 - "$root" "$predictions" "$sidecar" <<'PY'
+"$PYBIN" - "$root" "$predictions" "$sidecar" <<'PY'
 import json
 import socket
 import sys
@@ -81,8 +84,8 @@ print(f"dry-run mock wrote {predictions_path} inference_mode=mock label={row['la
 PY
 
 # Official CLI when the pinned corpus is already on disk. Never downloads.
-if python3 -c 'from data.pins.scifact.download_verify import raw_matches_pin, repo_root; raise SystemExit(0 if raw_matches_pin(repo_root()) else 1)'; then
-  python3 -m validator.same_evidence.runner \
+if "$PYBIN" -c 'from data.pins.scifact.download_verify import raw_matches_pin, repo_root; raise SystemExit(0 if raw_matches_pin(repo_root()) else 1)'; then
+  "$PYBIN" -m validator.same_evidence.runner \
     --config configs/baseline/same_evidence_b2.yaml \
     --dry-run --limit 1 \
     --output "${out}/corpus_dry_run_predictions.jsonl" \
@@ -91,12 +94,12 @@ else
   echo "pinned SciFact raw files absent; skipped validator.same_evidence.runner --dry-run (no download)"
 fi
 
-python3 -m evaluation.score_predictions \
+"$PYBIN" -m evaluation.score_predictions \
   --predictions src/evaluation/fixtures/b2_predictions.jsonl \
   --run-id fixture-b2-score-001 \
   --output "$metrics"
 
-python3 - "$metrics" "$root/src/evaluation/fixtures/b2_metrics_expected.json" "$predictions" <<'PY'
+"$PYBIN" - "$metrics" "$root/src/evaluation/fixtures/b2_metrics_expected.json" "$predictions" <<'PY'
 import json
 import sys
 from pathlib import Path

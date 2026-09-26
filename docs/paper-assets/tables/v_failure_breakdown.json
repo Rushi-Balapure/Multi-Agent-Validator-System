@@ -1,0 +1,28 @@
+{
+  "n": 300,
+  "execution_status": {
+    "ok": 268,
+    "failed": 32
+  },
+  "label": {
+    "NEI": 225,
+    "SUPPORT": 41,
+    "REFUTE": 34
+  },
+  "label_4way": {
+    "underdetermined": 165,
+    "supported": 41,
+    "unaddressed": 60,
+    "contradicted": 34
+  },
+  "rationale_codes": {
+    "d0_d1_conflict": 137,
+    "labels_agree": 163
+  },
+  "rq2_descriptive": {
+    "n_predicted_nei": 225,
+    "unaddressed": 60,
+    "underdetermined": 165,
+    "note": "SciFact NEI gold cannot score this four-way split."
+  }
+}

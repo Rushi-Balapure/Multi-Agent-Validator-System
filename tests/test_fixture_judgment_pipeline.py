@@ -277,6 +277,8 @@ def test_live_config_points_at_lm_studio_loopback():
 
 def test_public_endpoint_is_refused_before_a_socket(monkeypatch: pytest.MonkeyPatch):
     _block_network(monkeypatch)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_MODEL", raising=False)
     with pytest.raises(EndpointPolicyError):
         LocalChatClient(
             base_url="https://api.openai.com/v1",
@@ -318,17 +320,34 @@ def test_baseline_timeout_is_not_a_scientific_label(monkeypatch: pytest.MonkeyPa
     assert exc.value.timed_out is True
 
 
+def _is_reader(payload: dict) -> bool:
+    return "normalized_claim" not in payload
+
+
+def _is_judge(payload: dict) -> bool:
+    """The claim-visible D1 judge is the only role that sees the sealed reading."""
+    return "normalized_claim" in payload and "sealed_reader" in payload
+
+
+def _is_citation_audit(payload: dict) -> bool:
+    """The D0 auditor sees the claim and the original citations, never D1."""
+    return "normalized_claim" in payload and "sealed_reader" not in payload
+
+
 class _RecordingClient:
-    def __init__(self, judge_text: str | None = None) -> None:
+    def __init__(self, judge_text: str | None = None, audit_text: str | None = None) -> None:
         self.judge_text = judge_text
+        self.audit_text = audit_text
         self.payloads: list[dict] = []
         self.prompts: list[str] = []
 
     def complete(self, system_prompt: str, payload: dict) -> str:
         self.prompts.append(system_prompt)
         self.payloads.append(payload)
-        if "normalized_claim" not in payload:
+        if _is_reader(payload):
             return _reader_json(payload)
+        if _is_citation_audit(payload):
+            return self.audit_text if self.audit_text is not None else _audit_json(payload)
         if self.judge_text is None:
             raise AssertionError("judge was called")
         return self.judge_text
@@ -344,6 +363,21 @@ def _reader_json(payload: dict) -> str:
     )
 
 
+def _audit_json(payload: dict, label: str = "supported") -> str:
+    spans = [passage["span_id"] for passage in payload["passages"]]
+    return json.dumps(
+        {
+            "label": label,
+            "rationale_codes": ["model_citation_audit"],
+            "cited_span_ids": spans[:1],
+            "uncertainty_reasons": [],
+            "citations": [
+                {"span_id": span, "adequacy": "adequate", "defects": []} for span in spans
+            ],
+        }
+    )
+
+
 def test_live_reader_omits_asserted_answer_and_keeps_a_parsed_label():
     fixture = load_fixture(COMPLETE)
 
@@ -351,8 +385,10 @@ def test_live_reader_omits_asserted_answer_and_keeps_a_parsed_label():
         def complete(self, system_prompt: str, payload: dict) -> str:
             self.prompts.append(system_prompt)
             self.payloads.append(payload)
-            if "normalized_claim" not in payload:
+            if _is_reader(payload):
                 return _reader_json(payload)
+            if _is_citation_audit(payload):
+                return _audit_json(payload)
             span = payload["passages"][0]["span_id"]
             return json.dumps(
                 {
@@ -365,10 +401,14 @@ def test_live_reader_omits_asserted_answer_and_keeps_a_parsed_label():
 
     client = Client()
     verdict = run_fixture(fixture, live=load_live_settings(default_live_config()), client=client)
-    reader_payload, judge_payload = client.payloads
+    reader_payload = next(item for item in client.payloads if _is_reader(item))
+    judge_payload = next(item for item in client.payloads if _is_judge(item))
+    audit_payload = next(item for item in client.payloads if _is_citation_audit(item))
     assert set(reader_payload) == {"neutral_question", "passages"}
     assert "asserted_answer" not in reader_payload
     assert "asserted_answer" not in judge_payload
+    # The D0 auditor is claim-visible but must never receive the sealed D1 reading.
+    assert set(audit_payload) == {"claim_id", "normalized_claim", "passages"}
     blob = json.dumps(client.payloads)
     assert LEAK not in blob
     assert LEAK not in "".join(client.prompts)
@@ -376,6 +416,7 @@ def test_live_reader_omits_asserted_answer_and_keeps_a_parsed_label():
     assert by_scope[EvidenceScope.D1].label == ScientificLabel.CONTRADICTED.value
     assert by_scope[EvidenceScope.D1].execution_status is ExecutionStatus.COMPLETED
     assert by_scope[EvidenceScope.D0].label == ScientificLabel.SUPPORTED.value
+    assert by_scope[EvidenceScope.D0].execution_status is ExecutionStatus.COMPLETED
     assert LEAK not in verdict.model_dump_json()
 
 
@@ -420,20 +461,142 @@ def test_live_reader_garbage_does_not_call_the_judge():
         def complete(self, system_prompt: str, payload: dict) -> str:
             del system_prompt
             self.payloads.append(payload)
-            if len(self.payloads) > 1:
+            if _is_judge(payload):
                 raise AssertionError("judge was called")
+            if _is_citation_audit(payload):
+                return _audit_json(payload)
             return "GARBAGE_READER_OUTPUT"
 
     client = Client()
     verdict = run_fixture(fixture, live=load_live_settings(default_live_config()), client=client)
-    assert len(client.payloads) == 1
-    assert "asserted_answer" not in client.payloads[0]
-    assert LEAK not in json.dumps(client.payloads[0])
+    # A failed D1 reader must not reach the D1 judge, and must not suppress the
+    # independent D0 audit.
+    assert not any(_is_judge(item) for item in client.payloads)
+    reader_payload = next(item for item in client.payloads if _is_reader(item))
+    assert any(_is_citation_audit(item) for item in client.payloads)
+    assert "asserted_answer" not in reader_payload
+    assert LEAK not in json.dumps(client.payloads)
     d1 = next(item for item in verdict.judgments if item.evidence_scope is EvidenceScope.D1)
     assert d1.execution_status is ExecutionStatus.FAILED
     assert d1.label == ScientificLabel.UNADDRESSED.value
     assert "GARBAGE_READER_OUTPUT" not in verdict.model_dump_json()
     assert verdict.sealed_reader.answer.startswith("Live evidence reader failed closed")
+
+
+def test_live_d0_audit_is_model_based_and_never_sees_d1():
+    """D0 and D1 must be judged by one mechanism, or reconciliation is an artifact."""
+    fixture = load_fixture(COMPLETE)
+    client = _RecordingClient(
+        judge_text=json.dumps(
+            {
+                "label": "supported",
+                "rationale_codes": ["model_d1"],
+                "cited_span_ids": [],
+                "uncertainty_reasons": [],
+            }
+        )
+    )
+    verdict = run_fixture(fixture, live=load_live_settings(default_live_config()), client=client)
+    audit_payload = next(item for item in client.payloads if _is_citation_audit(item))
+    d1_span_ids = {
+        passage["span_id"]
+        for item in client.payloads
+        if _is_judge(item)
+        for passage in item["passages"]
+    }
+    audit_span_ids = {passage["span_id"] for passage in audit_payload["passages"]}
+    assert audit_span_ids
+    assert audit_span_ids.isdisjoint(d1_span_ids)
+    assert "sealed_reader" not in audit_payload
+    by_scope = {item.evidence_scope: item for item in verdict.judgments}
+    d0 = by_scope[EvidenceScope.D0]
+    assert d0.execution_status is ExecutionStatus.COMPLETED
+    assert d0.rationale_codes == ["model_citation_audit"]
+    assert all(flag.adequacy == "adequate" for flag in verdict.citation_flags)
+
+
+@pytest.mark.parametrize(
+    "audit_text",
+    [
+        "GARBAGE_D0_AUDIT the citation is perfect",
+        json.dumps({"label": "SUPPORT", "rationale_codes": [], "cited_span_ids": []}),
+        json.dumps(
+            {
+                "label": "supported",
+                "rationale_codes": ["ok"],
+                "cited_span_ids": [],
+                "uncertainty_reasons": [],
+                "citations": [{"span_id": "D0:999:0-1", "adequacy": "adequate"}],
+            }
+        ),
+    ],
+)
+def test_live_d0_audit_garbage_fails_closed(audit_text: str):
+    fixture = load_fixture(COMPLETE)
+    client = _RecordingClient(
+        judge_text=json.dumps(
+            {
+                "label": "supported",
+                "rationale_codes": ["model_d1"],
+                "cited_span_ids": [],
+                "uncertainty_reasons": [],
+            }
+        ),
+        audit_text=audit_text,
+    )
+    verdict = run_fixture(fixture, live=load_live_settings(default_live_config()), client=client)
+    d0 = next(item for item in verdict.judgments if item.evidence_scope is EvidenceScope.D0)
+    assert d0.execution_status is ExecutionStatus.FAILED
+    assert d0.label == ScientificLabel.UNADDRESSED.value
+    assert d0.label in FOUR_WAY
+    assert "GARBAGE_D0_AUDIT" not in verdict.model_dump_json()
+    assert "citation is perfect" not in verdict.model_dump_json()
+
+
+def test_live_d0_audit_adequacy_comes_from_the_model():
+    fixture = load_fixture(COMPLETE)
+
+    class Client(_RecordingClient):
+        def complete(self, system_prompt: str, payload: dict) -> str:
+            self.prompts.append(system_prompt)
+            self.payloads.append(payload)
+            if _is_reader(payload):
+                return _reader_json(payload)
+            if _is_citation_audit(payload):
+                spans = [passage["span_id"] for passage in payload["passages"]]
+                return json.dumps(
+                    {
+                        "label": "underdetermined",
+                        "rationale_codes": ["population_transfer"],
+                        "cited_span_ids": spans[:1],
+                        "uncertainty_reasons": ["scope mismatch"],
+                        "citations": [
+                            {
+                                "span_id": span,
+                                "adequacy": "unverifiable",
+                                "defects": ["population_transfer"],
+                            }
+                            for span in spans
+                        ],
+                    }
+                )
+            return json.dumps(
+                {
+                    "label": "supported",
+                    "rationale_codes": ["model_d1"],
+                    "cited_span_ids": [],
+                    "uncertainty_reasons": [],
+                }
+            )
+
+    client = Client()
+    verdict = run_fixture(fixture, live=load_live_settings(default_live_config()), client=client)
+    d0 = next(item for item in verdict.judgments if item.evidence_scope is EvidenceScope.D0)
+    assert d0.label == ScientificLabel.UNDERDETERMINED.value
+    assert d0.uncertainty_reasons == ["scope mismatch"]
+    assert verdict.citation_flags
+    assert all(flag.adequacy == "unverifiable" for flag in verdict.citation_flags)
+    assert all(flag.defects == ["population_transfer"] for flag in verdict.citation_flags)
 
 
 def test_live_timeout_sets_execution_status_timeout():
@@ -457,6 +620,9 @@ def test_live_timeout_sets_execution_status_timeout():
 
 def test_cli_live_refuses_a_public_host(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     _block_network(monkeypatch)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_MODEL", raising=False)
+    monkeypatch.setattr("validator.fixture_pipeline.load_repo_dotenv", lambda root=None: None)
     output = tmp_path / "verdict.json"
     assert (
         main(
@@ -498,6 +664,9 @@ def test_cli_live_writes_a_failed_verdict_without_calling_the_network(
             del system_prompt, payload
             return "GARBAGE_CLI not a judgment"
 
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_MODEL", raising=False)
+    monkeypatch.setattr("validator.fixture_pipeline.load_repo_dotenv", lambda root=None: None)
     monkeypatch.setattr("validator.live_judgment.LocalChatClient", Fake)
     output = tmp_path / "verdict.json"
     assert main(["--fixture", str(COMPLETE), "--live", "--output", str(output)]) == 1

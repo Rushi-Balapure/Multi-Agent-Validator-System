@@ -287,7 +287,9 @@ def test_local_or_private_endpoint_is_accepted(url: str):
         "ftp://192.168.1.10/v1",
     ],
 )
-def test_public_or_non_http_endpoint_is_refused(url: str):
+def test_public_or_non_http_endpoint_is_refused(url: str, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_MODEL", raising=False)
     with pytest.raises(EndpointPolicyError):
         assert_local_or_private(url)
 
@@ -331,7 +333,10 @@ def test_openai_compatible_client_records_live_inference_mode():
     assert client.inference_mode != "endpoint"
 
 
-def test_dry_run_refuses_public_endpoint(tmp_path: Path):
+def test_dry_run_refuses_public_endpoint(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_MODEL", raising=False)
+    monkeypatch.setattr("validator.same_evidence.runner.load_repo_dotenv", lambda root=None: None)
     config = yaml.safe_load((ROOT / "configs" / "baseline" / "same_evidence_b2.yaml").read_text(encoding="utf-8"))
     config["base_url"] = "https://api.openai.com/v1"
     path = tmp_path / "cloud.yaml"
@@ -341,7 +346,47 @@ def test_dry_run_refuses_public_endpoint(tmp_path: Path):
     assert exc.value.code != 0
 
 
+def test_dry_run_claim_ids_file_selects_sample_prefix(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_MODEL", raising=False)
+    monkeypatch.setattr("validator.same_evidence.runner.load_repo_dotenv", lambda root=None: None)
+
+    def fail_network(*_args, **_kwargs):
+        raise AssertionError("dry-run opened a network connection")
+
+    monkeypatch.setattr(urllib.request, "urlopen", fail_network)
+    monkeypatch.setattr(socket, "create_connection", fail_network)
+    sample = json.loads((ROOT / "data" / "manifests" / "dev300_seed42.json").read_text(encoding="utf-8"))
+    predictions = tmp_path / "predictions.jsonl"
+    sidecar_path = tmp_path / "run.json"
+    main(
+        [
+            "--config",
+            "configs/baseline/same_evidence_b2.yaml",
+            "--dry-run",
+            "--limit",
+            "3",
+            "--claim-ids-file",
+            "data/manifests/dev300_seed42.json",
+            "--output",
+            str(predictions),
+            "--run-sidecar",
+            str(sidecar_path),
+        ]
+    )
+    rows = [json.loads(line) for line in predictions.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert [row["claim_id"] for row in rows] == sample["claim_ids"][:3]
+    sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
+    assert sidecar["input_source"] == "claim_ids_file"
+    assert sidecar["run"]["tokens"]["n_calls"] == 0
+    assert sidecar["run"]["tokens"]["total_tokens"] == 0
+
+
 def test_dry_run_twenty_development_claims_without_network(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_MODEL", raising=False)
+    monkeypatch.setattr("validator.same_evidence.runner.load_repo_dotenv", lambda root=None: None)
+
     def fail_network(*_args, **_kwargs):
         raise AssertionError("dry-run opened a network connection")
 

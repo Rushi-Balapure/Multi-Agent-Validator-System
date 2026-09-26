@@ -24,6 +24,7 @@ def test_phase1_smoke_exits_zero_offline(tmp_path: Path):
     env = os.environ.copy()
     env["PYTHONPATH"] = str(ROOT / "src") + os.pathsep + env.get("PYTHONPATH", "")
     env["PHASE1_SMOKE_OUT"] = str(tmp_path / "phase1_smoke")
+    env["MAVS_PYTHON"] = sys.executable
     proc = subprocess.run(
         ["bash", str(ROOT / "scripts" / "phase1_smoke.sh")],
         cwd=ROOT,

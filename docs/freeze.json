@@ -1,0 +1,55 @@
+{
+  "freeze_id": "held-out-v1",
+  "model_id": "gpt-6-luna",
+  "primary_metric": "false_endorsement_gold_nonsup",
+  "primary_comparison": "V versus B2",
+  "sample": "data/manifests/dev300_seed42.json",
+  "held_out_split": "held_out_local_eval",
+  "corpus_hash": "b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62",
+  "code_commit": "57429ca28d31b74a2144afdb636fda792cd7bc61",
+  "methods": {
+    "B2": {
+      "run_id": "same-evidence-b2-development-s0-n300-9fcfc49aeff0",
+      "model_id": "gpt-6-luna",
+      "config_hash": "9fcfc49aeff0c0860559242155e4b4ee0834d1c6f0cbcdd8b1347e7aebbe3dee",
+      "prompt_hash": "9d5efc226e3052e5b78c41404528d9730aef9b8380f5cf371be90758da3d3753",
+      "corpus_hash": "b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62"
+    },
+    "V": {
+      "run_id": "validator-v-gather-development-s0-n300-c3d7773f7287",
+      "model_id": "gpt-6-luna",
+      "config_hash": "c3d7773f7287a790896fcc43879b67f6a82c13f151d2e25caea95b06a76ff699",
+      "prompt_hash": "9a00c238c3d773c3927fd1c362b74769090094f5c89637a91c57e2dbd1de82d5",
+      "corpus_hash": "b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62"
+    },
+    "B0": {
+      "run_id": "b0-development-s0-n300-1aa5886f0fd6",
+      "model_id": "gpt-6-luna",
+      "config_hash": "1aa5886f0fd68b03f5fe1bd42fd7829fee3b7f72da8483f4f634d8af7c73b28b",
+      "prompt_hash": "db6adbc12f3baed5b000537b874d36a173b92c31f3499b2876a3b7cfc3b9e6da",
+      "corpus_hash": "b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62"
+    },
+    "B1": {
+      "run_id": "b1-development-s0-n300-f0359991ca1c",
+      "model_id": "gpt-6-luna",
+      "config_hash": "f0359991ca1c8653cee02fda89d99d73480054852ccd8c53e949c9f91473c81c",
+      "prompt_hash": "77e8d01e399d9645208f014a26f2f5eb3d9c9d04a161cb5f4d435f0f273055fb",
+      "corpus_hash": "b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62"
+    },
+    "O": {
+      "run_id": "o-development-s0-n300-6a2bf7b4b2e5",
+      "model_id": "gpt-6-luna",
+      "config_hash": "6a2bf7b4b2e552da80f2efbc087ab7b7e82047d95407120fec53b8fb0121cc24",
+      "prompt_hash": "77e8d01e399d9645208f014a26f2f5eb3d9c9d04a161cb5f4d435f0f273055fb",
+      "corpus_hash": "b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62"
+    },
+    "B3": {
+      "run_id": "b3-development-s0-n300-1ddf08261d8d",
+      "model_id": "gpt-6-luna",
+      "config_hash": "1ddf08261d8dfebcdb94c31bc40882a80e31c0751470e08e6ee39973b4159503",
+      "prompt_hash": "77e8d01e399d9645208f014a26f2f5eb3d9c9d04a161cb5f4d435f0f273055fb",
+      "corpus_hash": "b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62"
+    }
+  },
+  "note": "Held-out 300 may run only with --frozen-final. model_id and corpus_hash must match. Per-method prompt/config hashes are checked when that method is present."
+}

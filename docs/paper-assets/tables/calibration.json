@@ -1,0 +1,10 @@
+{
+  "split": "development",
+  "n": 300,
+  "temperature": 1.8,
+  "brier": 0.2564634939293644,
+  "nll": 0.49164690408916767,
+  "ece": 0.05970755270081672,
+  "brier_raw": 0.2909340000000005,
+  "source": "B1 verbalized confidence, temperature scaled"
+}
