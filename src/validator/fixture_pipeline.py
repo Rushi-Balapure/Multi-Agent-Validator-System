@@ -67,12 +67,14 @@ from validator.live_judgment import (
     LoadedLive,
     default_live_config,
     load_live_settings,
+    run_live_d0,
     run_live_d1,
 )
 from validator.reconcile import Reconciliation, ReconcilerNote, reconcile
 from validator.render import ClaimCard, RenderInput, render_claim_card
 from validator.retrieval.models import PASSAGE_CEILING, EvidenceBundle
 from validator.same_evidence._repo import find_repo_root
+from validator.same_evidence.b2 import apply_openai_env, load_repo_dotenv
 from validator.schemas import (
     Claim,
     Evidence,
@@ -199,6 +201,7 @@ def run_fixture(
     if live is None:
         sealed = read_evidence(payload)
         d1_judgment = judge_claim(fixture.claim, sealed, fixture.d1_bundle)
+        audit = audit_citations(fixture.claim, fixture.d0_evidence)
     else:
         sealed, d1_judgment = run_live_d1(
             fixture.claim,
@@ -207,7 +210,7 @@ def run_fixture(
             live,
             client=client,
         )
-    audit = audit_citations(fixture.claim, fixture.d0_evidence)
+        audit = run_live_d0(fixture.claim, fixture.d0_evidence, live, client=client)
     reconciliation = reconcile(fixture.claim, audit.judgment, d1_judgment)
     card = render_claim_card(
         RenderInput(
@@ -740,12 +743,21 @@ def main(argv: list[str] | None = None) -> int:
     live = None
     if args.live:
         root = find_repo_root()
+        load_repo_dotenv(root)
         config_path = default_live_config(root) if args.config is None else _resolve(root, args.config)
+        base_url, model_id = apply_openai_env(
+            args.base_url or DEFAULT_BASE_URL,
+            args.model_id or DEFAULT_MODEL_ID,
+        )
+        if args.base_url is not None:
+            base_url = args.base_url
+        if args.model_id is not None:
+            model_id = args.model_id
         try:
             live = load_live_settings(
                 config_path,
-                base_url=args.base_url,
-                model_id=args.model_id,
+                base_url=base_url,
+                model_id=model_id,
                 root=root,
             )
         except (EndpointPolicyError, LiveConfigError) as exc:

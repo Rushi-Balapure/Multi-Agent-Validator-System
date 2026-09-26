@@ -25,6 +25,13 @@ from typing import Protocol
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from validator.citation_auditor import (
+    CitationAudit,
+    CitationFlag,
+    assert_d0_boundary,
+    failed_audit,
+    structural_defect,
+)
 from validator.evidence_reader import (
     IsolationError,
     SealedEvidenceRecord,
@@ -43,6 +50,7 @@ from validator.same_evidence._repo import find_repo_root
 from validator.same_evidence.b2 import BaselineDataError, LabelError, assert_local_or_private, extract_json_object
 from validator.schemas import (
     Claim,
+    Evidence,
     EvidenceScope,
     ExecutionStatus,
     GoldProvenance,
@@ -55,6 +63,7 @@ _READER_FAILURE_ANSWER = (
     "Live evidence reader failed closed. No evidence-only answer was accepted."
 )
 _FOUR_WAY = {item.value for item in ScientificLabel}
+_CITATION_ADEQUACY = {"adequate", "inadequate", "unverifiable"}
 
 
 class LiveConfigError(RuntimeError):
@@ -70,6 +79,7 @@ class _PromptPaths(BaseModel):
 
     reader: str = Field(min_length=1)
     judge: str = Field(min_length=1)
+    citation_auditor: str = Field(min_length=1)
 
 
 class _LiveFile(BaseModel):
@@ -92,6 +102,7 @@ class LoadedLive:
     timeout_seconds: float
     reader_prompt: str
     judge_prompt: str
+    citation_auditor_prompt: str
 
 
 class ChatClient(Protocol):
@@ -112,6 +123,8 @@ def load_live_settings(
     *,
     base_url: str | None = None,
     model_id: str | None = None,
+    temperature: float | None = None,
+    timeout_seconds: float | None = None,
     root: Path | None = None,
 ) -> LoadedLive:
     """Load the live YAML and refuse a public ``base_url`` before any request."""
@@ -123,6 +136,10 @@ def load_live_settings(
         raw["base_url"] = base_url
     if model_id is not None:
         raw["model_id"] = model_id
+    if temperature is not None:
+        raw["temperature"] = temperature
+    if timeout_seconds is not None:
+        raw["timeout_seconds"] = timeout_seconds
     try:
         parsed = _LiveFile.model_validate(raw)
     except ValidationError as exc:
@@ -133,6 +150,7 @@ def load_live_settings(
         raise EndpointPolicyError(str(exc)) from exc
     reader_prompt = _read_prompt(checkout, parsed.prompts.reader)
     judge_prompt = _read_prompt(checkout, parsed.prompts.judge)
+    citation_auditor_prompt = _read_prompt(checkout, parsed.prompts.citation_auditor)
     return LoadedLive(
         model_id=parsed.model_id,
         base_url=parsed.base_url,
@@ -140,6 +158,7 @@ def load_live_settings(
         timeout_seconds=parsed.timeout_seconds,
         reader_prompt=reader_prompt,
         judge_prompt=judge_prompt,
+        citation_auditor_prompt=citation_auditor_prompt,
     )
 
 
@@ -219,6 +238,139 @@ def run_live_d1(
         uncertainty_reasons=parsed["uncertainty_reasons"],
         gold_provenance=GoldProvenance.NONE,
     )
+
+
+def run_live_d0(
+    claim: Claim,
+    d0_evidence: list[Evidence],
+    live: LoadedLive,
+    *,
+    client: ChatClient | None = None,
+) -> CitationAudit:
+    """Audit the original citations with the same model that judges D1.
+
+    The D1 arm is model-based, so a rule-based D0 arm would make almost every
+    reconciliation a mechanism artifact instead of an evidence disagreement.
+    D0 stays claim-visible and never sees D1. Parse and transport failures are
+    fail-closed: the label is a schema token, never model text.
+    """
+    assert_d0_boundary(d0_evidence)
+    if not d0_evidence:
+        return failed_audit(claim, reason="missing_required_citation")
+
+    views: list[PassageView] = []
+    by_span: dict[str, Evidence] = {}
+    flags: list[CitationFlag] = []
+    structural_failure = False
+    for evidence in d0_evidence:
+        view, defect = structural_defect(claim, evidence)
+        if view is None:
+            structural_failure = True
+            flags.append(defect)
+            continue
+        views.append(view)
+        by_span[view.span_id] = evidence
+
+    if not views:
+        return failed_audit(claim, reason="missing_required_citation", flags=flags)
+
+    chat = client if client is not None else _client_for(live)
+    request = _citation_request(claim, d0_evidence, views)
+    try:
+        raw = chat.complete(live.citation_auditor_prompt, request)
+        parsed = _parse_citation_audit(raw, {view.span_id for view in views})
+    except LiveParseError:
+        return failed_audit(claim, reason="live_parse_failed", flags=flags or None)
+    except InferenceTransportError as exc:
+        return failed_audit(claim, reason=_reason_for_transport(exc), flags=flags or None)
+
+    rated = parsed["citations"]
+    for view in views:
+        evidence = by_span[view.span_id]
+        entry = rated.get(view.span_id)
+        flags.append(
+            CitationFlag(
+                claim_id=claim.claim_id,
+                span_id=view.span_id,
+                doc_id=evidence.doc_id,
+                adequacy=entry["adequacy"] if entry else "unverifiable",
+                defects=list(entry["defects"]) if entry else ["citation_not_rated"],
+            )
+        )
+
+    return CitationAudit(
+        judgment=Judgment(
+            claim_id=claim.claim_id,
+            evidence_scope=EvidenceScope.D0,
+            label_space=LabelSpace.MAVS_FOUR_WAY,
+            label=parsed["label"],
+            rationale_codes=parsed["rationale_codes"],
+            cited_span_ids=parsed["cited_span_ids"],
+            raw_scores=None,
+            calibrated_probabilities=None,
+            execution_status=(
+                ExecutionStatus.FAILED if structural_failure else ExecutionStatus.COMPLETED
+            ),
+            uncertainty_reasons=parsed["uncertainty_reasons"],
+            gold_provenance=GoldProvenance.NONE,
+        ),
+        flags=flags,
+    )
+
+
+def _citation_request(
+    claim: Claim, d0_evidence: list[Evidence], views: list[PassageView]
+) -> dict:
+    """Claim plus original citations. No D1, no sealed reader, no asserted answer."""
+    by_span = {}
+    for evidence in d0_evidence:
+        span = evidence_span_id(evidence)
+        if span is not None:
+            by_span[span] = evidence
+    passages = [
+        {
+            "span_id": view.span_id,
+            "doc_id": by_span[view.span_id].doc_id,
+            "text": view.text,
+        }
+        for view in views
+    ]
+    request = {
+        "claim_id": claim.claim_id,
+        "normalized_claim": claim.normalized_claim,
+        "passages": passages,
+    }
+    if _has_key(request, "asserted_answer"):
+        raise IsolationError("citation audit request contains asserted_answer")
+    return request
+
+
+def _parse_citation_audit(text: str, allowed_span_ids: set[str]) -> dict:
+    """Reuse the judge contract and add per-citation adequacy ratings."""
+    parsed = _parse_judge(text, allowed_span_ids)
+    raw = _json_object(text)
+    entries = raw.get("citations", [])
+    if not isinstance(entries, list):
+        raise LiveParseError("citation audit citations must be a list")
+    rated: dict[str, dict] = {}
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise LiveParseError("citation audit citations must be a list of objects")
+        span = entry.get("span_id")
+        if not isinstance(span, str) or span not in allowed_span_ids:
+            raise LiveParseError("citation audit rated a span id that was not supplied")
+        adequacy = entry.get("adequacy")
+        if adequacy not in _CITATION_ADEQUACY:
+            raise LiveParseError("citation audit adequacy is outside the allowed set")
+        defects = entry.get("defects", [])
+        if not isinstance(defects, list) or any(not isinstance(item, str) for item in defects):
+            raise LiveParseError("citation audit defects must be a list of strings")
+        rated[span] = {
+            "adequacy": adequacy,
+            "defects": [item.strip() for item in defects if item.strip()],
+        }
+    parsed["citations"] = rated
+    return parsed
 
 
 def _client_for(live: LoadedLive) -> LocalChatClient:
@@ -374,5 +526,6 @@ __all__ = [
     "default_live_config",
     "isolated_reader_request",
     "load_live_settings",
+    "run_live_d0",
     "run_live_d1",
 ]
