@@ -63,25 +63,29 @@ already reads the original citations. On the 300-claim development sample the
 paired difference in false endorsement is \lunadevfediff{} (\lunadevfeci),
 and the same pattern repeats on a 300-claim held-out sample
 (\lunaheldfediff{}, \lunaheldfeci). The staged validator does eliminate false
-endorsement, but it does so by endorsing much less: SUPPORT recall falls from
-\lunadevBTwosupportRecall{} to \lunadevVsupportRecall{} while \lunadevVfailclosed{}
-of \lunadevVn{} scored claims fail closed. We replicate the pattern with a
-second, architecturally different model family, and we show that the dominant
-failure mode is not retrieval but a systematic disagreement between the two
-evidence scopes. We report this as a negative result with a mechanism
-analysis, a cost accounting, and a fully reproducible artifact. The design
-lesson is narrow and useful: independent retrieval is not sufficient for
-scientific claim verification, and evidence-first staging can convert a
-noisy checker into a conservative one without converting it into a correct
-one.
+endorsement -- its rate is \lunadevVfe{} on the development sample and
+\lunaheldVfe{} on the held-out sample -- but it does so by endorsing much
+less: SUPPORT recall falls from \lunadevBTwosupportRecall{} to
+\lunadevVsupportRecall{} on the development sample, and on the held-out
+sample \lunaheldVfailclosed{} of 300 claims fail closed entirely. We
+replicate the pattern with a second, architecturally different model family,
+and we show that the dominant failure mode is not retrieval but a systematic
+disagreement between the two evidence scopes: independent retrieval on this
+corpus cannot find gold evidence that the original citations missed, because
+the benchmark's annotated documents are a subset of its cited documents. We
+report this as a negative result with a mechanism analysis, a cost
+accounting, and a fully reproducible artifact. The design lesson is narrow
+and useful: independent retrieval is not sufficient for scientific claim
+verification, and evidence-first staging can convert a noisy checker into a
+conservative one without converting it into a correct one.
 \end{abstract}
 
 \noindent\textbf{Artifact.} All tables and figures in this paper are generated
 from saved prediction files by the scripts in \texttt{scripts/paper/}. The
-corpus, splits, prompts, and frozen configurations are in the repository
-(\texttt{github.com/}), and the held-out split is protected by a hash
-freeze that refuses a run whose model, prompt, configuration, or corpus
-differs from the locked record.
+corpus, splits, prompts, and frozen configurations are in the accompanying
+repository, and the held-out split is protected by a hash freeze that
+refuses a run whose model, prompt, configuration, or corpus differs from the
+locked record.
 
 \section{Introduction}
 
@@ -121,8 +125,9 @@ paired difference between V and B2 is \lunadevfediff{} with a 95\% interval of
 \lunadevfeci{}, which includes zero. The held-out sample repeats the pattern.
 The staged validator does reach zero false endorsements, but it buys that by
 withholding support: SUPPORT recall drops from \lunadevBTwosupportRecall{} to
-\lunadevVsupportRecall{} and \lunadevVfailclosed{} claims fail closed
-entirely. A checker that refuses to answer is not a better checker.
+\lunadevVsupportRecall{} on the development sample, and on the held-out
+sample \lunaheldVfailclosed{} of 300 claims fail closed entirely. A checker
+that refuses to answer is not a better checker.
 
 Three findings follow, and we think they are more useful than a headline
 number.
@@ -594,14 +599,18 @@ significance.
 \subsection{Primary comparison}
 
 Table~\ref{tab:main-dev} gives the development results and
-Table~\ref{tab:paired-dev} the preregistered paired comparison.
-B2 reaches micro-F1 \lunadevBTwomicroFOne{} with false endorsement
+Table~\ref{tab:paired-dev} the preregistered paired comparison. In the API
+family, B2 reaches micro-F1 \lunadevBTwomicroFOne{} with false endorsement
 \lunadevBTwofe{}, while V reaches micro-F1 \lunadevVmicroFOne{} with false
-endorsement \lunadevVfe{} on \lunadevVn{} scored claims, with
-\lunadevVfailclosed{} claims failing closed. The paired difference in false
-endorsement is \lunadevfediff{} with 95\% interval \lunadevfeci{} over
-\lunadevnpaired{} paired claims and \lunadevnfamilies{} families: the
-interval includes zero, so the primary comparison is null.
+endorsement \lunadevVfe{} on all \lunadevVn{} scored claims. The paired
+difference in false endorsement is \lunadevfediff{} with 95\% interval
+\lunadevfeci{} over \lunadevnpaired{} paired claims and \lunadevnfamilies{}
+families: the interval includes zero, so the primary comparison is null. The
+second family behaves the same way: B2 reaches micro-F1
+\mmdevBTwomicroFOne{} with false endorsement \mmdevBTwofe{}, V reaches
+\mmdevVmicroFOne{} with \mmdevVfe{}, and the paired difference is
+\mmdevfediff{} (\mmdevfeci{}) over \mmdevnpaired{} paired claims, again
+including zero.
 
 \begin{table}[t]
 \centering
@@ -628,9 +637,11 @@ could in principle look better by failing on the hard claims. Table
 both accountings. Under the all-rows accounting every submitted claim is
 scored with the label the method recorded for it, which is the conservative
 NEI on every fail-closed path in this repository. The comparison does not
-depend on the choice: V's false endorsement is zero under both, and its
-micro-F1 falls from \lunadevVmicroFOne{} to 0.640 when the failed claims
-are counted as NEI rather than dropped.
+depend on the choice: V's false endorsement is zero under both accountings
+on the development sample, where the retry policy recovered every failed
+request. On the held-out sample, which ran once without that policy, the
+all-rows accounting lowers V's micro-F1 from \lunaheldVmicroFOne{} to
+\lunaheldVallrowsmicroFOne{} while its false endorsement stays at zero.
 
 \begin{table}[t]
 \centering
@@ -667,16 +678,15 @@ scored label space: B1 (D0, claim-visible) beats B2 (D0, evidence-first) on
 micro-F1 (\lunadevBOnemicroFOne{} versus \lunadevBTwomicroFOne{}), and B3 (D1,
 claim-visible) beats V-D1 (D1, evidence-first) (\lunadevBThreemicroFOne{} versus
 \lunadevVDOnemicroFOne{}). This is the opposite of the intuition behind
-evidence-first staging, and it holds for both evidence scopes and both model
-families. Reading the evidence without the claim in view loses information
-that the judge needs; the sealing buys isolation, not accuracy.
+evidence-first staging. Reading the evidence without the claim in view loses
+information that the judge needs; the sealing buys isolation, not accuracy.
 
-Second, \emph{fresh retrieval helps the claim-visible judge and hurts the
-evidence-first one}: B3 beats B1 on false endorsement only in the sense that
-it is a different operating point, and V-D1's false endorsement
-(\lunadevVDOnefe{}) exceeds B2's (\lunadevBTwofe{}) even though V-D1 has access
-to a larger evidence pool. Independent retrieval introduces documents that
-the original claim was never calibrated against.
+Second, \emph{evidence access barely moves the evidence-first cell}: V-D1's
+false endorsement (\lunadevVDOnefe{}) is close to B2's (\lunadevBTwofe{}) even
+though V-D1 has access to a larger evidence pool, and in the second family
+the two are equal (\mmdevVDOnefe{} against \mmdevBTwofe{}). Independent
+retrieval introduces documents that the original claim was never calibrated
+against, and it does not buy accuracy.
 
 Third, \emph{the full V is more conservative than either arm}, because the
 reconciler resolves scope disagreement into abstention rather than choosing
@@ -697,24 +707,35 @@ predictions, not re-run.}
 Table~\ref{tab:main-dev} reports both families. The pattern --- V more
 conservative than B2, lower SUPPORT recall, false endorsement at or near
 zero, primary interval including zero --- is reproduced under a second model
-family reached through a different harness. We read this as evidence that
-the *design* of the staged validator, not the quirks of one model, produces
-the conservative operating point. We do not read it as evidence about the
-absolute quality of either model; the two families are not matched for size,
-training data, or capability, and the comparison is between families of
-systems, not between models of equal strength.
+family reached through a different harness: the paired false-endorsement
+difference is \lunadevfediff{} (\lunadevfeci{}) for the API family and
+\mmdevfediff{} (\mmdevfeci{}) for the second. The two families differ in
+absolute quality --- the second family is a markedly better verifier on this
+benchmark (B2 micro-F1 \mmdevBTwomicroFOne{} against
+\lunadevBTwomicroFOne{}) --- and the direction of the V effect is the same in
+both. We read this as evidence that the \emph{design} of the staged
+validator, not the quirks of one model, produces the conservative operating
+point. We do not read it as evidence about the absolute quality of either
+model; the two families are not matched for size, training data, or
+capability, and the comparison is between families of systems, not between
+models of equal strength. The second family also has a much stronger prior
+on the benchmark (its prior-knowledge condition is reported in
+Table~\ref{tab:main-dev}), so the gap between V and B2 there is a gap
+between two already-strong systems.
 
 \subsection{Where the abstentions come from}
 
 The RQ2 descriptive split is available because V stores its four-way label
 alongside the mapped native label. On the development sample V predicts NEI
-on the large majority of claims, and those NEI predictions split into
-\emph{unaddressed} (no retrieved passage addresses the claim) and
-\emph{underdetermined} (relevant evidence exists but does not resolve).
-Figure~\ref{fig:labels} shows the distribution; the accompanying rationale
-codes show that the dominant reason for an underdetermined verdict is
-disagreement between the D0 and D1 judgments rather than an empty evidence
-pool.
+on \lunadevVlabelsnei{} of \lunadevVlabelstotal{} claims
+(\lunadevVlabelsneishare{} of them), and those NEI predictions split into
+\emph{unaddressed} (no retrieved passage addresses the claim,
+\lunadevVlabelsunaddressed{} claims) and \emph{underdetermined} (relevant
+evidence exists but does not resolve, \lunadevVlabelsunderdetermined{}
+claims). Figure~\ref{fig:labels} shows the distribution; the accompanying
+rationale codes show that the dominant reason for an underdetermined verdict
+is disagreement between the D0 and D1 judgments rather than an empty
+evidence pool.
 
 \begin{figure}[t]
 \centering
@@ -741,17 +762,19 @@ document the original citations missed.
 
 The numbers are informative in an uncomfortable way for the hypothesis that
 independent retrieval should help. Retrieval finds the annotated documents
-most of the time (recall@$k$ = 0.85), but every annotated document it finds
-was also cited by the report: the unique yield is exactly zero. This is a
-property of the benchmark rather than of the retriever. In SciFact the cited
-document set contains the annotated document set, so a retrieval system that
-searches the same corpus cannot find \emph{new gold evidence}; it can only
-add unannotated context, and 93\% of what it returns is unjudged. The
-independent arm therefore cannot repair a wrong citation on this corpus,
-because a wrong citation is, by construction, a document without a
-rationale. This is the mechanical reason the D0/D1 conflict cannot be
-resolved by retrieving more, and it is a limitation of the benchmark that
-bounds every claim in this paper.
+most of the time (recall@$k$ = \retrievalRecall{} over the
+\retrievalNAnnotated{} claims that have annotated evidence), but every
+annotated document it finds was also cited by the report: the unique yield
+is \retrievalUnique{}. This is a property of the benchmark rather than of
+the retriever. In SciFact the cited document set contains the annotated
+document set, so a retrieval system that searches the same corpus cannot
+find \emph{new gold evidence}; it can only add unannotated context, and
+\retrievalUnjudged{}\% of what it returns is unjudged. The independent arm
+therefore cannot repair a wrong citation on this corpus, because a wrong
+citation is, by construction, a document without a rationale. This is the
+mechanical reason the D0/D1 conflict cannot be resolved by retrieving more,
+and it is a limitation of the benchmark that bounds every claim in this
+paper.
 
 \begin{table}[t]
 \centering

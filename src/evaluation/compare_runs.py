@@ -53,7 +53,12 @@ def compare(
             row.setdefault("label_gold", gold_by_id.get(row["claim_id"]))
         for row in v_rows:
             row.setdefault("label_gold", gold_by_id.get(row["claim_id"]))
-    families = families_from_split(split, [row["claim_id"] for row in b2_rows])
+    # Families come from the union of both arms so that a claim present in
+    # one arm and missing in the other still gets a family.
+    families = families_from_split(
+        split,
+        [row["claim_id"] for row in b2_rows] + [row["claim_id"] for row in v_rows],
+    )
     b2_rows = attach_claim_families(b2_rows, families)
     v_rows = attach_claim_families(v_rows, families)
     bootstrap = bootstrap_by_family(

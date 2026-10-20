@@ -88,15 +88,33 @@ class OpenCodeRuntime:
         agent: str = DEFAULT_AGENT,
         location: str = DEFAULT_LOCATION,
         timeout_seconds: float = 300.0,
+        min_interval_seconds: float = 0.0,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.agent = agent
         self.location = location
         self.timeout_seconds = timeout_seconds
+        self.min_interval_seconds = max(0.0, min_interval_seconds)
         token = base64.b64encode(f"{user}:{password}".encode()).decode()
         self._auth = f"Basic {token}"
         self._lock = threading.Lock()
         self._counter = 0
+        self._last_call = 0.0
+
+    def _pace(self) -> None:
+        """Keep a minimum interval between upstream generations.
+
+        The hosted free tier throttles bursts and can refuse an account's
+        requests outright. Pacing the bridge keeps the run inside the
+        service's limit instead of losing claims to transport failures.
+        """
+        if self.min_interval_seconds <= 0:
+            return
+        with self._lock:
+            wait = self._last_call + self.min_interval_seconds - time.time()
+            if wait > 0:
+                time.sleep(wait)
+            self._last_call = time.time()
 
     def _request(self, method: str, path: str, payload: dict | None = None, timeout: float = 120.0) -> Any:
         url = f"{self.base_url}{path}"
@@ -125,6 +143,7 @@ class OpenCodeRuntime:
 
     def complete(self, model: str, system_prompt: str, user_prompt: str) -> dict:
         """Run one stateless generation and return text plus token usage."""
+        self._pace()
         session = self._request(
             "POST",
             "/api/session",
@@ -292,6 +311,16 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--model", default=os.environ.get("OPENCODE_MODEL", DEFAULT_MODEL))
     parser.add_argument("--timeout-seconds", type=float, default=300.0)
+    parser.add_argument(
+        "--min-interval",
+        type=float,
+        default=float(os.environ.get("OPENCODE_MIN_INTERVAL", "0")),
+        help=(
+            "Minimum seconds between upstream generations. The hosted free "
+            "tier throttles bursts, so a paced bridge keeps a long run inside "
+            "the service's limit."
+        ),
+    )
     parser.add_argument("--log", default=None, help="Optional JSONL call log.")
     args = parser.parse_args(argv)
     if not args.password:
@@ -306,6 +335,7 @@ def main(argv: list[str] | None = None) -> int:
         agent=args.agent,
         location=args.location,
         timeout_seconds=args.timeout_seconds,
+        min_interval_seconds=args.min_interval,
     )
     BridgeHandler.default_model = args.model
     BridgeHandler.log_path = Path(args.log) if args.log else None

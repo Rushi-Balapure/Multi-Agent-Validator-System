@@ -1,0 +1,211 @@
+\begin{thebibliography}{23}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Aly et~al.(2021)Aly, Guo, Schlichtkrull, Thorne, Vlachos,
+  Christodoulopoulos, Cocarascu, and Mittal]{aly2021feverous}
+Rami Aly, Zhijiang Guo, Michael Schlichtkrull, James Thorne, Andreas Vlachos,
+  Christos Christodoulopoulos, Oana Cocarascu, and Arpit Mittal.
+\newblock {FEVEROUS}: Fact extraction and {VER}ification over unstructured and
+  structured information.
+\newblock In \emph{Advances in Neural Information Processing Systems Datasets
+  and Benchmarks Track}, 2021.
+
+\bibitem[Dhuliawala et~al.(2024)Dhuliawala, Komeili, Xu, Raileanu, Li,
+  Celikyilmaz, and Weston]{dhuliawala2024cove}
+Shehzaad Dhuliawala, Mojtaba Komeili, Jing Xu, Roberta Raileanu, Xian Li, Asli
+  Celikyilmaz, and Jason Weston.
+\newblock Chain-of-verification reduces hallucination in large language models.
+\newblock In \emph{Findings of the Association for Computational Linguistics:
+  ACL 2024}, pages 3563--3578, 2024.
+\newblock \doi{10.18653/v1/2024.findings-acl.212}.
+
+\bibitem[Feng et~al.(2024)Feng, Shi, Wang, Ding, Balachandran, and
+  Tsvetkov]{feng2024abstain}
+Shangbin Feng, Weijia Shi, Yike Wang, Wenxuan Ding, Vidhisha Balachandran, and
+  Yulia Tsvetkov.
+\newblock Don't hallucinate, abstain: Identifying {LLM} knowledge gaps via
+  multi-{LLM} collaboration.
+\newblock In \emph{Proceedings of the 62nd Annual Meeting of the Association
+  for Computational Linguistics (Volume 1: Long Papers)}, pages 14664--14690,
+  2024.
+\newblock \doi{10.18653/v1/2024.acl-long.786}.
+\newblock URL \url{https://aclanthology.org/2024.acl-long.786/}.
+
+\bibitem[Gao et~al.(2023)Gao, Dai, Pasupat, Chen, Chaganty, Fan, Zhao, Lao,
+  Lee, Juan, and Guu]{gao2023rarr}
+Luyu Gao, Zhuyun Dai, Panupong Pasupat, Anthony Chen, Arun~Tejasvi Chaganty,
+  Yicheng Fan, Vincent Zhao, Ni~Lao, Hongrae Lee, Da-Cheng Juan, and Kelvin
+  Guu.
+\newblock {RARR}: Researching and revising what language models say, using
+  language models.
+\newblock In \emph{Proceedings of the 61st Annual Meeting of the Association
+  for Computational Linguistics (Volume 1: Long Papers)}, pages 16477--16508,
+  2023.
+\newblock \doi{10.18653/v1/2023.acl-long.910}.
+\newblock URL \url{https://aclanthology.org/2023.acl-long.910/}.
+
+\bibitem[Glockner et~al.(2024)Glockner, Hou, Nakov, and
+  Gurevych]{glockner2024missci}
+Max Glockner, Yufang Hou, Preslav Nakov, and Iryna Gurevych.
+\newblock {Missci}: Reconstructing fallacies in misrepresented science.
+\newblock In \emph{Proceedings of the 62nd Annual Meeting of the Association
+  for Computational Linguistics (Volume 1: Long Papers)}, pages 4372--4405,
+  2024.
+\newblock \doi{10.18653/v1/2024.acl-long.240}.
+\newblock URL \url{https://aclanthology.org/2024.acl-long.240/}.
+
+\bibitem[Guo et~al.(2017)Guo, Pleiss, Sun, and Weinberger]{guo2017calibration}
+Chuan Guo, Geoff Pleiss, Yu~Sun, and Kilian~Q. Weinberger.
+\newblock On calibration of modern neural networks.
+\newblock In \emph{Proceedings of the 34th International Conference on Machine
+  Learning (ICML)}, volume~70 of \emph{PMLR}, pages 1321--1330, 2017.
+
+\bibitem[Hirsch et~al.(2026)Hirsch, Wan, Wang, Stengel-Eskin, Bansal, and
+  Dagan]{hirsch2026blame}
+Eran Hirsch, David Wan, Han Wang, Elias Stengel-Eskin, Mohit Bansal, and Ido
+  Dagan.
+\newblock Who is the agent to blame? localizing faithfulness and citation
+  mistakes in agentic deep research, 2026.
+
+\bibitem[Li et~al.(2026)Li, Zhang, Cheng, Song, Zhou, Li, Hu, Qin, Zhao, Jiang,
+  and Jiang]{march2026}
+Zhuo Li, Yupeng Zhang, Pengyu Cheng, Jiajun Song, Mengyu Zhou, Hao Li, Shujie
+  Hu, Yu~Qin, Erchao Zhao, Xiaoxi Jiang, and Guanjun Jiang.
+\newblock {MARCH}: Multi-agent reinforced self-check for {LLM} hallucination,
+  2026.
+
+\bibitem[Manakul et~al.(2023)Manakul, Liusie, and
+  Gales]{manakul2023selfcheckgpt}
+Potsawee Manakul, Adian Liusie, and Mark Gales.
+\newblock {SelfCheckGPT}: Zero-resource black-box hallucination detection for
+  generative large language models.
+\newblock In \emph{Proceedings of the 2023 Conference on Empirical Methods in
+  Natural Language Processing (EMNLP)}, pages 9004--9017, 2023.
+\newblock \doi{10.18653/v1/2023.emnlp-main.557}.
+\newblock URL \url{https://aclanthology.org/2023.emnlp-main.557/}.
+
+\bibitem[Niu et~al.(2024)Niu, Wu, Zhu, Xu, Shum, Zhong, Song, and
+  Zhang]{niu2024ragtruth}
+Cheng Niu, Yuanhao Wu, Juno Zhu, Siliang Xu, KaShun Shum, Randy Zhong, Juntong
+  Song, and Tong Zhang.
+\newblock {RAGTruth}: A hallucination corpus for developing trustworthy
+  retrieval-augmented language models.
+\newblock In \emph{Proceedings of the 62nd Annual Meeting of the Association
+  for Computational Linguistics (Volume 1: Long Papers)}, pages 10862--10878,
+  2024.
+\newblock \doi{10.18653/v1/2024.acl-long.585}.
+\newblock URL \url{https://aclanthology.org/2024.acl-long.585/}.
+
+\bibitem[Ortega and Gomez-Perez(2025)]{ortega2025sciclaims}
+Ra{\'u}l Ortega and Jose~Manuel Gomez-Perez.
+\newblock {SciClaims}: An end-to-end generative system for biomedical claim
+  analysis.
+\newblock In \emph{Proceedings of the 2025 Conference on Empirical Methods in
+  Natural Language Processing: System Demonstrations}, pages 141--154, 2025.
+\newblock \doi{10.18653/v1/2025.emnlp-demos.11}.
+\newblock URL \url{https://aclanthology.org/2025.emnlp-demos.11/}.
+
+\bibitem[{Qwen-Applications}(2026)]{march2026code}
+{Qwen-Applications}.
+\newblock {MARCH}: official implementation, 2026.
+\newblock URL \url{https://github.com/Qwen-Applications/MARCH}.
+\newblock GitHub repository \texttt{Qwen-Applications/MARCH}.
+
+\bibitem[Thorne et~al.(2018)Thorne, Vlachos, Christodoulopoulos, and
+  Mittal]{thorne2018fever}
+James Thorne, Andreas Vlachos, Christos Christodoulopoulos, and Arpit Mittal.
+\newblock {FEVER}: a large-scale dataset for fact extraction and
+  {VER}ification.
+\newblock In \emph{Proceedings of the 2018 Conference of the North American
+  Chapter of the Association for Computational Linguistics: Human Language
+  Technologies (Volume 1: Long Papers)}, pages 809--819, 2018.
+\newblock \doi{10.18653/v1/N18-1074}.
+\newblock URL \url{https://aclanthology.org/N18-1074/}.
+
+\bibitem[Vladika and Matthes(2024)]{vladika2024knowledge}
+Juraj Vladika and Florian Matthes.
+\newblock Comparing knowledge sources for open-domain scientific claim
+  verification.
+\newblock In \emph{Proceedings of the 18th Conference of the European Chapter
+  of the Association for Computational Linguistics (Volume 1: Long Papers)},
+  pages 2103--2114, 2024.
+\newblock \doi{10.18653/v1/2024.eacl-long.128}.
+\newblock URL \url{https://aclanthology.org/2024.eacl-long.128/}.
+
+\bibitem[Wadden et~al.(2020)Wadden, Lin, Lo, Wang, van Zuylen, Cohan, and
+  Hajishirzi]{wadden2020scifact}
+David Wadden, Shanchuan Lin, Kyle Lo, Lucy~Lu Wang, Madeleine van Zuylen, Arman
+  Cohan, and Hannaneh Hajishirzi.
+\newblock Fact or fiction: Verifying scientific claims.
+\newblock In \emph{Proceedings of the 2020 Conference on Empirical Methods in
+  Natural Language Processing (EMNLP)}, pages 7534--7550, 2020.
+\newblock \doi{10.18653/v1/2020.emnlp-main.609}.
+\newblock URL \url{https://aclanthology.org/2020.emnlp-main.609/}.
+
+\bibitem[Wadden et~al.(2022)Wadden, Lo, Kuehl, Cohan, Beltagy, Wang, and
+  Hajishirzi]{wadden2022scifactopen}
+David Wadden, Kyle Lo, Bailey Kuehl, Arman Cohan, Iz~Beltagy, Lucy~Lu Wang, and
+  Hannaneh Hajishirzi.
+\newblock {SciFact-Open}: Towards open-domain scientific claim verification.
+\newblock In \emph{Findings of the Association for Computational Linguistics:
+  EMNLP 2022}, pages 4719--4734, 2022.
+\newblock \doi{10.18653/v1/2022.findings-emnlp.347}.
+
+\bibitem[Wei et~al.(2024)Wei, Yang, Song, Lu, Hu, Huang, Tran, Peng, Liu,
+  Huang, Du, and Le]{wei2024longform}
+Jerry Wei, Chengrun Yang, Xinying Song, Yifeng Lu, Nathan Hu, Jie Huang, Dustin
+  Tran, Daiyi Peng, Ruibo Liu, Da~Huang, Cosmo Du, and Quoc~V. Le.
+\newblock Long-form factuality in large language models.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2024.
+
+\bibitem[Yang(2026)]{yang2026calibratedselective}
+Dekun Yang.
+\newblock Calibrated selective fact-checking via evidence chain evaluation,
+  2026.
+
+\bibitem[Yang et~al.(2022)Yang, Vega-Oliveros, Seibt, and
+  Rocha]{yang2022explainablefactchecking}
+Jing Yang, Didier Vega-Oliveros, Ta{\'i}s Seibt, and Anderson Rocha.
+\newblock Explainable fact-checking through question answering.
+\newblock In \emph{IEEE International Conference on Acoustics, Speech and
+  Signal Processing (ICASSP)}, 2022.
+\newblock \doi{10.1109/ICASSP43922.2022.9747214}.
+
+\bibitem[Yu et~al.(2026)Yu, Zhang, Lin, Briand, and Mu{\~n}oz]{yu2026rt4chart}
+Boxi Yu, Yuzhong Zhang, Liting Lin, Lionel Briand, and Emir Mu{\~n}oz.
+\newblock Retromorphic testing with hierarchical verification for hallucination
+  detection in {RAG}, 2026.
+
+\bibitem[Yue et~al.(2024)Yue, Zeng, Shang, Liu, Zhang, and Wang]{yue2024rafts}
+Zhenrui Yue, Huimin Zeng, Lanyu Shang, Yifan Liu, Yang Zhang, and Dong Wang.
+\newblock Retrieval augmented fact verification by synthesizing contrastive
+  arguments.
+\newblock In \emph{Proceedings of the 62nd Annual Meeting of the Association
+  for Computational Linguistics (Volume 1: Long Papers)}, pages 10331--10343,
+  2024.
+\newblock \doi{10.18653/v1/2024.acl-long.556}.
+
+\bibitem[Zhang et~al.(2020)Zhang, Liao, and Bellamy]{zhang2020trustcalibration}
+Yunfeng Zhang, Q.~Vera Liao, and Rachel K.~E. Bellamy.
+\newblock Effect of confidence and explanation on accuracy and trust
+  calibration in {AI}-assisted decision making.
+\newblock In \emph{Proceedings of the 2020 Conference on Fairness,
+  Accountability, and Transparency (FAT*)}, pages 295--305, 2020.
+\newblock \doi{10.1145/3351095.3372852}.
+
+\bibitem[Zheng et~al.(2024)Zheng, Li, Zhang, Shang, Huang, and
+  Jia]{zheng2024rav}
+Liwen Zheng, Chaozhuo Li, Xi~Zhang, Yu-Ming Shang, Feiran Huang, and Haoran
+  Jia.
+\newblock Evidence retrieval is almost all you need for fact verification.
+\newblock In \emph{Findings of the Association for Computational Linguistics:
+  ACL 2024}, pages 9274--9281, 2024.
+\newblock \doi{10.18653/v1/2024.findings-acl.551}.
+\newblock URL \url{https://aclanthology.org/2024.findings-acl.551/}.
+
+\end{thebibliography}
