@@ -1,3 +1,4 @@
 {
-  "figure": "reliability"
+  "figure": "reliability",
+  "source": "docs/paper-assets/tables/calibration_by_family.json"
 }

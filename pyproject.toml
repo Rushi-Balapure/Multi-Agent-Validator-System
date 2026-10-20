@@ -16,6 +16,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+paper = ["matplotlib>=3.8"]
 
 [project.scripts]
 mavs-retrieve = "validator.retrieve:main"

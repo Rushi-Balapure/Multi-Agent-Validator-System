@@ -1,3 +1,4 @@
 {
-  "figure": "failures"
+  "figure": "failure_breakdown",
+  "source": "docs/paper-assets/tables/failure_taxonomy.json"
 }

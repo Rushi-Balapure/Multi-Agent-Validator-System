@@ -1,0 +1,17 @@
+\begin{tabular}{llrrrr}
+\toprule
+Model family & Cell & Evidence & Reading policy & micro-F1 & FE (gold non-sup) \\
+\midrule
+GPT-6-Luna (API) & B0 & none & prior knowledge & 0.547 & 0.448 \\
+GPT-6-Luna (API) & B1 & D0 & claim-visible & 0.843 & 0.044 \\
+GPT-6-Luna (API) & B2 & D0 & neutral / evidence-first & 0.747 & 0.011 \\
+GPT-6-Luna (API) & B3 & D1 & claim-visible & 0.800 & 0.049 \\
+GPT-6-Luna (API) & V-D1 & D1 & neutral / evidence-first & 0.757 & 0.016 \\
+GPT-6-Luna (API) & V & D0 $\cup$ D1 & reconciled & 0.687 & 0.000 \\
+GPT-6-Luna (API) & O & gold rationales & claim-visible & 0.870 & 0.005 \\
+\addlinespace[2pt]
+MiniMax M3.1 Flash (OpenCode) & V-D1 & D1 & neutral / evidence-first & 0.848 & 0.039 \\
+MiniMax M3.1 Flash (OpenCode) & V & D0 $\cup$ D1 & reconciled & 0.829 & 0.019 \\
+\addlinespace[2pt]
+\bottomrule
+\end{tabular}

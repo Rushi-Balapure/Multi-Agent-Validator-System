@@ -198,8 +198,19 @@ def score_prediction_rows(
     *,
     run_id: str,
     inference_mode: str | None = None,
+    include_failed: bool = False,
 ) -> dict[str, Any]:
-    """Score in-memory B2 rows. ``run_id`` is copied onto every metric."""
+    """Score in-memory B2 rows. ``run_id`` is copied onto every metric.
+
+    ``include_failed`` switches the fail-closed accounting. By default a row
+    whose execution status is not ``ok`` is skipped, because a transport or
+    parse failure is not a scientific verdict. With ``include_failed`` the
+    row is scored with the label the method recorded for it, which is the
+    conservative ``NEI`` for every fail-closed path in this repository. The
+    resulting report covers every submitted item, so a method cannot look
+    better by failing on the hard ones. The report records which accounting
+    was used in ``scoring_status``.
+    """
     if not isinstance(run_id, str) or not run_id.strip():
         raise ScoreError("run_id missing; pass --run-id or --run-sidecar", exit_code=2)
 
@@ -220,7 +231,25 @@ def score_prediction_rows(
     for row in rows:
         claim_id = row.get("claim_id", "<missing>")
         if not _execution_ok(row):
-            skipped_not_ok += 1
+            if not include_failed:
+                skipped_not_ok += 1
+                continue
+            # Fail-closed accounting: score the label the method recorded.
+            try:
+                predicted = _predicted_label(row)
+            except ValueError as exc:
+                raise ScoreError(f"{claim_id}: {exc}") from exc
+            if predicted is None:
+                skipped_not_ok += 1
+                continue
+            try:
+                gold = _gold_label(row)
+            except ValueError as exc:
+                raise ScoreError(f"{claim_id}: {exc}") from exc
+            if gold is None:
+                skipped_unlabeled += 1
+                continue
+            pairs.append((gold, predicted))
             continue
         try:
             predicted = _predicted_label(row)
@@ -363,7 +392,7 @@ def score_prediction_rows(
         "n_scored": len(pairs),
         "n_skipped_unlabeled": skipped_unlabeled,
         "n_skipped_not_ok": skipped_not_ok,
-        "scoring_status": "scored",
+        "scoring_status": "scored_all_rows" if include_failed else "scored",
         "counts": {
             "run_id": run_id,
             "formula_id": _NATIVE_FORMULA,
@@ -381,6 +410,7 @@ def score_predictions_file(
     run_id: str | None = None,
     run_sidecar: Path | None = None,
     join_gold: str | None = None,
+    include_failed: bool = False,
 ) -> dict[str, Any]:
     rows = _read_jsonl(predictions)
     sidecar = _read_sidecar(run_sidecar)
@@ -394,12 +424,15 @@ def score_predictions_file(
             rows, gold_join = join_scifact_gold(rows, split=join_gold, sidecar=sidecar)
         except GoldJoinError as exc:
             raise ScoreError(str(exc)) from exc
-    report = score_prediction_rows(rows, run_id=resolved, inference_mode=sidecar_mode)
+    report = score_prediction_rows(
+        rows, run_id=resolved, inference_mode=sidecar_mode, include_failed=include_failed
+    )
     report["provenance"] = {
         "run_id": resolved,
         "predictions": str(predictions),
         "run_sidecar": str(run_sidecar) if run_sidecar else None,
         "join_gold": join_gold,
+        "include_failed": include_failed,
     }
     if gold_join is not None:
         report["gold_join"] = gold_join

@@ -1,0 +1,2727 @@
+{
+  "formula_ids": [
+    "F-recall-at-k"
+  ],
+  "split": "development",
+  "sample": "data/manifests/dev300_seed42.json",
+  "k": 8,
+  "n_claims": 300,
+  "n_claims_with_annotated_evidence": 179,
+  "n_claims_without_annotated_evidence": 121,
+  "recall_at_k": 0.8491620111731844,
+  "precision_at_k": 0.07416666666666667,
+  "d0_overlap": 0.09583333333333334,
+  "unique_yield": 0.0,
+  "refuting_yield": 0.17055555555555554,
+  "unjudged_rate": 0.9258333333333333,
+  "micro": {
+    "n_retrieved_documents": 2400,
+    "n_annotated_retrieved": 178,
+    "n_cited_retrieved": 230,
+    "n_annotated_retrieved_not_cited": 0,
+    "n_refuting_retrieved": 60
+  },
+  "per_claim": [
+    {
+      "claim_id": "scifact:1309",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:222",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:37",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 2,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:559",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:485",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:435",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:272",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:197",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1383",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1102",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:166",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1205",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:861",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:55",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:45",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:176",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:428",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:456",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1031",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1224",
+      "n_retrieved": 8,
+      "n_annotated": 2,
+      "n_cited": 2,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:41",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1135",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:383",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1330",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1394",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:857",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:430",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:917",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1195",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:566",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:11",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:316",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1391",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:680",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1353",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:309",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:418",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:673",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1398",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:175",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:764",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:182",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:730",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:685",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1228",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:530",
+      "n_retrieved": 8,
+      "n_annotated": 3,
+      "n_cited": 4,
+      "n_hit": 2,
+      "n_overlap": 2,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:77",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:940",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1084",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:246",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 2,
+      "n_hit": 1,
+      "n_overlap": 2,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:761",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:154",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1115",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:594",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1291",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1258",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:734",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1169",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:372",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:123",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:79",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:448",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:588",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:155",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1381",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:196",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1334",
+      "n_retrieved": 8,
+      "n_annotated": 2,
+      "n_cited": 3,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1347",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:928",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:738",
+      "n_retrieved": 8,
+      "n_annotated": 3,
+      "n_cited": 3,
+      "n_hit": 2,
+      "n_overlap": 2,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:325",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:749",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:710",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:406",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:542",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:134",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1237",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:340",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1074",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1402",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:330",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:945",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 4,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:762",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:548",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1127",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:429",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:654",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:98",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:449",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 2,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1390",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:635",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:804",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:545",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:119",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:413",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1145",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:632",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:414",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1016",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:795",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:938",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:285",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:537",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1400",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:487",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1374",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1087",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:529",
+      "n_retrieved": 8,
+      "n_annotated": 3,
+      "n_cited": 3,
+      "n_hit": 2,
+      "n_overlap": 2,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1183",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:877",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1178",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:801",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1307",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1255",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:267",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 2,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1035",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1004",
+      "n_retrieved": 8,
+      "n_annotated": 3,
+      "n_cited": 3,
+      "n_hit": 3,
+      "n_overlap": 3,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:174",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:81",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:220",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:305",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1350",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1349",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:114",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:774",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:765",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:959",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1068",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:493",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1119",
+      "n_retrieved": 8,
+      "n_annotated": 3,
+      "n_cited": 3,
+      "n_hit": 3,
+      "n_overlap": 3,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:18",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:225",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1323",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1260",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1348",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1406",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1310",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:891",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:313",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1276",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:6",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1188",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1018",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:351",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1033",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:205",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 2,
+      "n_hit": 0,
+      "n_overlap": 2,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:603",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1114",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1372",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1165",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:753",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:323",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1090",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1070",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:0",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:653",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:999",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:27",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1134",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:736",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:617",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:473",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:105",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:481",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1312",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:164",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:996",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:122",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:247",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:253",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:972",
+      "n_retrieved": 8,
+      "n_annotated": 4,
+      "n_cited": 4,
+      "n_hit": 4,
+      "n_overlap": 4,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:333",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1208",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:863",
+      "n_retrieved": 8,
+      "n_annotated": 2,
+      "n_cited": 2,
+      "n_hit": 2,
+      "n_overlap": 2,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1220",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:390",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:625",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1186",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1367",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:896",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:925",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:242",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 2,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:488",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:444",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1159",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:677",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:30",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:453",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1361",
+      "n_retrieved": 8,
+      "n_annotated": 2,
+      "n_cited": 2,
+      "n_hit": 2,
+      "n_overlap": 2,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:12",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:126",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:106",
+      "n_retrieved": 8,
+      "n_annotated": 2,
+      "n_cited": 2,
+      "n_hit": 2,
+      "n_overlap": 2,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1231",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:121",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1230",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:667",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1032",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:470",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1206",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:671",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:483",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:209",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1239",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 2,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1223",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1176",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:955",
+      "n_retrieved": 8,
+      "n_annotated": 2,
+      "n_cited": 2,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:899",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 2,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:580",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:585",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:469",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:243",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:788",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:998",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:812",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:393",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:178",
+      "n_retrieved": 8,
+      "n_annotated": 4,
+      "n_cited": 4,
+      "n_hit": 2,
+      "n_overlap": 2,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1168",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:82",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:666",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1345",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:349",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1052",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:396",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:458",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:885",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1275",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1375",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1342",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:661",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:652",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:86",
+      "n_retrieved": 8,
+      "n_annotated": 2,
+      "n_cited": 2,
+      "n_hit": 2,
+      "n_overlap": 2,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:52",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:391",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:737",
+      "n_retrieved": 8,
+      "n_annotated": 2,
+      "n_cited": 2,
+      "n_hit": 2,
+      "n_overlap": 2,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:337",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:803",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:884",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:95",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1322",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:181",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:989",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1376",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:441",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1302",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:973",
+      "n_retrieved": 8,
+      "n_annotated": 4,
+      "n_cited": 4,
+      "n_hit": 4,
+      "n_overlap": 4,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1306",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 2,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1015",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:454",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1324",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:895",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:67",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:432",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:992",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:944",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1184",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1404",
+      "n_retrieved": 8,
+      "n_annotated": 2,
+      "n_cited": 2,
+      "n_hit": 2,
+      "n_overlap": 2,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1002",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1405",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:658",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1005",
+      "n_retrieved": 8,
+      "n_annotated": 3,
+      "n_cited": 3,
+      "n_hit": 3,
+      "n_overlap": 3,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:856",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1106",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:80",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:758",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:866",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:229",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:160",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:990",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1009",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1073",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1008",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1050",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1387",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:159",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:370",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:2",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:378",
+      "n_retrieved": 8,
+      "n_annotated": 4,
+      "n_cited": 5,
+      "n_hit": 2,
+      "n_overlap": 2,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:259",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1069",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:858",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:447",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1209",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1126",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:689",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:739",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1364",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1284",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1023",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1331",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:484",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:153",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:935",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:293",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:211",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:44",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1295",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:745",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:550",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 1,
+      "n_hit": 0,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:953",
+      "n_retrieved": 8,
+      "n_annotated": 1,
+      "n_cited": 1,
+      "n_hit": 1,
+      "n_overlap": 1,
+      "n_unique": 0
+    },
+    {
+      "claim_id": "scifact:1046",
+      "n_retrieved": 8,
+      "n_annotated": 0,
+      "n_cited": 3,
+      "n_hit": 0,
+      "n_overlap": 0,
+      "n_unique": 0
+    }
+  ],
+  "note": "Gold annotations are used for scoring only and are never passed to retrieval, the reader, or the judge."
+}

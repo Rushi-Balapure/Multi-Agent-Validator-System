@@ -35,7 +35,11 @@ from jsonschema import Draft202012Validator
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from validator.claim_sample import ClaimSampleError, claim_ids_from_file
-from validator.run_control import DEFAULT_MAX_WORKERS, run_items
+from validator.run_control import (
+    DEFAULT_MAX_WORKERS,
+    RetryableTransportError,
+    run_items,
+)
 from validator.schemas import ExecutionStatus, Run
 from validator.split_policy import SplitPolicyError, assert_limit_for_split, assert_split_allowed
 from validator.usage import UsageMeter, rates_from_env
@@ -149,6 +153,29 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--output", default=None, help="Predictions JSONL path.")
     parser.add_argument("--run-sidecar", default=None, help="Run metadata JSON path.")
+    parser.add_argument(
+        "--base-url",
+        default=None,
+        help=(
+            "Override the config base_url for this run. Used to point the same "
+            "config at a second model family (for example a local bridge) "
+            "without editing the frozen config file. The value must still "
+            "satisfy the loopback or private-LAN policy."
+        ),
+    )
+    parser.add_argument(
+        "--model-id",
+        default=None,
+        help="Override the config model_id for this run. Recorded on the Run record.",
+    )
+    parser.add_argument(
+        "--freeze-path",
+        default=None,
+        help=(
+            "Freeze record to check for a held-out run. Defaults to "
+            "docs/freeze.json. A second frozen study writes its own file."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -249,6 +276,45 @@ def _dry_run(args: argparse.Namespace, config: BaselineConfig) -> bool:
     return config.dry_run
 
 
+def run_b2_worker(
+    item,
+    *,
+    seed: int,
+    prompt_texts: dict,
+    client,
+    mock_if_unavailable: bool,
+) -> dict:
+    """Run one B2 claim and convert every failure into a failed row.
+
+    A transport failure that survives the retry budget, a parse failure, and
+    a boundary violation are all infrastructure outcomes, not scientific
+    verdicts: each is recorded as ``execution_status=failed`` with a NEI
+    placeholder label and is excluded from the scored metrics.
+    """
+    try:
+        return run_b2(
+            item,
+            seed=seed,
+            neutral_template=prompt_texts["neutral_question"],
+            reader_prompt=prompt_texts["reader"],
+            compare_prompt=prompt_texts["compare"],
+            client=client,
+        )
+    except EndpointUnavailable as exc:
+        if not mock_if_unavailable:
+            return _failed_b2_row(item, reason=str(exc), inference_mode="live")
+        # First-claim mock fallback stays sequential-only.
+        raise
+    except RetryableTransportError as exc:
+        return _failed_b2_row(item, reason=str(exc), inference_mode="live")
+    except (ModelError, IsolationError, LabelError) as exc:
+        return _failed_b2_row(
+            item,
+            reason=str(exc),
+            inference_mode=client.inference_mode,
+        )
+
+
 def _validate_run(root: Path, run: Run) -> dict:
     payload = run.model_dump(mode="json")
     schema = json.loads((root / "schemas" / "mavs_run_record.schema.json").read_text(encoding="utf-8"))
@@ -271,7 +337,12 @@ def execute(args: argparse.Namespace) -> None:
     base_url, model_id = config.base_url, config.model_id
     if not dry_run:
         base_url, model_id = apply_openai_env(base_url, model_id)
+    if args.base_url:
+        base_url = args.base_url
+    if args.model_id:
+        model_id = args.model_id
     assert_local_or_private(base_url)
+    freeze_path = _resolve(root, args.freeze_path or "docs/freeze.json")
     try:
         limit = assert_limit_for_split(
             config.split, config.limit if args.limit is None else args.limit
@@ -279,7 +350,7 @@ def execute(args: argparse.Namespace) -> None:
         assert_split_allowed(
             config.split,
             frozen_final=bool(args.frozen_final),
-            freeze_path=root / "docs" / "freeze.json",
+            freeze_path=freeze_path,
         )
     except SplitPolicyError as exc:
         raise BaselineDataError(str(exc)) from exc
@@ -296,7 +367,7 @@ def execute(args: argparse.Namespace) -> None:
         assert_split_allowed(
             config.split,
             frozen_final=bool(args.frozen_final),
-            freeze_path=root / "docs" / "freeze.json",
+            freeze_path=freeze_path,
             observed={
                 "model_id": model_id,
                 "config_hash": config_hash,
@@ -330,26 +401,13 @@ def execute(args: argparse.Namespace) -> None:
             raise BaselineDataError("workers must be at least 1")
 
     def worker(item):
-        try:
-            return run_b2(
-                item,
-                seed=config.seed,
-                neutral_template=prompt_texts["neutral_question"],
-                reader_prompt=prompt_texts["reader"],
-                compare_prompt=prompt_texts["compare"],
-                client=client,
-            )
-        except EndpointUnavailable as exc:
-            if not config.mock_if_unavailable:
-                return _failed_b2_row(item, reason=str(exc), inference_mode="live")
-            # First-claim mock fallback stays sequential-only.
-            raise
-        except (ModelError, IsolationError, LabelError) as exc:
-            return _failed_b2_row(
-                item,
-                reason=str(exc),
-                inference_mode=client.inference_mode,
-            )
+        return run_b2_worker(
+            item,
+            seed=config.seed,
+            prompt_texts=prompt_texts,
+            client=client,
+            mock_if_unavailable=config.mock_if_unavailable,
+        )
 
     try:
         rows = run_items(

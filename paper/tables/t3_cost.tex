@@ -1,0 +1,21 @@
+\begin{tabular}{lllrrrrr}
+\toprule
+Model family & Split & Method & tokens / claim & calls / claim & median latency (s) & p95 latency (s) \\
+\midrule
+GPT-6-Luna (API) & dev300 & B0 & 1 & 0.00 & 3.4 & 3.4 \\
+GPT-6-Luna (API) & dev300 & B1 & 749 & 1.00 & 2.3 & 5.2 \\
+GPT-6-Luna (API) & dev300 & B2 & 1,210 & 2.00 & 2.6 & 3.8 \\
+GPT-6-Luna (API) & dev300 & B3 & 3,064 & 1.00 & 2.6 & 7.9 \\
+GPT-6-Luna (API) & dev300 & V & 20 & 0.01 & 3.2 & 3.5 \\
+GPT-6-Luna (API) & dev300 & O & 379 & 1.00 & 2.1 & 5.5 \\
+\addlinespace[2pt]
+GPT-6-Luna (API) & heldout300 & B2 & 1,202 & 2.00 & 17.2 & 21.6 \\
+GPT-6-Luna (API) & heldout300 & V & 7,431 & 2.86 & 12.5 & 23.7 \\
+\addlinespace[2pt]
+GPT-6-Luna (API) & calibration & B1 & 773 & 1.00 & 3.1 & 4.9 \\
+\addlinespace[2pt]
+MiniMax M3.1 Flash (OpenCode) & dev300 & V & 0 & 0.00 & --- & --- \\
+\addlinespace[2pt]
+\addlinespace[2pt]
+\bottomrule
+\end{tabular}

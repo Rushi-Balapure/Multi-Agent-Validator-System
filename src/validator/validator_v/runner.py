@@ -277,6 +277,28 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--output", default=None, help="Predictions JSONL path.")
     parser.add_argument("--run-sidecar", default=None, help="Run metadata JSON path.")
+    parser.add_argument(
+        "--base-url",
+        default=None,
+        help=(
+            "Override the config base_url for this run so one config can serve a "
+            "second model family. The value must satisfy the loopback or "
+            "private-LAN policy."
+        ),
+    )
+    parser.add_argument(
+        "--model-id",
+        default=None,
+        help="Override the config model_id for this run. Recorded on the Run record.",
+    )
+    parser.add_argument(
+        "--freeze-path",
+        default=None,
+        help=(
+            "Freeze record to check for a held-out run. Defaults to "
+            "docs/freeze.json. A second frozen study writes its own file."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -731,9 +753,13 @@ def _validate_run(root: Path, run: Run) -> dict[str, Any]:
     return payload
 
 
-def _load_live(root: Path, config: ValidatorVConfig) -> LoadedLive:
+def _load_live(root: Path, config: ValidatorVConfig, args: argparse.Namespace) -> LoadedLive:
     load_repo_dotenv(root)
     base_url, model_id = apply_openai_env(config.base_url, config.model_id)
+    if getattr(args, "base_url", None):
+        base_url = args.base_url
+    if getattr(args, "model_id", None):
+        model_id = args.model_id
     try:
         return load_live_settings(
             default_live_config(root),
@@ -759,18 +785,19 @@ def execute(args: argparse.Namespace, *, client: Any = None) -> None:
         raise ValidatorVError(f"system_id must be {SYSTEM_ID} and method_id must be {METHOD_ID}")
     source = _mode(args, config)
     limit = _limit(args, config)
+    freeze_path = _resolve(root, getattr(args, "freeze_path", None) or "docs/freeze.json")
     try:
         assert_split_allowed(
             config.split,
             frozen_final=bool(getattr(args, "frozen_final", False)),
-            freeze_path=root / "docs" / "freeze.json",
+            freeze_path=freeze_path,
         )
     except SplitPolicyError as exc:
         raise ValidatorVError(str(exc)) from exc
     inference_mode: Literal["mock", "live"] = "live" if args.live else "mock"
     prompt_rate, completion_rate = rates_from_env()
     meter = UsageMeter(prompt_usd_per_1m=prompt_rate, completion_usd_per_1m=completion_rate)
-    live = _load_live(root, config) if inference_mode == "live" else None
+    live = _load_live(root, config, args) if inference_mode == "live" else None
     if client is None and live is not None:
         client = LocalChatClient(
             base_url=live.base_url,
@@ -846,7 +873,7 @@ def execute(args: argparse.Namespace, *, client: Any = None) -> None:
         assert_split_allowed(
             config.split,
             frozen_final=bool(getattr(args, "frozen_final", False)),
-            freeze_path=root / "docs" / "freeze.json",
+            freeze_path=freeze_path,
             observed={
                 "model_id": live.model_id if live is not None else config.model_id,
                 "config_hash": config_hash,

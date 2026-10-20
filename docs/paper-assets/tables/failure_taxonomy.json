@@ -1,0 +1,159 @@
+{
+  "gpt-6-luna": {
+    "dev300": {
+      "B0": {
+        "n_rows": 300,
+        "n_scored": 300,
+        "n_correct": 167,
+        "n_failed_execution": 0,
+        "n_errors": 133,
+        "error_classes": {
+          "false endorsement": 82,
+          "missed support": 15,
+          "missed contradiction": 4,
+          "other label error": 32
+        },
+        "error_mechanisms": {
+          "no code recorded": 133
+        }
+      },
+      "B1": {
+        "n_rows": 300,
+        "n_scored": 300,
+        "n_correct": 252,
+        "n_failed_execution": 0,
+        "n_errors": 48,
+        "error_classes": {
+          "false endorsement": 9,
+          "missed support": 19,
+          "missed contradiction": 7,
+          "other label error": 13
+        },
+        "error_mechanisms": {
+          "no code recorded": 48
+        }
+      },
+      "B2": {
+        "n_rows": 300,
+        "n_scored": 300,
+        "n_correct": 224,
+        "n_failed_execution": 0,
+        "n_errors": 76,
+        "error_classes": {
+          "false endorsement": 2,
+          "missed support": 55,
+          "missed contradiction": 13,
+          "other label error": 6
+        },
+        "error_mechanisms": {
+          "no code recorded": 76
+        }
+      },
+      "B3": {
+        "n_rows": 300,
+        "n_scored": 300,
+        "n_correct": 237,
+        "n_failed_execution": 0,
+        "n_errors": 63,
+        "error_classes": {
+          "false endorsement": 10,
+          "missed support": 24,
+          "missed contradiction": 10,
+          "other label error": 19
+        },
+        "error_mechanisms": {
+          "no code recorded": 63
+        }
+      },
+      "O": {
+        "n_rows": 300,
+        "n_scored": 300,
+        "n_correct": 257,
+        "n_failed_execution": 0,
+        "n_errors": 43,
+        "error_classes": {
+          "false endorsement": 3,
+          "missed support": 31,
+          "missed contradiction": 9,
+          "other label error": 0
+        },
+        "error_mechanisms": {
+          "no code recorded": 43
+        }
+      },
+      "V": {
+        "n_rows": 300,
+        "n_scored": 268,
+        "n_correct": 181,
+        "n_failed_execution": 32,
+        "n_errors": 87,
+        "error_classes": {
+          "false endorsement": 0,
+          "missed support": 66,
+          "missed contradiction": 19,
+          "other label error": 2
+        },
+        "error_mechanisms": {
+          "scope conflict": 59,
+          "scope agreement": 28
+        }
+      }
+    },
+    "heldout300": {
+      "B2": {
+        "n_rows": 300,
+        "n_scored": 300,
+        "n_correct": 228,
+        "n_failed_execution": 0,
+        "n_errors": 72,
+        "error_classes": {
+          "false endorsement": 3,
+          "missed support": 52,
+          "missed contradiction": 14,
+          "other label error": 3
+        },
+        "error_mechanisms": {
+          "no code recorded": 72
+        }
+      },
+      "V": {
+        "n_rows": 300,
+        "n_scored": 262,
+        "n_correct": 162,
+        "n_failed_execution": 38,
+        "n_errors": 100,
+        "error_classes": {
+          "false endorsement": 0,
+          "missed support": 67,
+          "missed contradiction": 31,
+          "other label error": 2
+        },
+        "error_mechanisms": {
+          "scope conflict": 78,
+          "scope agreement": 22
+        }
+      }
+    }
+  },
+  "minimax-m3.1-flash": {
+    "dev300": {
+      "V": {
+        "n_rows": 300,
+        "n_scored": 171,
+        "n_correct": 142,
+        "n_failed_execution": 129,
+        "n_errors": 29,
+        "error_classes": {
+          "false endorsement": 1,
+          "missed support": 19,
+          "missed contradiction": 6,
+          "other label error": 3
+        },
+        "error_mechanisms": {
+          "scope agreement": 10,
+          "scope conflict": 19
+        }
+      }
+    }
+  }
+}

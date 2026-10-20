@@ -44,7 +44,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
-from threading import Lock
+from threading import local
 from typing import Protocol
 
 from validator.run_control import RETRYABLE_HTTP_STATUS, RetryableTransportError, call_with_retry
@@ -443,6 +443,11 @@ class OpenAICompatibleClient:
     No API key is hardcoded. ``https://api.openai.com/v1`` is allowed only
     when ``OPENAI_API_KEY`` is set. Other public hosts stay refused,
     including redirects that would leave the allowed set.
+
+    Thread safety: one client instance is shared by every worker of a batch
+    run, so requests must not serialize behind a shared lock. Each thread
+    keeps its own opener (an ``OpenerDirector`` is not documented as
+    thread-safe) and every request opens its own connection.
     """
 
     inference_mode = "live"
@@ -462,8 +467,14 @@ class OpenAICompatibleClient:
         self.temperature = temperature
         self.timeout_seconds = timeout_seconds
         self.meter = meter
-        self._opener = urllib.request.build_opener(_LocalOrPrivateRedirectHandler)
-        self._lock = Lock()
+        self._local = local()
+
+    def _opener(self) -> urllib.request.OpenerDirector:
+        opener = getattr(self._local, "opener", None)
+        if opener is None:
+            opener = urllib.request.build_opener(_LocalOrPrivateRedirectHandler)
+            self._local.opener = opener
+        return opener
 
     def read(self, payload: dict, system_prompt: str) -> tuple[str, list[int]]:
         assert_reader_isolated(payload)
@@ -522,9 +533,8 @@ class OpenAICompatibleClient:
 
         def _open() -> bytes:
             try:
-                with self._lock:
-                    with self._opener.open(request, timeout=self.timeout_seconds) as response:
-                        return response.read()
+                with self._opener().open(request, timeout=self.timeout_seconds) as response:
+                    return response.read()
             except urllib.error.HTTPError as exc:
                 summary = _http_error_summary(exc)
                 if exc.code in RETRYABLE_HTTP_STATUS:

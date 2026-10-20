@@ -1,68 +1,142 @@
 # Multi-Agent-Validator-System
 
-Status: scaffolding.
+An inference-time validator for scientific claims, and the research paper that
+reports its evaluation. The validator checks claims against the original
+citations (D0) and against independently retrieved abstracts (D1), keeps the
+two scopes separate, and fails closed when any stage breaks. The evaluation
+is SciFact-native with a frozen corpus, locked splits, a preregistered
+primary comparison, and two model families.
 
-Reproducible inference-time validator for scientific conclusions, plus a research-paper draft. SciFact is the first corpus. A same-evidence baseline comes before the independent-retrieval validator.
+**The headline result is null.** Independent retrieval plus staged
+evidence-first judgment did not significantly reduce false endorsement
+relative to a same-evidence baseline that already reads the original
+citations. The staged validator does reach zero false endorsement, but it
+does so by endorsing less. The paper reports the mechanism, the cost, and
+the artifact; see `paper/main.pdf`.
 
-- Research plan: [Validator_Agent_Two_Month_Research_Plan.pdf](Validator_Agent_Two_Month_Research_Plan.pdf)
+- Research plan (original): [Validator_Agent_Two_Month_Research_Plan.pdf](Validator_Agent_Two_Month_Research_Plan.pdf)
+- Research plan (updated after the first measurement cycle): [docs/RESEARCH_PLAN.md](docs/RESEARCH_PLAN.md)
 - Implementation plan: [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)
-- Paper draft: [paper/main.pdf](paper/main.pdf) (`paper/main.tex`)
-- Paper graphs and formula notes: [docs/paper-assets/](docs/paper-assets/)
+- Paper: [paper/main.pdf](paper/main.pdf) (`paper/main.tex`)
+- Paper tables and graphs: [docs/paper-assets/](docs/paper-assets/)
 
-## Same-evidence baseline (B2)
+## Layout
 
-Named adaptation of research-plan B2: a template neutral question, an isolated reader over the claim's original citations (D0), then a compare step. Claims are loaded with `data.scifact_loader.load_split("development")`. Predictions are SciFact `SUPPORT` / `REFUTE` / `NEI` (`CONTRADICT` maps to `REFUTE`). The dry-run uses a documented mock and does not retrieve documents.
+| Path | Contents |
+| --- | --- |
+| `src/validator/` | roles, schemas, retrieval, judgment, reconciliation, runners |
+| `src/evaluation/` | metric registry, scorers, cluster bootstrap, calibration, families |
+| `configs/` | model, corpus, retrieval, and experiment YAML |
+| `prompts/` | versioned role prompts |
+| `data/` | pinned SciFact corpus, locked split manifests, sample manifests |
+| `tools/` | the OpenCode bridge used to reach the second model family |
+| `scripts/paper/` | table, figure, retrieval-metric, calibration, and taxonomy scripts |
+| `paper/` | LaTeX source, generated tables, generated figures |
+| `tests/` | contract, isolation, regression, and metric tests |
+
+## Setup
 
 ```bash
 python3 -m pip install -e ".[dev]"
-python3 -m data.pins.scifact.download_verify
-python3 -m pytest tests/test_same_evidence_baseline.py -q
+python3 -m data.pins.scifact.download_verify   # verifies the pinned corpus hash
+python3 -m pytest tests -q
+```
+
+The paper tooling additionally needs matplotlib:
+
+```bash
+python3 -m pip install -e ".[dev,paper]"
+```
+
+## Running the conditions
+
+The repository talks to any OpenAI-compatible chat endpoint on loopback or a
+private LAN. The endpoint and the model id can be overridden per run, so one
+frozen config serves both model families:
+
+```bash
 PYTHONPATH=src python3 -m validator.same_evidence.runner \
   --config configs/baseline/same_evidence_b2.yaml \
-  --dry-run --limit 20 \
-  --output artifacts/same_evidence_b2/predictions.jsonl \
-  --run-sidecar artifacts/same_evidence_b2/run.json
+  --live --limit 300 --claim-ids-file data/manifests/dev300_seed42.json \
+  --workers 8 \
+  --output artifacts/api/dev300/b2/predictions.jsonl \
+  --run-sidecar artifacts/api/dev300/b2/run.json
 ```
 
-## Phase-1 offline smoke
+### Second model family (OpenCode runtime)
 
-No GPU, no LM Studio, and no SciFact download. Dry-runs the B2 mock (`MockClient`, the client `--dry-run` selects) on a MIT synthetic claim (`tests/fixtures/phase1/example_claim.json`), then scores the committed Eval Forge fixture with `evaluation.score_predictions`. If pinned raw files are already under `data/raw/scifact/`, the script also runs `validator.same_evidence.runner --dry-run --limit 1`. It never downloads.
+The second family is reachable only through the OpenCode runtime, which has
+no OpenAI-compatible HTTP surface. `tools/opencode_bridge.py` exposes one on
+loopback, one fresh session per request, so no request can see an earlier
+claim:
 
 ```bash
-bash scripts/phase1_smoke.sh
+opencode serve --port 4097                       # prints "server password <secret>"
+OPENCODE_SERVER_PASSWORD=<secret> \
+  python3 tools/opencode_bridge.py --port 8801 \
+    --agent mavs-judge --location tools/opencode_agent
+
+PYTHONPATH=src python3 -m validator.same_evidence.runner \
+  --config configs/baseline/same_evidence_b2.yaml \
+  --live --limit 300 --claim-ids-file data/manifests/dev300_seed42.json \
+  --base-url http://127.0.0.1:8801/v1 \
+  --model-id opencode/minimax-m3.1-flash-free \
+  --output artifacts/minimax/dev300/b2/predictions.jsonl \
+  --run-sidecar artifacts/minimax/dev300/b2/run.json
 ```
 
-Writes `artifacts/phase1_smoke/predictions.jsonl`, `run.json`, and `metrics.json` (gitignored). `PHASE1_SMOKE_OUT` overrides that directory.
-
-## Stack V batch runner
-
-Offline dry-run of the staged D0 ∪ D1 pipeline over the three report fixtures. The scored `label` is the reconciled four-way judgment mapped onto `SUPPORT` / `REFUTE` / `NEI` (`supported` → `SUPPORT`, `contradicted` → `REFUTE`, `unaddressed` and `underdetermined` → `NEI`). `label_4way` keeps the four-way token. At most 20 development claims are written. `method_id` is `V`.
+Whole-matrix scripts:
 
 ```bash
-PYTHONPATH=src python3 -m validator.validator_v \
-  --config configs/validator_v/development.yaml \
-  --dry-run \
-  --output artifacts/validator_v/predictions.jsonl \
-  --run-sidecar artifacts/validator_v/run.json
+bash scripts/run_api_dev300.sh          # API family, development 300
+bash scripts/run_minimax_dev300.sh      # second family, development 300
+bash scripts/run_heldout_luna.sh         # the one frozen held-out run
+bash scripts/run_calibration_luna.sh     # calibration split, API family
 ```
 
-`--gather` is opt-in. It calls Retrieval Wing `gather(neutral_question, config, claim_id)` for development claim ids in B2 order (config `claim_ids`, or `--claim-ids`, or the first `--limit` locked development manifest ids) and does not pass gold D0. Offline smoke: `bash scripts/validator_v_smoke.sh`. Phase-3 Turing-Machine live gather (BM25 index + LM Studio `http://127.0.0.1:1234/v1`): `bash scripts/validator_v_phase3_gather_smoke.sh`. `VALIDATOR_V_SMOKE_OUT` / `VALIDATOR_V_PHASE3_OUT` override output directories.
+### The held-out split
 
-## Paper draft PDF
-
-Tables and figures from scored artifacts, then two `pdflatex` passes:
+The held-out 300 runs once, under `docs/freeze.json`. The runner refuses to
+start unless the observed model, prompt, configuration, and corpus hashes
+match the frozen record:
 
 ```bash
+bash scripts/run_heldout_luna.sh
+```
+
+## Rebuilding the paper
+
+Every table and figure is generated from the saved prediction files. The
+prose numbers are LaTeX macros generated by the same script, so a number in
+the text cannot drift from the artifact.
+
+```bash
+PYTHONPATH=src python3 scripts/paper/make_retrieval_metrics.py
+PYTHONPATH=src python3 scripts/paper/make_failure_taxonomy.py
+PYTHONPATH=src python3 scripts/paper/make_calibration.py
 PYTHONPATH=src python3 scripts/paper/make_tables.py
 PYTHONPATH=src python3 scripts/paper/make_figures.py
 bash scripts/paper/build_pdf.sh
 ```
 
-Equivalent direct command (requires TeX Live `pdflatex`):
+The run registry that maps each condition to its artifact directory is
+`docs/paper-assets/tables/run_registry.json`. `artifacts/` is gitignored, so
+the scored metric JSON files under `docs/paper-assets/tables/` are the
+checked-in copies.
+
+## Offline smoke
+
+No GPU, no endpoint, no download:
 
 ```bash
-pdflatex -interaction=nonstopmode -halt-on-error -output-directory paper paper/main.tex
-pdflatex -interaction=nonstopmode -halt-on-error -output-directory paper paper/main.tex
+bash scripts/phase1_smoke.sh
+bash scripts/validator_v_smoke.sh
 ```
 
-Writes `paper/main.pdf`.
+## Scope
+
+The task is interpreting published abstracts, not giving medical advice.
+Every verdict is relative to a stated corpus, evidence scope, and search
+budget; none of them is an unrestricted claim about scientific truth. The
+human study and the custom agentic set with human labels are not part of
+this artifact; the paper states what that costs and gives the protocol.

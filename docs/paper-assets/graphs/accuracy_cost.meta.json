@@ -1,3 +1,4 @@
 {
-  "figure": "accuracy_cost"
+  "figure": "accuracy_cost",
+  "source": "docs/paper-assets/tables/*_dev300_*_metrics.json and run sidecars"
 }

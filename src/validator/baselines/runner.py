@@ -16,7 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from validator.baselines.evidence import ADAPTATIONS
 from validator.baselines.single_judge import MockSingleJudge, run_single_judge
 from validator.claim_sample import ClaimSampleError, claim_ids_from_file
-from validator.run_control import DEFAULT_MAX_WORKERS, run_items
+from validator.run_control import DEFAULT_MAX_WORKERS, RetryableTransportError, run_items
 from validator.same_evidence.b2 import (
     EndpointUnavailable,
     IsolationError,
@@ -76,12 +76,37 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--live", action="store_true")
     parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument(
+        "--split",
+        default=None,
+        choices=["development", "calibration", "held_out_local_eval"],
+        help="Override the config split. held_out_local_eval needs --frozen-final.",
+    )
     parser.add_argument("--claim-ids-file", default=None)
     parser.add_argument("--frozen-final", action="store_true")
     parser.add_argument("--workers", type=int, default=None)
     parser.add_argument("--no-resume", action="store_true")
     parser.add_argument("--output", default=None)
     parser.add_argument("--run-sidecar", default=None)
+    parser.add_argument(
+        "--base-url",
+        default=None,
+        help=(
+            "Override the config base_url for this run so one config can serve a "
+            "second model family. The value must satisfy the loopback or "
+            "private-LAN policy."
+        ),
+    )
+    parser.add_argument(
+        "--model-id",
+        default=None,
+        help="Override the config model_id for this run. Recorded on the Run record.",
+    )
+    parser.add_argument(
+        "--freeze-path",
+        default=None,
+        help="Freeze record to check for a held-out run. Defaults to docs/freeze.json.",
+    )
     return parser.parse_args(argv)
 
 
@@ -140,6 +165,8 @@ def execute(args: argparse.Namespace) -> None:
     root = repo_root()
     config_path = _resolve(root, args.config)
     config = load_config(config_path)
+    if args.split is not None:
+        config = config.model_copy(update={"split": args.split})
     if config.adaptation not in ADAPTATIONS:
         raise BaselineDataError(f"adaptation must be one of {ADAPTATIONS}")
     load_repo_dotenv(root)
@@ -147,14 +174,19 @@ def execute(args: argparse.Namespace) -> None:
     base_url, model_id = config.base_url, config.model_id
     if not dry_run:
         base_url, model_id = apply_openai_env(base_url, model_id)
+    if args.base_url:
+        base_url = args.base_url
+    if args.model_id:
+        model_id = args.model_id
     assert_local_or_private(base_url)
+    freeze_path = _resolve(root, args.freeze_path or "docs/freeze.json")
     limit = assert_limit_for_split(
         config.split, config.limit if args.limit is None else args.limit
     )
     assert_split_allowed(
         config.split,
         frozen_final=bool(args.frozen_final),
-        freeze_path=root / "docs" / "freeze.json",
+        freeze_path=freeze_path,
         observed={"adaptation": config.adaptation, "method_id": config.adaptation},
     )
     claim_ids = None
@@ -200,6 +232,14 @@ def execute(args: argparse.Namespace) -> None:
                 item, adaptation=config.adaptation, prompt=prompt, client=client, d1_bundle=d1
             )
         except (EndpointUnavailable, IsolationError, LabelError, BaselineDataError) as exc:
+            failed = _failed_b2_row(item, reason=str(exc), inference_mode=client.inference_mode)
+            failed["adaptation"] = config.adaptation
+            failed["method_id"] = config.adaptation
+            failed["system_id"] = SYSTEM_ID
+            return failed
+        except RetryableTransportError as exc:
+            # An exhausted retry budget is an infrastructure failure. It is
+            # recorded as a failed execution status, never as a label.
             failed = _failed_b2_row(item, reason=str(exc), inference_mode=client.inference_mode)
             failed["adaptation"] = config.adaptation
             failed["method_id"] = config.adaptation

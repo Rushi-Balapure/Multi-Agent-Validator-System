@@ -1,0 +1,18 @@
+\begin{tabular}{llrrrrrrr}
+\toprule
+Model family & Method & class & P & R & F1 & TP & FP & FN \\
+\midrule
+GPT-6-Luna (API) & B2 & SUPPORT & 0.971 & 0.573 & 0.720 & 67 & 2 & 50 \\
+GPT-6-Luna (API) & B2 & REFUTE & 0.803 & 0.790 & 0.797 & 49 & 12 & 13 \\
+GPT-6-Luna (API) & B2 & NEI & 0.635 & 0.893 & 0.742 & 108 & 62 & 13 \\
+\addlinespace[2pt]
+GPT-6-Luna (API) & V & SUPPORT & 1.000 & 0.427 & 0.599 & 50 & 0 & 67 \\
+GPT-6-Luna (API) & V & REFUTE & 0.949 & 0.597 & 0.733 & 37 & 2 & 25 \\
+GPT-6-Luna (API) & V & NEI & 0.564 & 0.983 & 0.717 & 119 & 92 & 2 \\
+\addlinespace[2pt]
+MiniMax M3.1 Flash (OpenCode) & V & SUPPORT & 0.961 & 0.718 & 0.822 & 74 & 3 & 29 \\
+MiniMax M3.1 Flash (OpenCode) & V & REFUTE & 0.933 & 0.792 & 0.857 & 42 & 3 & 11 \\
+MiniMax M3.1 Flash (OpenCode) & V & NEI & 0.719 & 0.960 & 0.822 & 97 & 38 & 4 \\
+\addlinespace[2pt]
+\bottomrule
+\end{tabular}

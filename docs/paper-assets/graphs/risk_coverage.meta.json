@@ -1,3 +1,10 @@
 {
-  "figure": "risk_coverage"
+  "figure": "risk_coverage",
+  "source": "docs/paper-assets/tables/*_dev300_*_metrics.json",
+  "acceptance_rules": {
+    "V": "D0 and D1 four-way verdicts agree",
+    "B2": "the sealed reader cited at least one document",
+    "B1": "verbalised confidence",
+    "B3": "verbalised confidence"
+  }
 }
