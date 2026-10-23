@@ -641,7 +641,8 @@ metrics and accounted for in Table~\ref{tab:sensitivity}.}
 \centering
 \caption{Preregistered paired comparison (V $-$ B2) on false endorsement.
 $p$ is the bootstrap probability mass on the side that excludes zero; a
-value near $0.5$ means the interval straddles zero.}
+value near $0.5$ means the interval straddles zero, and the second-to-last
+column records whether the interval excludes it.}
 \label{tab:paired-dev}
 \input{paper/tables/t1b_dev300_paired}
 \end{table}
@@ -811,13 +812,15 @@ happens to be the gold label. Fail-closed rows are excluded.}
 \end{table}
 
 This is the mechanism result. Of the \lunadevVlabelsnei{} NEI verdicts,
-\lunadevConflictN{} are scope conflicts and \lunadevAgreeNeiCount{} are cases
-where both scopes agreed on an underdetermined reading. The validator is not
-failing because retrieval returned nothing; it is abstaining because two
-readers of the same literature disagreed, and in the remaining cases because
-both readers found the evidence inconclusive. Either way the pipeline has
-become a disagreement detector that reports its own uncertainty, and the
-price of that behaviour is coverage.
+\lunadevConflictN{} are scope conflicts. The other \lunadevAgreeNeiCount{}
+are agreed negatives: \lunadevAgreeUnaddressed{} unaddressed and
+\lunadevAgreeUnderdetermined{} underdetermined.
+
+The validator is not failing because retrieval returned nothing; it is
+abstaining because two readers of the same corpus disagreed, and, less
+often, because both readers found the evidence inconclusive. Either way the
+pipeline has become a disagreement detector that reports its own
+uncertainty, and the price of that behaviour is coverage.
 
 \subsection{Evidence acquisition}
 
@@ -878,7 +881,7 @@ row is absent rather than imputed.}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.78\textwidth]{paper/figures/risk_coverage.pdf}
+\includegraphics[width=0.66\textwidth]{paper/figures/risk_coverage.pdf}
 \caption{Error among accepted claims as a function of coverage. The
 acceptance rule differs by method and is stated in the artifact: for V a
 claim is accepted when the D0 and D1 verdicts agree, for B2 when the sealed
@@ -919,7 +922,7 @@ cost probe could be run.}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.7\textwidth]{paper/figures/accuracy_cost.pdf}
+\includegraphics[width=0.6\textwidth]{paper/figures/accuracy_cost.pdf}
 \caption{Verification quality against per-call prompt size, API family. Cost
 is measured per call rather than per claim because resumed runs keep only the
 last invocation's usage record. The second family is not plotted: its harness
@@ -936,8 +939,7 @@ other label errors, plus a separate count of execution failures that are
 never scored as scientific verdicts. The classification uses only fields the
 runner records, so it is reproducible; a sample of the rows was then read
 manually to check that the automatic classes describe the actual failure.
-Table~\ref{tab:failures} and Figure~\ref{fig:failures} give the
-distribution.
+Table~\ref{tab:failures} gives the distribution over conditions.
 
 \begin{table}[t]
 \centering
@@ -951,56 +953,40 @@ Section~\ref{sec:limitations}.}
 \input{paper/tables/t6_failures}
 \end{table}
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.72\textwidth]{paper/figures/failure_breakdown.pdf}
-\caption{Error composition. The staged validator does not trade false
-endorsements for many other errors; it trades them for abstentions, which
-appear as missed support.}
-\label{fig:failures}
-\end{figure}
-
 \subsection{Case studies}
+\label{sec:results-cases}
 
-Counts say what happened; cases say why. Table~\ref{tab:cases} shows three
-rows selected deterministically from the saved predictions: one where the
-baseline endorsed a claim the gold does not support and the validator
-abstained, one where the two evidence scopes disagreed, and one where both
-scopes were unsure and the validator lost a claim the baseline got right.
-The last row is the one worth reading twice: the two readers agreed that the
-evidence was inconclusive, the gold annotation says the claim is supported,
-and no amount of staging recovers it. That is the coverage cost of the
-design, stated on a concrete claim rather than as an aggregate.
+Counts say what happened; cases say why. Table~\ref{tab:cases} in
+Appendix~\ref{app:cases} records three rows selected deterministically from
+the saved predictions: one where the
+two evidence scopes disagreed, one where both scopes were unsure and the
+validator lost a claim the baseline got right, and one where the baseline
+endorsed a claim the gold does not support. The second row is the one worth
+reading twice: the two readers agreed that the evidence was inconclusive,
+the gold annotation says the claim is supported, and no amount of staging
+recovers it. That is the coverage cost of the design, stated on a concrete
+claim rather than as an aggregate.
 
-\begin{table}[t]
-\centering
-\caption{Case studies from the development sample, selected deterministically
-from the saved predictions. The two scope labels are the D0 and D1 four-way
-judgments; the mechanism is the rationale code the run recorded.}
-\label{tab:cases}
-\input{paper/tables/t8_cases}
-\end{table}
-
-The dominant class is scope conflict: the two scopes judged differently and
-the reconciler resolved conservatively. Infrastructure failures form a
-visible minority and are concentrated in the longer-context calls, which is
-a cost of the design rather than a bug in it. Crucially, we also read a
-sample of the *successful* rows, because a system can be accidentally right:
-several V successes are cases where the D0 citation genuinely failed to
-support the claim and the D1 arm supplied better evidence, which is the
-mechanism the design was designed to exploit.
+The dominant class is scope conflict: \lunadevVconflictErrors{} of V's
+\lunadevVerrors{} development errors and \lunaheldVconflictErrors{} of its
+\lunaheldVerrors{} held-out errors sit on claims where the scopes disagreed,
+and V abstains on every one by construction. Execution failures are counted
+separately as an execution status: the development run recovered all of them
+by retry, and the held-out run, which does not retry, lost
+\lunaheldVfailclosed{} of 300 claims to them. We also read a sample of the
+\emph{successful} rows, because a system can be accidentally right: several V
+successes are cases where the \Dzero{} citation failed to support the claim
+while \Done{} supplied better evidence.
 
 \section{Discussion}
 
 Three conclusions survive the evidence, and one does not.
 
-\emph{Independent retrieval is not sufficient.} Across two model families,
-two evidence scopes, two reading policies, and two evaluation samples, the
+\emph{Independent retrieval is not sufficient.} In both model families on
+the development sample, and again for the API family under the freeze, the
 staged validator did not significantly reduce false endorsement relative to
 a baseline that already read the original citations. The 95\% interval on
-the primary comparison includes zero in every configuration we ran: both
-families on the development sample, and the API family again under the
-freeze on the held-out sample.
+the primary comparison includes zero in all three comparisons we ran.
 
 \emph{Evidence-first staging has a cost that is easy to mistake for a
 benefit.} The sealed reader makes the system conservative: it endorses
@@ -1044,13 +1030,13 @@ without redesigning it.
     \emph{direction} of the effect, not its magnitude, and the second
     family's harness preamble is included in every request, so its token
     counts are not comparable with the API family's.
-  \item \textbf{The second family's matrix is incomplete.} Its B0, B3, O and
-    calibration conditions were started and then lost when the free endpoint
-    that served the model was withdrawn; the remaining requests return a
-    model-unavailable error. The second family therefore corroborates the
-    preregistered V-versus-B2 contrast and the class breakdown, not the full
-    factorial, and we report its ablation rows as absent rather than
-    imputing them.
+  \item \textbf{The second family's matrix is incomplete.} Its B3 condition
+    stopped partway through the sample and its B0, O and calibration
+    conditions never ran, because the free endpoint that served the model was
+    withdrawn and the remaining requests return a model-unavailable error. The
+    second family therefore corroborates the preregistered V-versus-B2
+    contrast and the class breakdown, not the full factorial, and we report
+    its missing rows as absent rather than imputing them.
   \item \textbf{One frozen held-out run.} The held-out sample was run once
     under the freeze record, so its interval is a single-run estimate and
     the two families were not both run on it.
@@ -1212,6 +1198,24 @@ effects if the sample supports it, otherwise participant-level paired
 summaries with explicit limits on item generalisation. Responses are not
 treated as independent participants. The study is exploratory unless a
 prospective power analysis supports stronger claims.
+
+\section{Case records}
+\label{app:cases}
+
+The three rows below are the case studies discussed in
+Section~\ref{sec:results-cases}. They are reproduced from the saved
+predictions without editing, so the claim text, the labels, and the recorded
+rationale codes can be checked against the artifact.
+
+\begin{center}
+\captionof{table}{Case studies from the development sample, selected
+deterministically from the saved predictions. The two scope labels are the D0
+and D1 four-way judgments; the mechanism is the rationale code the run
+recorded.}
+\label{tab:cases}
+\input{paper/tables/t8_cases}
+\end{center}
+
 
 \section{Reproduction}
 \label{app:repro}

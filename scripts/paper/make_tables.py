@@ -241,7 +241,7 @@ def write_paired_table(boots: dict, split_name: str) -> None:
         "\\setlength{\\tabcolsep}{5pt}",
         "\\begin{tabular}{@{}lrrrrr@{}}",
         "\\toprule",
-        "Method & $\\Delta$FE & 95\\% CI & $p$ & $\\neq 0$ & $n$ paired \\\\",
+        "Method & $\\Delta$FE & 95\\% CI & $p$ & Excludes 0 & $n$ paired \\\\",
         "\\midrule",
     ]
     first = True
@@ -849,6 +849,8 @@ def write_mechanism_table(registry: dict, scored: dict) -> dict[str, str]:
             v_rows = read(v_path)
             b2_rows = read(b2_path)
             subsets = {"agree": [0, 0, 0, 0], "differ": [0, 0, 0, 0]}
+            errors = {"agree": 0, "differ": 0}
+            four_way: dict[str, dict[str, int]] = {"agree": {}, "differ": {}}
             for claim_id, gold_label in gold.items():
                 v_row = v_rows.get(claim_id)
                 b2_row = b2_rows.get(claim_id)
@@ -861,6 +863,12 @@ def write_mechanism_table(registry: dict, scored: dict) -> dict[str, str]:
                 counts[1] += int(str(b2_row.get("label")) == gold_label)
                 counts[2] += int(str(v_row.get("label")) == gold_label)
                 counts[3] += int(str(v_row.get("label")) == "NEI")
+                errors[key] += int(str(v_row.get("label")) != gold_label)
+                if str(v_row.get("label")) == "NEI":
+                    four_way_label = str(v_row.get("label_4way") or "")
+                    four_way[key][four_way_label] = (
+                        four_way[key].get(four_way_label, 0) + 1
+                    )
             if not any(counts[0] for counts in subsets.values()):
                 continue
             if not first:
@@ -890,6 +898,16 @@ def write_mechanism_table(registry: dict, scored: dict) -> dict[str, str]:
                 macros[f"{prefix}Vacc"] = f"{v_ok / n:.3f}"
                 macros[f"{prefix}Vnei"] = f"{v_nei / n:.3f}"
                 macros[f"{prefix}NeiCount"] = str(v_nei)
+            total_errors = errors["agree"] + errors["differ"]
+            macros[f"{tag}{split_tag}Verrors"] = str(total_errors)
+            macros[f"{tag}{split_tag}VconflictErrors"] = str(errors["differ"])
+            for four_way_label, key_name in (
+                ("unaddressed", "AgreeUnaddressed"),
+                ("underdetermined", "AgreeUnderdetermined"),
+            ):
+                macros[f"{tag}{split_tag}{key_name}"] = str(
+                    four_way["agree"].get(four_way_label, 0)
+                )
     lines.append("\\bottomrule")
     lines.append("\\end{tabular}")
     _write("t9_mechanism.tex", "\n".join(lines) + "\n")
