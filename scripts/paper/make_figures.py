@@ -266,12 +266,16 @@ def figure_label_distribution(registry: dict) -> None:
         return
     order = ["supported", "contradicted", "unaddressed", "underdetermined"]
     colors = ["#1f4e79", "#c0504d", "#9bbb59", "#e08214"]
-    fig, ax = plt.subplots(figsize=(5.4, 3.0))
+    display = {
+        "gpt-6-luna": "GPT-6-Luna (API)",
+        "minimax-m3.1-flash": "MiniMax M3.1 Flash",
+    }
+    fig, ax = plt.subplots(figsize=(5.4, 3.2))
     bottoms = [0.0] * len(entries)
     for label, color in zip(order, colors, strict=True):
         values = [counts.get(label, 0) for _, counts in entries]
         ax.barh(
-            [f for f, _ in entries],
+            [display.get(family, family) for family, _ in entries],
             values,
             left=bottoms,
             color=color,
@@ -290,8 +294,15 @@ def figure_label_distribution(registry: dict) -> None:
                 )
         bottoms = [b + v for b, v in zip(bottoms, values, strict=True)]
     ax.set_xlabel("claims")
+    ax.set_xlim(0, max(bottoms) * 1.02)
     ax.set_title("Validator V: four-way verdicts before mapping to NEI")
-    ax.legend(frameon=False, ncol=2, fontsize=7.5)
+    ax.legend(
+        frameon=False,
+        ncol=4,
+        fontsize=7.5,
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.22),
+    )
     _save(
         fig,
         "label_distribution",
@@ -389,17 +400,19 @@ def figure_failures() -> None:
     payload = json.loads(path.read_text(encoding="utf-8"))
     classes = ["false endorsement", "missed support", "missed contradiction", "other label error"]
     colors = ["#c0504d", "#4f81bd", "#e08214", "#a6a6a6"]
+    short = {"gpt-6-luna": "Luna", "minimax-m3.1-flash": "MiniMax"}
     entries = []
     for family, splits in payload.items():
-        for split_name, conditions in splits.items():
-            for condition, block in conditions.items():
-                if condition not in {"B2", "V"}:
-                    continue
-                entries.append((f"{condition}\n{family.split('-')[0]}", block))
+        conditions = splits.get("dev300") or {}
+        for condition in ("B2", "V"):
+            block = conditions.get(condition)
+            if not block:
+                continue
+            entries.append((f"{condition}\n{short.get(family, family)}", block))
     if not entries:
         print("  skip failure_breakdown: no entries")
         return
-    fig, ax = plt.subplots(figsize=(6.6, 3.4))
+    fig, ax = plt.subplots(figsize=(6.4, 3.4))
     bottoms = [0.0] * len(entries)
     labels = [entry[0] for entry in entries]
     for name, color in zip(classes, colors, strict=True):
@@ -407,8 +420,14 @@ def figure_failures() -> None:
         ax.bar(labels, values, bottom=bottoms, color=color, label=name)
         bottoms = [b + v for b, v in zip(bottoms, values, strict=True)]
     ax.set_ylabel("scored errors")
-    ax.set_title("Error composition of the same-evidence baseline and the staged validator")
-    ax.legend(frameon=False, ncol=2, fontsize=7.5)
+    ax.set_title("Error composition of the baseline and the staged validator")
+    ax.legend(
+        frameon=False,
+        ncol=4,
+        fontsize=7.5,
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.18),
+    )
     _save(
         fig,
         "failure_breakdown",

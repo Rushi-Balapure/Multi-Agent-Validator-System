@@ -756,10 +756,7 @@ on \lunadevVlabelsnei{} of \lunadevVlabelstotal{} claims
 \emph{unaddressed} (no retrieved passage addresses the claim,
 \lunadevVlabelsunaddressed{} claims) and \emph{underdetermined} (relevant
 evidence exists but does not resolve, \lunadevVlabelsunderdetermined{}
-claims). Figure~\ref{fig:labels} shows the distribution; the accompanying
-rationale codes show that the dominant reason for an underdetermined verdict
-is disagreement between the D0 and D1 judgments rather than an empty
-evidence pool.
+claims). Figure~\ref{fig:labels} shows the distribution.
 
 \begin{figure}[t]
 \centering
@@ -770,11 +767,37 @@ and \emph{underdetermined} is descriptive: SciFact's gold cannot score it.}
 \label{fig:labels}
 \end{figure}
 
-This is the mechanism result. The staged validator is not failing because
-retrieval returned nothing; it is abstaining because two readers of the
-same scientific literature disagreed. In other words, the pipeline has
-become an inter-scope disagreement detector that reports its own
-uncertainty, and the price of that behaviour is coverage.
+The more informative cut is not the four-way label but whether the two
+scopes agreed. V records a \texttt{d0\_d1\_conflict} code when the \Dzero{}
+and \Done{} four-way verdicts differ, and the reconciler then abstains by
+construction. Table~\ref{tab:mechanism} conditions accuracy on that split.
+When the scopes agree, V's accuracy matches the baseline's
+(\lunadevAgreeBTwosAcc{} against \lunadevAgreeVacc{} on the development
+sample); when they differ, V abstains on every claim and its accuracy falls
+to the share of NEI in that subset (\lunadevConflictVacc{}). The shape
+repeats on the held-out sample (\lunaheldAgreeVacc{} against
+\lunaheldAgreeBTwosAcc{} when the scopes agree, \lunaheldConflictVacc{} when
+they differ) and in the second family (\mmdevAgreeVacc{} against
+\mmdevAgreeBTwosAcc{}).
+
+\begin{table}[t]
+\centering
+\caption{Accuracy conditioned on whether the two evidence scopes agree.
+``Differ'' means the run recorded \texttt{d0\_d1\_conflict}; V abstains on
+every such claim by construction, so the column measures how often NEI
+happens to be the gold label. Fail-closed rows are excluded.}
+\label{tab:mechanism}
+\input{paper/tables/t9_mechanism}
+\end{table}
+
+This is the mechanism result. Of the \lunadevVlabelsnei{} NEI verdicts,
+\lunadevConflictN{} are scope conflicts and \lunadevAgreeN{} are cases where
+both scopes agreed on an underdetermined reading. The validator is not
+failing because retrieval returned nothing; it is abstaining because two
+readers of the same literature disagreed, and in the remaining cases because
+both readers found the evidence inconclusive. Either way the pipeline has
+become a disagreement detector that reports its own uncertainty, and the
+price of that behaviour is coverage.
 
 \subsection{Evidence acquisition}
 
