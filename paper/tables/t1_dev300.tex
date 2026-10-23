@@ -1,20 +1,21 @@
-\begin{tabular}{lrrrrrr}
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}lrrrrr@{}}
 \toprule
-Model family & Method & $n$ scored & micro-F1 & macro-F1 & FE (gold non-sup) & SUPPORT recall \\
+Method & $n$ & micro-F1 & macro-F1 & FE & SUPPORT R \\
 \midrule
-GPT-6-Luna (API) & B0 (prior knowledge) & 300 & 0.547 & 0.508 & 0.448 & 0.863 \\
- & B1 (D0, claim-visible) & 300 & 0.843 & 0.842 & 0.044 & 0.829 \\
- & B2 (D0, evidence-first) & 300 & 0.747 & 0.753 & 0.011 & 0.573 \\
-\addlinespace[2pt]
- & B3 (D1, claim-visible) & 300 & 0.800 & 0.795 & 0.049 & 0.812 \\
- & V-D1 (D1, evidence-first) & 300 & 0.757 & 0.757 & 0.016 & 0.632 \\
- & V (D0 $\cup$ D1, reconciled) & 300 & 0.687 & 0.683 & 0.000 & 0.427 \\
- & O (gold rationales) & 300 & 0.870 & 0.873 & 0.005 & 0.769 \\
+\multicolumn{6}{@{}l}{\emph{GPT-6-Luna (API)}} \\[1pt]
+B0 & 300 & 0.547 & 0.508 & 0.448 & 0.863 \\
+B1 & 300 & 0.843 & 0.842 & 0.044 & 0.829 \\
+B2 & 300 & 0.747 & 0.753 & 0.011 & 0.573 \\
+B3 & 300 & 0.800 & 0.795 & 0.049 & 0.812 \\
+V-D1 & 300 & 0.757 & 0.757 & 0.016 & 0.632 \\
+V & 300 & 0.687 & 0.683 & 0.000 & 0.427 \\
+O & 300 & 0.870 & 0.873 & 0.005 & 0.769 \\
 \midrule
-MiniMax M3.1 Flash (OpenCode) & B2 (D0, evidence-first) & 300 & 0.870 & 0.867 & 0.033 & 0.855 \\
-\addlinespace[2pt]
- & V-D1 (D1, evidence-first) & 300 & 0.853 & 0.851 & 0.033 & 0.829 \\
- & V (D0 $\cup$ D1, reconciled) & 300 & 0.830 & 0.837 & 0.016 & 0.692 \\
-\midrule
+\multicolumn{6}{@{}l}{\emph{MiniMax M3.1 Flash (OpenCode)}} \\[1pt]
+B2 & 300 & 0.870 & 0.867 & 0.033 & 0.855 \\
+V-D1 & 300 & 0.853 & 0.851 & 0.033 & 0.829 \\
+V & 300 & 0.830 & 0.837 & 0.016 & 0.692 \\
 \bottomrule
 \end{tabular}

@@ -1,22 +1,27 @@
-\begin{tabular}{llrrrrrrr}
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}llrrrrrr@{}}
 \toprule
-Model family & Method & class & P & R & F1 & TP & FP & FN \\
+Method & class & P & R & F1 & TP & FP & FN \\
 \midrule
-GPT-6-Luna (API) & B2 & SUPPORT & 0.971 & 0.573 & 0.720 & 67 & 2 & 50 \\
-GPT-6-Luna (API) & B2 & REFUTE & 0.803 & 0.790 & 0.797 & 49 & 12 & 13 \\
-GPT-6-Luna (API) & B2 & NEI & 0.635 & 0.893 & 0.742 & 108 & 62 & 13 \\
-\addlinespace[2pt]
-GPT-6-Luna (API) & V & SUPPORT & 1.000 & 0.427 & 0.599 & 50 & 0 & 67 \\
-GPT-6-Luna (API) & V & REFUTE & 0.949 & 0.597 & 0.733 & 37 & 2 & 25 \\
-GPT-6-Luna (API) & V & NEI & 0.564 & 0.983 & 0.717 & 119 & 92 & 2 \\
-\addlinespace[2pt]
-MiniMax M3.1 Flash (OpenCode) & B2 & SUPPORT & 0.943 & 0.855 & 0.897 & 100 & 6 & 17 \\
-MiniMax M3.1 Flash (OpenCode) & B2 & REFUTE & 0.800 & 0.903 & 0.848 & 56 & 14 & 6 \\
-MiniMax M3.1 Flash (OpenCode) & B2 & NEI & 0.847 & 0.868 & 0.857 & 105 & 19 & 16 \\
-\addlinespace[2pt]
-MiniMax M3.1 Flash (OpenCode) & V & SUPPORT & 0.964 & 0.692 & 0.806 & 81 & 3 & 36 \\
-MiniMax M3.1 Flash (OpenCode) & V & REFUTE & 0.944 & 0.823 & 0.879 & 51 & 3 & 11 \\
-MiniMax M3.1 Flash (OpenCode) & V & NEI & 0.722 & 0.967 & 0.827 & 117 & 45 & 4 \\
-\addlinespace[2pt]
+\multicolumn{8}{@{}l}{\emph{GPT-6-Luna (API)}} \\[1pt]
+B2 & SUPPORT & 0.971 & 0.573 & 0.720 & 67 & 2 & 50 \\
+B2 & REFUTE & 0.803 & 0.790 & 0.797 & 49 & 12 & 13 \\
+B2 & NEI & 0.635 & 0.893 & 0.742 & 108 & 62 & 13 \\
+\addlinespace[1pt]
+V & SUPPORT & 1.000 & 0.427 & 0.599 & 50 & 0 & 67 \\
+V & REFUTE & 0.949 & 0.597 & 0.733 & 37 & 2 & 25 \\
+V & NEI & 0.564 & 0.983 & 0.717 & 119 & 92 & 2 \\
+\addlinespace[1pt]
+\midrule
+\multicolumn{8}{@{}l}{\emph{MiniMax M3.1 Flash (OpenCode)}} \\[1pt]
+B2 & SUPPORT & 0.943 & 0.855 & 0.897 & 100 & 6 & 17 \\
+B2 & REFUTE & 0.800 & 0.903 & 0.848 & 56 & 14 & 6 \\
+B2 & NEI & 0.847 & 0.868 & 0.857 & 105 & 19 & 16 \\
+\addlinespace[1pt]
+V & SUPPORT & 0.964 & 0.692 & 0.806 & 81 & 3 & 36 \\
+V & REFUTE & 0.944 & 0.823 & 0.879 & 51 & 3 & 11 \\
+V & NEI & 0.722 & 0.967 & 0.827 & 117 & 45 & 4 \\
+\addlinespace[1pt]
 \bottomrule
 \end{tabular}

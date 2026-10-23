@@ -1,0 +1,47 @@
+[
+  {
+    "case": "scope_conflict",
+    "claim_id": "scifact:1015",
+    "claim": "Rapamycin delays aging in fruit flies.",
+    "gold": "SUPPORT",
+    "b2_label": "SUPPORT",
+    "b2_rationale": "The cited abstract reports that feeding rapamycin to adult fruit flies extends their lifespan, supporting the claim that it delays aging.",
+    "v_label": "NEI",
+    "v_label_4way": "underdetermined",
+    "d0_label_4way": "underdetermined",
+    "d1_label_4way": "supported",
+    "v_rationale_codes": [
+      "d0_d1_conflict"
+    ]
+  },
+  {
+    "case": "missed_support",
+    "claim_id": "scifact:1084",
+    "claim": "Side effects associated with antidepressants increases risk of stroke.",
+    "gold": "SUPPORT",
+    "b2_label": "SUPPORT",
+    "b2_rationale": "The study reported a higher adjusted hazard of stroke or transient ischaemic attack among users of “other antidepressants” than among nonusers. This supports an association with increased risk, although it does not establish causation.",
+    "v_label": "NEI",
+    "v_label_4way": "underdetermined",
+    "d0_label_4way": "underdetermined",
+    "d1_label_4way": "underdetermined",
+    "v_rationale_codes": [
+      "labels_agree"
+    ]
+  },
+  {
+    "case": "false_endorsement",
+    "claim_id": "scifact:1307",
+    "claim": "Tonic signaling from the scFv induces constitutive stimulation.",
+    "gold": "NEI",
+    "b2_label": "SUPPORT",
+    "b2_rationale": "The abstract describes antigen-independent clustering of CAR scFvs triggering tonic CAR signaling, i.e., ongoing signaling without antigen. This supports the claim’s description of constitutive stimulation.",
+    "v_label": "NEI",
+    "v_label_4way": "underdetermined",
+    "d0_label_4way": "supported",
+    "d1_label_4way": "unaddressed",
+    "v_rationale_codes": [
+      "d0_d1_conflict"
+    ]
+  }
+]

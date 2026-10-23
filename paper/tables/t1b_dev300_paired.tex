@@ -1,8 +1,13 @@
-\begin{tabular}{llrrrlr}
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}lrrrrr@{}}
 \toprule
-Model family & Comparison & FE difference & 95\% CI & $p$ (bootstrap) & excl.\ 0 & $n$ paired \\
+Method & $\Delta$FE & 95\% CI & $p$ & $\neq 0$ & $n$ paired \\
 \midrule
-GPT-6-Luna (API) & V $-$ B2 & -0.011 & -0.011 [-0.029, 0.000] & 0.47 & no & 300 \\
-MiniMax M3.1 Flash (OpenCode) & V $-$ B2 & -0.016 & -0.016 [-0.046, 0.011] & 0.52 & no & 300 \\
+\multicolumn{6}{@{}l}{\emph{GPT-6-Luna (API)}} \\[1pt]
+V $-$ B2 & -0.011 & -0.011 [-0.029, 0.000] & 0.47 & no & 300 \\
+\midrule
+\multicolumn{6}{@{}l}{\emph{MiniMax M3.1 Flash (OpenCode)}} \\[1pt]
+V $-$ B2 & -0.016 & -0.016 [-0.046, 0.011] & 0.52 & no & 300 \\
 \bottomrule
 \end{tabular}

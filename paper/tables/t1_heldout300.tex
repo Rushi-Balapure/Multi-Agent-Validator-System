@@ -1,11 +1,12 @@
-\begin{tabular}{lrrrrrr}
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}lrrrrr@{}}
 \toprule
-Model family & Method & $n$ scored & micro-F1 & macro-F1 & FE (gold non-sup) & SUPPORT recall \\
+Method & $n$ & micro-F1 & macro-F1 & FE & SUPPORT R \\
 \midrule
-GPT-6-Luna (API) & B2 (D0, evidence-first) & 300 & 0.760 & 0.765 & 0.017 & 0.581 \\
-\addlinespace[2pt]
- & V-D1 (D1, evidence-first) & 262 & 0.721 & 0.715 & 0.032 & 0.585 \\
- & V (D0 $\cup$ D1, reconciled) & 262 & 0.618 & 0.599 & 0.000 & 0.368 \\
-\midrule
+\multicolumn{6}{@{}l}{\emph{GPT-6-Luna (API)}} \\[1pt]
+B2 & 300 & 0.760 & 0.765 & 0.017 & 0.581 \\
+V-D1 & 262 & 0.721 & 0.715 & 0.032 & 0.585 \\
+V & 262 & 0.618 & 0.599 & 0.000 & 0.368 \\
 \bottomrule
 \end{tabular}

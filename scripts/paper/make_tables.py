@@ -32,13 +32,13 @@ PAPER_TABLES = ROOT / "paper" / "tables"
 REGISTRY = TABLES / "run_registry.json"
 
 CONDITION_LABELS = {
-    "B0": "B0 (prior knowledge)",
-    "B1": "B1 (D0, claim-visible)",
-    "B2": "B2 (D0, evidence-first)",
-    "B3": "B3 (D1, claim-visible)",
-    "V-D1": "V-D1 (D1, evidence-first)",
-    "V": "V (D0 $\\cup$ D1, reconciled)",
-    "O": "O (gold rationales)",
+    "B0": "B0",
+    "B1": "B1",
+    "B2": "B2",
+    "B3": "B3",
+    "V-D1": "V-D1",
+    "V": "V",
+    "O": "O",
 }
 CONDITION_ORDER = ["B0", "B1", "B2", "B3", "V-D1", "V", "O"]
 FAMILY_ORDER = ["gpt-6-luna", "minimax-m3.1-flash"]
@@ -198,19 +198,27 @@ def _write(name: str, body: str) -> None:
 
 def write_main_table(scored: dict, boots: dict, split_name: str) -> None:
     lines = [
-        "\\begin{tabular}{lrrrrrr}",
+        "\\footnotesize",
+        "\\setlength{\\tabcolsep}{5pt}",
+        "\\begin{tabular}{@{}lrrrrr@{}}",
         "\\toprule",
-        "Model family & Method & $n$ scored & micro-F1 & macro-F1 & FE (gold non-sup) & SUPPORT recall \\\\",
+        "Method & $n$ & micro-F1 & macro-F1 & FE & SUPPORT R \\\\",
         "\\midrule",
     ]
+    first = True
     for family in FAMILY_ORDER:
         rows = _condition_rows(family, split_name, scored)
         if not rows:
             continue
+        if not first:
+            lines.append("\\midrule")
+        first = False
         label = registry_label(family)
-        for index, (condition, report) in enumerate(rows):
+        lines.append(
+            f"\\multicolumn{{6}}{{@{{}}l}}{{\\emph{{{label}}}}} \\\\[1pt]"
+        )
+        for condition, report in rows:
             values = [
-                label if index == 0 else "",
                 CONDITION_LABELS[condition],
                 str(report.get("n_scored", "---")),
                 _fmt(_metric(report, "micro_f1")),
@@ -219,9 +227,6 @@ def write_main_table(scored: dict, boots: dict, split_name: str) -> None:
                 _fmt(_class_metric(report, "recall", "SUPPORT")),
             ]
             lines.append(" & ".join(values) + " \\\\")
-            if condition == "B2":
-                lines.append("\\addlinespace[2pt]")
-        lines.append("\\midrule")
     lines.append("\\bottomrule")
     lines.append("\\end{tabular}")
     _write(f"t1_{split_name}.tex", "\n".join(lines) + "\n")
@@ -234,11 +239,14 @@ def registry_label(family: str) -> str:
 
 def write_paired_table(boots: dict, split_name: str) -> None:
     lines = [
-        "\\begin{tabular}{llrrrlr}",
+        "\\footnotesize",
+        "\\setlength{\\tabcolsep}{5pt}",
+        "\\begin{tabular}{@{}lrrrrr@{}}",
         "\\toprule",
-        "Model family & Comparison & FE difference & 95\\% CI & $p$ (bootstrap) & excl.\\ 0 & $n$ paired \\\\",
+        "Method & $\\Delta$FE & 95\\% CI & $p$ & $\\neq 0$ & $n$ paired \\\\",
         "\\midrule",
     ]
+    first = True
     for family in FAMILY_ORDER:
         report = boots.get(family, {}).get(split_name)
         if not report:
@@ -248,10 +256,17 @@ def write_paired_table(boots: dict, split_name: str) -> None:
         n_paired = bootstrap.get("n_claims_paired")
         excludes = (diff or {}).get("excludes_zero")
         p_text = "---" if not diff else f"{float(diff['p_raw']):.2f}"
+        if not first:
+            lines.append("\\midrule")
+        first = False
+        lines.append(
+            "\\multicolumn{6}{@{}l}{\\emph{"
+            + registry_label(family)
+            + "}} \\\\[1pt]"
+        )
         lines.append(
             " & ".join(
                 [
-                    registry_label(family),
                     "V $-$ B2",
                     _fmt((diff or {}).get("point_estimate")) if diff else "---",
                     _ci(diff),
@@ -269,9 +284,11 @@ def write_paired_table(boots: dict, split_name: str) -> None:
 
 def write_ablation_table(scored: dict) -> None:
     lines = [
-        "\\begin{tabular}{llrrrr}",
+        "\\footnotesize",
+        "\\setlength{\\tabcolsep}{5pt}",
+        "\\begin{tabular}{@{}llrrr@{}}",
         "\\toprule",
-        "Model family & Cell & Evidence & Reading policy & micro-F1 & FE (gold non-sup) \\\\",
+        "Cell & Evidence & Reading policy & micro-F1 & FE \\\\",
         "\\midrule",
     ]
     cells = {
@@ -283,17 +300,26 @@ def write_ablation_table(scored: dict) -> None:
         "B0": ("none", "prior knowledge"),
         "O": ("gold rationales", "claim-visible"),
     }
+    first = True
     for family in FAMILY_ORDER:
         reports = scored.get(family, {}).get("dev300", {})
-        for condition in CONDITION_ORDER:
-            report = reports.get(condition)
-            if not report:
-                continue
+        present = [c for c in CONDITION_ORDER if reports.get(c)]
+        if not present:
+            continue
+        if not first:
+            lines.append("\\midrule")
+        first = False
+        lines.append(
+            "\\multicolumn{5}{@{}l}{\\emph{"
+            + registry_label(family)
+            + "}} \\\\[1pt]"
+        )
+        for condition in present:
+            report = reports[condition]
             evidence, reading = cells[condition]
             lines.append(
                 " & ".join(
                     [
-                        registry_label(family),
                         condition,
                         evidence,
                         reading,
@@ -303,7 +329,6 @@ def write_ablation_table(scored: dict) -> None:
                 )
                 + " \\\\"
             )
-        lines.append("\\addlinespace[2pt]")
     lines.append("\\bottomrule")
     lines.append("\\end{tabular}")
     _write("t2_ablation.tex", "\n".join(lines) + "\n")
@@ -311,12 +336,16 @@ def write_ablation_table(scored: dict) -> None:
 
 def write_cost_table(registry: dict) -> None:
     lines = [
-        "\\begin{tabular}{lllrrrrr}",
+        "\\footnotesize",
+        "\\setlength{\\tabcolsep}{5pt}",
+        "\\begin{tabular}{@{}llrrrr@{}}",
         "\\toprule",
-        "Model family & Split & Method & tokens / claim & calls / claim & median latency (s) & p95 latency (s) \\\\",
+        "Split & Method & tokens/claim & calls/claim & median (s) & p95 (s) \\\\",
         "\\midrule",
     ]
+    first = True
     for family in FAMILY_ORDER:
+        blocks = []
         for split_name, conditions in registry["families"][family].items():
             if split_name == "label":
                 continue
@@ -338,10 +367,9 @@ def write_cost_table(registry: dict) -> None:
                 n = int(n)
                 tokens_per_claim = (usage.get("total_tokens") or 0) / max(n, 1)
                 calls_per_claim = (usage.get("n_calls") or 0) / max(n, 1)
-                lines.append(
+                blocks.append(
                     " & ".join(
                         [
-                            registry_label(family),
                             split_name,
                             condition,
                             f"{tokens_per_claim:,.0f}",
@@ -352,7 +380,17 @@ def write_cost_table(registry: dict) -> None:
                     )
                     + " \\\\"
                 )
-            lines.append("\\addlinespace[2pt]")
+        if not blocks:
+            continue
+        if not first:
+            lines.append("\\midrule")
+        first = False
+        lines.append(
+            "\\multicolumn{6}{@{}l}{\\emph{"
+            + registry_label(family)
+            + "}} \\\\[1pt]"
+        )
+        lines.extend(blocks)
     lines.append("\\bottomrule")
     lines.append("\\end{tabular}")
     _write("t3_cost.tex", "\n".join(lines) + "\n")
@@ -360,12 +398,16 @@ def write_cost_table(registry: dict) -> None:
 
 def write_confusion_table(scored: dict) -> None:
     lines = [
-        "\\begin{tabular}{llrrrrrrr}",
+        "\\footnotesize",
+        "\\setlength{\\tabcolsep}{5pt}",
+        "\\begin{tabular}{@{}llrrrrrr@{}}",
         "\\toprule",
-        "Model family & Method & class & P & R & F1 & TP & FP & FN \\\\",
+        "Method & class & P & R & F1 & TP & FP & FN \\\\",
         "\\midrule",
     ]
+    first = True
     for family in FAMILY_ORDER:
+        blocks = []
         for condition in ("B2", "V"):
             report = scored.get(family, {}).get("dev300", {}).get(condition)
             if not report:
@@ -373,10 +415,9 @@ def write_confusion_table(scored: dict) -> None:
             counts = (report.get("counts") or {}).get("per_class") or {}
             for label in ("SUPPORT", "REFUTE", "NEI"):
                 block = counts.get(label) or {}
-                lines.append(
+                blocks.append(
                     " & ".join(
                         [
-                            registry_label(family),
                             condition,
                             label,
                             _fmt(_class_metric(report, "precision", label)),
@@ -389,7 +430,18 @@ def write_confusion_table(scored: dict) -> None:
                     )
                     + " \\\\"
                 )
-            lines.append("\\addlinespace[2pt]")
+            blocks.append("\\addlinespace[1pt]")
+        if not blocks:
+            continue
+        if not first:
+            lines.append("\\midrule")
+        first = False
+        lines.append(
+            "\\multicolumn{8}{@{}l}{\\emph{"
+            + registry_label(family)
+            + "}} \\\\[1pt]"
+        )
+        lines.extend(blocks)
     lines.append("\\bottomrule")
     lines.append("\\end{tabular}")
     _write("t7_per_class.tex", "\n".join(lines) + "\n")
@@ -444,6 +496,10 @@ def write_macros(scored: dict, boots: dict, registry: dict) -> None:
                     _fmt(_class_metric(report, "recall", "SUPPORT")),
                 )
                 macro(f"{prefix}failclosed", str(report.get("n_skipped_not_ok", 0)))
+                macro(
+                    f"{prefix}supportPrecision",
+                    _fmt(_class_metric(report, "precision", "SUPPORT")),
+                )
             bootstrap = boots.get(family, {}).get(split_name)
             if bootstrap:
                 diff = (bootstrap.get("bootstrap") or {}).get("paired_difference", {}).get(
@@ -592,12 +648,16 @@ def write_sensitivity_table(registry: dict) -> None:
                     fail-closed path here, so every submitted item counts.
     """
     lines = [
-        "\\begin{tabular}{llrrrrr}",
+        "\\footnotesize",
+        "\\setlength{\\tabcolsep}{5pt}",
+        "\\begin{tabular}{@{}llrrrr@{}}",
         "\\toprule",
-        "Model family & Method & accounting & $n$ scored & micro-F1 & FE (gold non-sup) & SUPPORT recall \\\\",
+        "Method & accounting & $n$ & micro-F1 & FE & SUPPORT R \\\\",
         "\\midrule",
     ]
+    first_condition = True
     for family in FAMILY_ORDER:
+        blocks = []
         for split_name, conditions in registry["families"][family].items():
             if split_name in {"label", "calibration"}:
                 continue
@@ -618,10 +678,9 @@ def write_sensitivity_table(registry: dict) -> None:
                         include_failed=include_failed,
                     )
                     accounting = "all rows" if include_failed else "scored only"
-                    lines.append(
+                    blocks.append(
                         " & ".join(
                             [
-                                registry_label(family),
                                 f"{condition} ({split_name})",
                                 accounting,
                                 str(report.get("n_scored", "---")),
@@ -632,7 +691,17 @@ def write_sensitivity_table(registry: dict) -> None:
                         )
                         + " \\\\"
                     )
-        lines.append("\\addlinespace[2pt]")
+        if not blocks:
+            continue
+        if not first_condition:
+            lines.append("\\midrule")
+        first_condition = False
+        lines.append(
+            "\\multicolumn{6}{@{}l}{\\emph{"
+            + registry_label(family)
+            + "}} \\\\[1pt]"
+        )
+        lines.extend(blocks)
     lines.append("\\bottomrule")
     lines.append("\\end{tabular}")
     _write("t1c_sensitivity.tex", "\n".join(lines) + "\n")

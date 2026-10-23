@@ -11,7 +11,9 @@
 \usepackage[utf8]{inputenc}
 \usepackage[margin=1in]{geometry}
 \usepackage{times}
+\usepackage[htt]{hyphenat}
 \usepackage{microtype}
+\usepackage{array}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{amsmath}
@@ -20,9 +22,10 @@
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{enumitem}
-\usepackage{microtype}
 \usepackage[hidelinks]{hyperref}
 \usepackage{natbib}
+
+\setlength{\emergencystretch}{3em}
 
 \input{paper/tables/macros}
 
@@ -284,8 +287,8 @@ the preserved scope. A non-significant result is not automatically proof of
 no effect, and a null-result claim requires its own evidence assessment.
 
 SciFact's native label space is three-way, so the scored mapping is
-supported$\to$SUPPORT, contradicted$\to$REFUTE, and
-unaddressed/underdetermined$\to$NEI. The four-way distinction is therefore
+supported $\to$ SUPPORT, contradicted $\to$ REFUTE, and unaddressed or
+underdetermined $\to$ NEI. The four-way distinction is therefore
 \emph{reported but not scored} against gold. We say this once here and repeat
 it wherever a number could be misread.
 
@@ -526,10 +529,11 @@ untouched community test set, and we name it accordingly throughout. Official
 test labels are not used.
 
 Two samples are frozen by manifest: a 300-claim development sample
-(seeded draw, \texttt{data/manifests/dev300\_seed42.json}) used for all
-development and prompt decisions, and a 300-claim held-out sample used once
-under the freeze record. Both samples group claims by cited-document family
-so that paraphrases and derivative claims do not straddle the comparison.
+(seeded draw, \texttt{dev300\_seed42.json} under \texttt{data/manifests/})
+used for all development and prompt decisions, and a 300-claim held-out
+sample used once under the freeze record. Both samples group claims by
+cited-document family so that paraphrases and derivative claims do not
+straddle the comparison.
 
 \subsection{Conditions}
 
@@ -614,10 +618,13 @@ including zero.
 
 \begin{table}[t]
 \centering
-\caption{Development sample ($n=300$ claims, seeded draw). FE is false
-endorsement on the gold non-support denominator; the complete definition and
-the second denominator are in Appendix~\ref{app:metrics}. Fail-closed rows are
-excluded from the scored metrics and counted in the last column.}
+\caption{Development sample ($n=300$ claims, seeded draw). Method codes: B0
+prior knowledge, B1 D0 claim-visible, B2 D0 evidence-first, B3 D1
+claim-visible, V-D1 D1 evidence-first, V reconciled over both scopes, O gold
+rationales. FE is false endorsement on the gold non-support denominator; the
+complete definition and the second denominator are in
+Appendix~\ref{app:metrics}. Fail-closed rows are excluded from the scored
+metrics and accounted for in Table~\ref{tab:sensitivity}.}
 \label{tab:main-dev}
 \input{paper/tables/t1_dev300}
 \end{table}
@@ -700,6 +707,23 @@ endorsement on the gold non-support denominator. V-D1 is derived from the V
 predictions, not re-run.}
 \label{tab:ablation}
 \input{paper/tables/t2_ablation}
+\end{table}
+
+Table~\ref{tab:perclass} breaks the two primary conditions down by class.
+The pattern is the same in both families. The staged validator raises the
+precision of the endorsement class (from \lunadevBTwosupportPrecision{} to
+\lunadevVsupportPrecision{} in the API family) by pushing almost everything
+it is unsure about into NEI, and it pays for that with recall
+(\lunadevBTwosupportRecall{} against \lunadevVsupportRecall{}) and with a
+slightly worse NEI precision, because the claims it abstains on are not the
+claims the baseline abstained on.
+
+\begin{table}[t]
+\centering
+\caption{Per-class precision, recall, and F1 on the development sample,
+with the confusion counts.}
+\label{tab:perclass}
+\input{paper/tables/t7_per_class}
 \end{table}
 
 \subsection{Model-family transfer}
@@ -879,6 +903,27 @@ endorsements for many other errors; it trades them for abstentions, which
 appear as missed support.}
 \label{fig:failures}
 \end{figure}
+
+\subsection{Case studies}
+
+Counts say what happened; cases say why. Table~\ref{tab:cases} shows three
+rows selected deterministically from the saved predictions: one where the
+baseline endorsed a claim the gold does not support and the validator
+abstained, one where the two evidence scopes disagreed, and one where both
+scopes were unsure and the validator lost a claim the baseline got right.
+The last row is the one worth reading twice: the two readers agreed that the
+evidence was inconclusive, the gold annotation says the claim is supported,
+and no amount of staging recovers it. That is the coverage cost of the
+design, stated on a concrete claim rather than as an aggregate.
+
+\begin{table}[t]
+\centering
+\caption{Case studies from the development sample, selected deterministically
+from the saved predictions. The two scope labels are the D0 and D1 four-way
+judgments; the mechanism is the rationale code the run recorded.}
+\label{tab:cases}
+\input{paper/tables/t8_cases}
+\end{table}
 
 The dominant class is scope conflict: the two scopes judged differently and
 the reconciler resolved conservatively. Infrastructure failures form a
@@ -1103,26 +1148,27 @@ prospective power analysis supports stronger claims.
 
 \begin{enumerate}
   \item Install the package and its development extras, and verify the
-    pinned corpus hash (\texttt{data/pins/scifact/}).
+    pinned corpus hash (\path{data/pins/scifact/}).
   \item Start the model endpoint. For the API family, set
     \texttt{OPENAI\_API\_KEY} and \texttt{OPENAI\_MODEL}. For the second
     family, start an OpenCode server and the loopback bridge in
-    \texttt{tools/opencode\_bridge.py}, then pass
+    \path{tools/opencode_bridge.py}, then pass
     \texttt{-{}-base-url} and \texttt{-{}-model-id} to the runners.
   \item Run the conditions on the development sample
-    (\texttt{scripts/run\_minimax\_dev300.sh} shows the full sequence).
-  \item Run the held-out sample once with \texttt{--frozen-final}; the runner
-    refuses to start unless the model, prompt, configuration, and corpus
-    hashes match \texttt{docs/freeze.json}.
+    (\path{scripts/run_minimax_dev300.sh} shows the full sequence).
+  \item Run the held-out sample once with \texttt{-{}-frozen-final}; the
+    runner refuses to start unless the model, prompt, configuration, and
+    corpus hashes match \path{docs/freeze.json}.
   \item Regenerate every table and figure
-    (\texttt{scripts/paper/make\_tables.py}, \texttt{scripts/paper/make\_figures.py})
-    and rebuild the PDF (\texttt{scripts/paper/build\_pdf.sh}).
+    (\path{scripts/paper/make_tables.py},
+    \path{scripts/paper/make_figures.py}) and rebuild the PDF
+    (\path{scripts/paper/build_pdf.sh}).
 \end{enumerate}
 
 Every number in this paper is read from the generated LaTeX fragments under
-\texttt{paper/tables/}, which are produced from the scored metric JSON files
-under \texttt{docs/paper-assets/tables/}. The prose macros in
-\texttt{paper/tables/macros.tex} are generated by the same script, so a
+\path{paper/tables/}, which are produced from the scored metric JSON files
+under \path{docs/paper-assets/tables/}. The prose macros in
+\path{paper/tables/macros.tex} are generated by the same script, so a
 number in the text cannot drift from the artifact.
 
 \bibliographystyle{plainnat}
