@@ -897,7 +897,8 @@ latency for the API family. V issues three calls per claim against B2's two,
 because it runs a sealed reader, a claim-visible judge, and a citation
 auditor. A B2 call measures about \lunadevBTwoTokensPerCall{} tokens and a V
 call about \lunadevVTokensPerCall{}, so V's three calls per claim cost roughly
-six times B2's two. The second family's cost is not in the table: its harness
+six times B2's two (Figure~\ref{fig:accuracycost} plots quality against
+per-call prompt size). The second family's cost is not in the table: its harness
 prepends a fixed agent preamble to every request, so a per-call figure would
 measure the harness more than the task, and the endpoint that served the
 model was withdrawn before the probe could be run. The call ratio does carry
