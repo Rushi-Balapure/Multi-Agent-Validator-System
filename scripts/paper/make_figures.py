@@ -39,6 +39,8 @@ plt.rcParams.update(
     {
         "figure.dpi": 150,
         "savefig.bbox": "tight",
+        "pdf.fonttype": 42,
+        "ps.fonttype": 42,
         "font.size": 9,
         "axes.titlesize": 10,
         "axes.labelsize": 9,
