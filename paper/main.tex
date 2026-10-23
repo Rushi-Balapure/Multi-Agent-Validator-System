@@ -71,11 +71,12 @@ endorsement -- its rate is \lunadevVfe{} on the development sample and
 less: SUPPORT recall falls from \lunadevBTwosupportRecall{} to
 \lunadevVsupportRecall{} on the development sample, and on the held-out
 sample \lunaheldVfailclosed{} of 300 claims fail closed entirely. We
-replicate the pattern with a second, architecturally different model family,
-and we show that the dominant failure mode is not retrieval but a systematic
-disagreement between the two evidence scopes: independent retrieval on this
-corpus cannot find gold evidence that the original citations missed, because
-the benchmark's annotated documents are a subset of its cited documents. We
+replicate the primary comparison with a second, architecturally different
+model family, and we show that the dominant failure mode is not retrieval
+but a systematic disagreement between the two evidence scopes: independent
+retrieval on this corpus cannot find gold evidence that the original
+citations missed, because the benchmark's annotated documents are a subset
+of its cited documents. We
 report this as a negative result with a mechanism analysis, a cost
 accounting, and a fully reproducible artifact. The design lesson is narrow
 and useful: independent retrieval is not sufficient for scientific claim
@@ -148,10 +149,12 @@ number.
   Reported as F1 alone, this looks like a regression (\lunadevBTwomicroFOne{}
   against \lunadevVmicroFOne{}); reported as a precision--coverage trade-off it
   is a usable operating point for a conservative reader-facing tool.
-  \item \textbf{The result is not model-specific.} We reproduce the pattern
-  with a second model family accessed through a different harness. This
-  matters because the negative result would be weak evidence about
-  verification design if it were a single model's idiosyncrasy.
+  \item \textbf{The result is not model-specific.} We reproduce the primary
+  comparison with a second model family accessed through a different
+  harness. This matters because the negative result would be weak evidence
+  about verification design if it were a single model's idiosyncrasy. The
+  broader factorial remains a one-family result and we say so where it is
+  reported.
 \end{itemize}
 
 We also state what we do \emph{not} do. We do not report a human study: no
@@ -461,8 +464,9 @@ result from being an artefact of one model's behaviour.
     later ones and break the information-isolation guarantee the validator is
     measured on. The harness adds a fixed agent preamble and tool
     definitions to every request; the preamble is byte-identical across
-    conditions, so it cancels in every comparison, but it does inflate the
-    reported prompt-token counts, and we note this where we discuss cost.
+    conditions, so it cancels in every comparison, but it inflates the
+    prompt-token counts. That is why cost is reported for the API family
+    only, and why the second family contributes no cost row.
 \end{description}
 
 Both families run with temperature $0$, the same prompts, the same frozen
@@ -666,12 +670,12 @@ micro-F1 \lunaheldVmicroFOne{} with false endorsement \lunaheldVfe{} on
 difference is \lunaheldfediff{} (\lunaheldfeci{}), again including zero.
 
 Taken at face value, the primary result is a null with an interesting
-internal structure: V achieves perfect precision on the endorsement class
-(SUPPORT precision $1.000$ on the development sample) and pays for it in
-recall. The system is a conservative checker, not a better one. Reporting
-only micro-F1 would present this as a regression; reporting only false
-endorsement would present it as a success. Both are wrong, and the interval
-is what settles it.
+internal structure: V achieves near-perfect precision on the endorsement
+class (SUPPORT precision \lunadevVsupportPrecision{} in the API family,
+\mmdevVsupportPrecision{} in the second) and pays for it in recall. The
+system is a conservative checker, not a better one. Reporting only micro-F1
+would present this as a regression; reporting only false endorsement would
+present it as a success. Both are wrong, and the interval is what settles it.
 
 \subsection{The 2$\times$2 factorial}
 
@@ -700,6 +704,14 @@ reconciler resolves scope disagreement into abstention rather than choosing
 a side. V's zero false endorsement is thus a property of the reconciliation
 policy, not of the retrieval.
 
+The factorial is an API-family result. The second family contributes only
+B1, B2, V-D1 and V, and those rows do not repeat the claim-visible
+advantage: there B1 reaches micro-F1 \mmdevBOnemicroFOne{} against B2's
+\mmdevBTwomicroFOne{}, and B1 is the less conservative arm (false endorsement
+\mmdevBOnefe{} against \mmdevBTwofe{}). We therefore state the factorial as a
+finding about this benchmark under one model family, and treat its
+replication as open rather than asserting it.
+
 \begin{table}[t]
 \centering
 \caption{Factorial ablation on the development sample. FE is false
@@ -712,11 +724,13 @@ predictions, not re-run.}
 Table~\ref{tab:perclass} breaks the two primary conditions down by class.
 The pattern is the same in both families. The staged validator raises the
 precision of the endorsement class (from \lunadevBTwosupportPrecision{} to
-\lunadevVsupportPrecision{} in the API family) by pushing almost everything
-it is unsure about into NEI, and it pays for that with recall
-(\lunadevBTwosupportRecall{} against \lunadevVsupportRecall{}) and with a
-slightly worse NEI precision, because the claims it abstains on are not the
-claims the baseline abstained on.
+\lunadevVsupportPrecision{} in the API family, \mmdevBTwosupportPrecision{}
+to \mmdevVsupportPrecision{} in the second) by pushing almost everything it is
+unsure about into NEI, and it pays for that with recall
+(\lunadevBTwosupportRecall{} against \lunadevVsupportRecall{}, and
+\mmdevBTwosupportRecall{} against \mmdevVsupportRecall{}) and with a slightly
+worse NEI precision, because the claims it abstains on are not the claims the
+baseline abstained on.
 
 \begin{table}[t]
 \centering
@@ -742,10 +756,12 @@ validator, not the quirks of one model, produces the conservative operating
 point. We do not read it as evidence about the absolute quality of either
 model; the two families are not matched for size, training data, or
 capability, and the comparison is between families of systems, not between
-models of equal strength. The second family also has a much stronger prior
-on the benchmark (its prior-knowledge condition is reported in
-Table~\ref{tab:main-dev}), so the gap between V and B2 there is a gap
-between two already-strong systems.
+models of equal strength. We also cannot separate the second family's model
+prior from its design: its prior-knowledge condition (B0) and its
+claim-visible D1 condition (B3) did not complete before the free endpoint
+that served it was withdrawn, so the second family contributes its B1, B2 and
+V rows rather than the full factorial. What it does corroborate is the
+comparison the study preregistered.
 
 \subsection{Where the abstentions come from}
 
@@ -791,8 +807,8 @@ happens to be the gold label. Fail-closed rows are excluded.}
 \end{table}
 
 This is the mechanism result. Of the \lunadevVlabelsnei{} NEI verdicts,
-\lunadevConflictN{} are scope conflicts and \lunadevAgreeN{} are cases where
-both scopes agreed on an underdetermined reading. The validator is not
+\lunadevConflictN{} are scope conflicts and \lunadevAgreeNeiCount{} are cases
+where both scopes agreed on an underdetermined reading. The validator is not
 failing because retrieval returned nothing; it is abstaining because two
 readers of the same literature disagreed, and in the remaining cases because
 both readers found the evidence inconclusive. Either way the pipeline has
@@ -858,7 +874,7 @@ row is absent rather than imputed.}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.6\textwidth]{paper/figures/risk_coverage.pdf}
+\includegraphics[width=0.78\textwidth]{paper/figures/risk_coverage.pdf}
 \caption{Error among accepted claims as a function of coverage. The
 acceptance rule differs by method and is stated in the artifact: for V a
 claim is accepted when the D0 and D1 verdicts agree, for B2 when the sealed
@@ -868,32 +884,43 @@ calibrated probabilities.}
 \label{fig:riskcoverage}
 \end{figure}
 
-Cost is reported per claim in Table~\ref{tab:cost}. V uses roughly an order
-of magnitude more tokens per claim than B2 and about three times the calls,
-because it runs a reader, a judge, and a citation auditor. In exchange it
-produces two scoped judgments instead of one. A reader-facing deployment that
-only needs a single verdict is better served by B2; the value of V is that
-its two scopes are separately auditable.
+Table~\ref{tab:cost} reports model calls, measured tokens per call, and
+latency for the API family. V issues three calls per claim against B2's two,
+because it runs a sealed reader, a claim-visible judge, and a citation
+auditor. A B2 call measures about \lunadevBTwoTokensPerCall{} tokens and a V
+call about \lunadevVTokensPerCall{}, so V's three calls per claim cost roughly
+six times B2's two. The second family's cost is not in the table: its harness
+prepends a fixed agent preamble to every request, so a per-call figure would
+measure the harness more than the task, and the endpoint that served the
+model was withdrawn before the probe could be run. The call ratio does carry
+over, because the three stages are the same three stages. In exchange for
+that cost V produces two scoped judgments instead of one. A reader-facing
+deployment that only needs a single verdict is better served by B2; the value
+of V is that its two scopes are separately auditable.
 
 \begin{table}[t]
 \centering
-\caption{Per-claim cost and latency by condition and split. Latency is the
-median and 95th percentile over the calls of that run. The second model
-family is served through an agent runtime whose fixed preamble is included
-in the prompt-token counts, so its token totals are not comparable with the
-API family's in absolute terms; the ratio between conditions within a family
-is.}
+\caption{Calls per claim, measured tokens per call, and per-call latency for
+the API family. Calls per claim is fixed by the design. Tokens per call is the
+run's recorded total divided by its recorded calls, which survives a resumed
+run; per-claim cost is the product of the first two columns. Each row is taken
+from the run that recorded the most calls for that condition, which for V is
+the held-out run: the development sidecar retains only the calls of its final
+resume pass. The second family has no cost row; its harness preamble is
+included in every call and the endpoint that served it was withdrawn before a
+cost probe could be run.}
 \label{tab:cost}
 \input{paper/tables/t3_cost}
 \end{table}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.6\textwidth]{paper/figures/accuracy_cost.pdf}
-\caption{Verification quality against cost. Each point is one condition of
-the development sample; the two families are not on a shared token scale
-because the second family's harness preamble is included in its token
-counts.}
+\includegraphics[width=0.7\textwidth]{paper/figures/accuracy_cost.pdf}
+\caption{Verification quality against per-call prompt size, API family. Cost
+is measured per call rather than per claim because resumed runs keep only the
+last invocation's usage record. The second family is not plotted: its harness
+preamble dominates every prompt, so a token axis would compare harnesses
+rather than tasks.}
 \label{fig:accuracycost}
 \end{figure}
 
@@ -910,10 +937,12 @@ distribution.
 
 \begin{table}[t]
 \centering
-\caption{Error taxonomy over the scored development rows of both families.
-Counts are of rows whose predicted label differs from the gold label.
-Execution failures are excluded from these counts and reported separately
-in the main tables.}
+\caption{Error taxonomy over every scored condition. Counts are rows whose
+predicted label differs from the gold label; execution failures are excluded
+and reported in the main tables. ``held'' is the held-out sample and
+``calibration'' the 100-claim calibration split. The second family has only
+its development conditions for the reasons given in
+Section~\ref{sec:limitations}.}
 \label{tab:failures}
 \input{paper/tables/t6_failures}
 \end{table}
@@ -965,7 +994,9 @@ Three conclusions survive the evidence, and one does not.
 two evidence scopes, two reading policies, and two evaluation samples, the
 staged validator did not significantly reduce false endorsement relative to
 a baseline that already read the original citations. The 95\% interval on
-the primary comparison includes zero in every configuration we ran.
+the primary comparison includes zero in every configuration we ran: both
+families on the development sample, and the API family again under the
+freeze on the held-out sample.
 
 \emph{Evidence-first staging has a cost that is easy to mistake for a
 benefit.} The sealed reader makes the system conservative: it endorses
@@ -990,6 +1021,7 @@ explanations and confidence interact with human calibration
 without redesigning it.
 
 \section{Limitations}
+\label{sec:limitations}
 
 \begin{itemize}
   \item \textbf{No human annotation.} SciFact's three-way gold cannot score
@@ -1005,8 +1037,16 @@ without redesigning it.
     should appear as unaddressed but may be read as underdetermined.
   \item \textbf{Model families are not matched.} The two families differ in
     size, training, and harness. The transfer result is about the
-    \emph{direction} of the effect, not its magnitude, and the harness
-    preamble of the second family inflates its token counts.
+    \emph{direction} of the effect, not its magnitude, and the second
+    family's harness preamble is included in every request, so its token
+    counts are not comparable with the API family's.
+  \item \textbf{The second family's matrix is incomplete.} Its B0, B3, O and
+    calibration conditions were started and then lost when the free endpoint
+    that served the model was withdrawn; the remaining requests return a
+    model-unavailable error. The second family therefore corroborates the
+    preregistered V-versus-B2 contrast and the class breakdown, not the full
+    factorial, and we report its ablation rows as absent rather than
+    imputing them.
   \item \textbf{One frozen held-out run.} The held-out sample was run once
     under the freeze record, so its interval is a single-run estimate and
     the two families were not both run on it.
@@ -1037,7 +1077,10 @@ reviewer''), and we recommend that any deployment display them separately.
 The agent harness used for the second model family is an interactive coding
 agent runtime; a research run inside it inherits that runtime's permissions
 and preamble. We ran it with a fixed preamble, a fixed corpus, and no
-tool-enabled tasks, and we report the prompt-token inflation this causes.
+tool-enabled tasks. The model itself was withdrawn from its free endpoint
+during the study, which is why the second family's matrix is partial; we
+report the conditions that completed and do not fill the rest by
+substitution.
 
 \section{Conclusion}
 

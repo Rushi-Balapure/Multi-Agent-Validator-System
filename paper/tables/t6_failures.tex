@@ -1,42 +1,23 @@
-\begin{tabular}{lllrr}
+\footnotesize
+\setlength{\tabcolsep}{4.5pt}
+\begin{tabular}{@{}llrrrrr@{}}
 \toprule
-Model family & Method & Error class & $n$ & share of errors \\
+Method & split & false end. & missed supp. & missed contr. & other & errors \\
 \midrule
-GPT-6-Luna (API) & B0 (dev300) & false endorsement & 82 & 0.62 \\
-GPT-6-Luna (API) & B0 (dev300) & missed support & 15 & 0.11 \\
-GPT-6-Luna (API) & B0 (dev300) & missed contradiction & 4 & 0.03 \\
-GPT-6-Luna (API) & B0 (dev300) & other label error & 32 & 0.24 \\
-GPT-6-Luna (API) & B1 (dev300) & false endorsement & 9 & 0.19 \\
-GPT-6-Luna (API) & B1 (dev300) & missed support & 19 & 0.40 \\
-GPT-6-Luna (API) & B1 (dev300) & missed contradiction & 7 & 0.15 \\
-GPT-6-Luna (API) & B1 (dev300) & other label error & 13 & 0.27 \\
-GPT-6-Luna (API) & B2 (dev300) & false endorsement & 2 & 0.03 \\
-GPT-6-Luna (API) & B2 (dev300) & missed support & 55 & 0.72 \\
-GPT-6-Luna (API) & B2 (dev300) & missed contradiction & 13 & 0.17 \\
-GPT-6-Luna (API) & B2 (dev300) & other label error & 6 & 0.08 \\
-GPT-6-Luna (API) & B3 (dev300) & false endorsement & 10 & 0.16 \\
-GPT-6-Luna (API) & B3 (dev300) & missed support & 24 & 0.38 \\
-GPT-6-Luna (API) & B3 (dev300) & missed contradiction & 10 & 0.16 \\
-GPT-6-Luna (API) & B3 (dev300) & other label error & 19 & 0.30 \\
-GPT-6-Luna (API) & O (dev300) & false endorsement & 3 & 0.07 \\
-GPT-6-Luna (API) & O (dev300) & missed support & 31 & 0.72 \\
-GPT-6-Luna (API) & O (dev300) & missed contradiction & 9 & 0.21 \\
-GPT-6-Luna (API) & V (dev300) & missed support & 66 & 0.76 \\
-GPT-6-Luna (API) & V (dev300) & missed contradiction & 19 & 0.22 \\
-GPT-6-Luna (API) & V (dev300) & other label error & 2 & 0.02 \\
-\addlinespace[2pt]
-GPT-6-Luna (API) & B2 (heldout300) & false endorsement & 3 & 0.04 \\
-GPT-6-Luna (API) & B2 (heldout300) & missed support & 52 & 0.72 \\
-GPT-6-Luna (API) & B2 (heldout300) & missed contradiction & 14 & 0.19 \\
-GPT-6-Luna (API) & B2 (heldout300) & other label error & 3 & 0.04 \\
-GPT-6-Luna (API) & V (heldout300) & missed support & 67 & 0.67 \\
-GPT-6-Luna (API) & V (heldout300) & missed contradiction & 31 & 0.31 \\
-GPT-6-Luna (API) & V (heldout300) & other label error & 2 & 0.02 \\
-\addlinespace[2pt]
-MiniMax M3.1 Flash (OpenCode) & V (dev300) & false endorsement & 1 & 0.03 \\
-MiniMax M3.1 Flash (OpenCode) & V (dev300) & missed support & 19 & 0.66 \\
-MiniMax M3.1 Flash (OpenCode) & V (dev300) & missed contradiction & 6 & 0.21 \\
-MiniMax M3.1 Flash (OpenCode) & V (dev300) & other label error & 3 & 0.10 \\
-\addlinespace[2pt]
+\multicolumn{7}{@{}l}{\emph{GPT-6-Luna (API)}} \\[1pt]
+B0 & dev & 82 & 16 & 7 & 31 & 136 \\
+B1 & dev & 8 & 20 & 6 & 13 & 47 \\
+B2 & dev & 2 & 50 & 13 & 11 & 76 \\
+B3 & dev & 9 & 22 & 9 & 20 & 60 \\
+O & dev & 1 & 27 & 11 & 0 & 39 \\
+V & dev & 0 & 67 & 25 & 2 & 94 \\
+B2 & held & 3 & 52 & 14 & 3 & 72 \\
+V & held & 0 & 67 & 31 & 2 & 100 \\
+B1 & calibration & 3 & 6 & 2 & 7 & 18 \\
+\midrule
+\multicolumn{7}{@{}l}{\emph{MiniMax M3.1 Flash (OpenCode)}} \\[1pt]
+B1 & dev & 17 & 4 & 0 & 20 & 41 \\
+B2 & dev & 6 & 17 & 6 & 10 & 39 \\
+V & dev & 3 & 36 & 9 & 3 & 51 \\
 \bottomrule
 \end{tabular}

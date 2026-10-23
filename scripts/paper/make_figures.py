@@ -26,6 +26,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.patches as patches  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
+import matplotlib.ticker as mticker  # noqa: E402
 
 from evaluation.score_predictions import score_predictions_file  # noqa: E402
 
@@ -359,12 +360,13 @@ def figure_risk_coverage(registry: dict) -> None:
                 items.append((score, correct))
             points = _risk_coverage(items)
             if points:
-                label = f"{condition} ({_label(registry, family).split(' (')[0]})"
+                short = "Luna" if family == "gpt-6-luna" else "MiniMax"
+                label = f"{condition} ({short})"
                 curves.append((label, points, CONDITION_COLORS.get(condition, "#333333")))
     if not curves:
         print("  skip risk_coverage: no scored rows")
         return
-    fig, ax = plt.subplots(figsize=(5.6, 3.2))
+    fig, ax = plt.subplots(figsize=(6.4, 3.6))
     for label, points, color in curves:
         xs = [p[0] for p in points]
         ys = [p[1] for p in points]
@@ -372,7 +374,14 @@ def figure_risk_coverage(registry: dict) -> None:
     ax.set_xlabel("coverage (fraction of claims accepted)")
     ax.set_ylabel("error among accepted claims")
     ax.set_title("Selective risk by acceptance rule")
-    ax.legend(frameon=False, ncol=2, fontsize=7.5)
+    ax.legend(
+        frameon=False,
+        ncol=3,
+        fontsize=7.5,
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.22),
+    )
+    fig.tight_layout()
     _save(
         fig,
         "risk_coverage",
@@ -439,48 +448,85 @@ def figure_failures() -> None:
 # accuracy against cost
 # --------------------------------------------------------------------------
 def figure_accuracy_cost(registry: dict, scored: dict) -> None:
-    fig, ax = plt.subplots(figsize=(5.6, 3.2))
+    """Micro-F1 against the prompt size of one call.
+
+    Per-call size is used rather than per-claim totals because resumed runs
+    keep only the usage meter of their last invocation. Where the development
+    sidecar is too small to measure (V in the API family), the held-out run
+    supplies the per-call figure.
+    """
+    fig, ax = plt.subplots(figsize=(5.8, 3.3))
     for family, family_spec in registry["families"].items():
         points = []
+        tag = "luna" if family == "gpt-6-luna" else "minimax"
         for condition, directory in family_spec.get("dev300", {}).items():
-            sidecar_path = ROOT / directory / "run.json"
+            candidates = [ROOT / directory / "run.json"]
+            if family == "gpt-6-luna":
+                held = family_spec.get("heldout300", {}).get(condition)
+                if held:
+                    candidates.append(ROOT / held / "run.json")
+            candidates.append(ROOT / "artifacts" / "cost_probe" / tag / condition / "run.json")
+            n_calls = 0
+            tokens_per_call = 0.0
+            for candidate in candidates:
+                if not candidate.is_file():
+                    continue
+                usage = (
+                    json.loads(candidate.read_text(encoding="utf-8")).get("run") or {}
+                ).get("tokens") or {}
+                calls = int(usage.get("n_calls") or 0)
+                if calls >= 100:
+                    n_calls = calls
+                    tokens_per_call = (usage.get("total_tokens") or 0) / calls
+                    break
+                if calls > n_calls:
+                    n_calls = calls
+                    tokens_per_call = (usage.get("total_tokens") or 0) / calls
             report = scored.get(family, {}).get("dev300", {}).get(condition)
-            if not sidecar_path.is_file() or not report:
+            if not report or n_calls <= 0:
                 continue
-            sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
-            usage = (sidecar.get("run") or {}).get("tokens") or {}
-            n = sidecar.get("n_predictions") or 1
-            tokens = (usage.get("total_tokens") or 0) / max(int(n), 1)
             micro = None
             for item in report.get("metrics") or []:
                 if item.get("metric") == "micro_f1":
                     micro = float(item["value"])
-            if micro is None or tokens <= 0:
+            if micro is None:
                 continue
-            points.append((tokens, micro, condition))
+            points.append((tokens_per_call, micro, condition))
         if not points:
             continue
         ax.scatter(
             [p[0] for p in points],
             [p[1] for p in points],
-            s=42,
+            s=44,
             color=FAMILY_COLORS.get(family, "#333333"),
             label=_label(registry, family),
             zorder=3,
         )
+        largest = max(p[0] for p in points)
         for tokens, micro, condition in points:
+            # Keep labels inside the axes at both ends of the log scale.
+            if tokens >= largest:
+                kwargs = {"xytext": (-6, 4), "ha": "right"}
+            elif tokens <= min(p[0] for p in points):
+                kwargs = {"xytext": (7, -2), "ha": "left"}
+            else:
+                kwargs = {"xytext": (6, 4), "ha": "left"}
             ax.annotate(
                 condition,
                 (tokens, micro),
                 textcoords="offset points",
-                xytext=(5, 4),
                 fontsize=7.5,
+                **kwargs,
             )
     ax.set_xscale("log")
-    ax.set_xlabel("tokens per claim (log scale)")
+    ax.xaxis.set_minor_formatter(mticker.NullFormatter())
+    ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"{v:,.0f}"))
+    ax.set_xticks([300, 600, 1200, 3000])
+    ax.set_xlabel("prompt tokens per call (log scale)")
     ax.set_ylabel("micro-F1")
-    ax.set_title("Verification quality against cost")
-    ax.legend(frameon=False, fontsize=7.5)
+    ax.set_title("Verification quality against per-call prompt size")
+    ax.legend(frameon=False, fontsize=7.5, loc="best")
+    fig.tight_layout()
     _save(
         fig,
         "accuracy_cost",

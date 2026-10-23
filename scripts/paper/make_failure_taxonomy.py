@@ -128,33 +128,44 @@ def main() -> int:
     out.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     lines = [
-        "\\begin{tabular}{lllrr}",
+        "\\footnotesize",
+        "\\setlength{\\tabcolsep}{4.5pt}",
+        "\\begin{tabular}{@{}llrrrrr@{}}",
         "\\toprule",
-        "Model family & Method & Error class & $n$ & share of errors \\\\",
+        "Method & split & false end. & missed supp. & missed contr. & other & errors \\\\",
         "\\midrule",
     ]
+    first_family = True
     for family, splits in payload.items():
+        rows: list[str] = []
         for split_name, conditions in splits.items():
             for condition, block in conditions.items():
-                n_errors = block["n_errors"]
-                for name in CLASS_ORDER:
-                    count = block["error_classes"].get(name, 0)
-                    if not count:
-                        continue
-                    share = (count / n_errors) if n_errors else 0.0
-                    lines.append(
-                        " & ".join(
-                            [
-                                registry["families"][family].get("label", family),
-                                f"{condition} ({split_name})",
-                                name,
-                                str(count),
-                                f"{share:.2f}",
-                            ]
-                        )
-                        + " \\\\"
+                classes = block["error_classes"]
+                rows.append(
+                    " & ".join(
+                        [
+                            condition,
+                            split_name.replace("dev300", "dev").replace("heldout300", "held"),
+                            str(classes.get("false endorsement", 0)),
+                            str(classes.get("missed support", 0)),
+                            str(classes.get("missed contradiction", 0)),
+                            str(classes.get("other label error", 0)),
+                            str(block["n_errors"]),
+                        ]
                     )
-            lines.append("\\addlinespace[2pt]")
+                    + " \\\\"
+                )
+        if not rows:
+            continue
+        if not first_family:
+            lines.append("\\midrule")
+        first_family = False
+        lines.append(
+            "\\multicolumn{7}{@{}l}{\\emph{"
+            + registry["families"][family].get("label", family)
+            + "}} \\\\[1pt]"
+        )
+        lines.extend(rows)
     lines.append("\\bottomrule")
     lines.append("\\end{tabular}")
     PAPER_TABLES.mkdir(parents=True, exist_ok=True)

@@ -1,46 +1,43 @@
 {
-  "note": "Run registry for the paper. Every table and figure is generated from these artifacts. artifacts/ is gitignored, so the scored metric JSON files are the checked-in copies.",
-  "families": {
-    "gpt-6-luna": {
-      "label": "GPT-6-Luna (API)",
-      "dev300": {
-        "B0": "artifacts/api/dev300/B0",
-        "B1": "artifacts/api/dev300/B1",
-        "B2": "artifacts/api/dev300/b2",
-        "B3": "artifacts/api/dev300/B3",
-        "O": "artifacts/api/dev300/O",
-        "V": "artifacts/api/dev300/v"
-      },
-      "heldout300": {
-        "B2": "artifacts/held_out/b2",
-        "V": "artifacts/held_out/v"
-      },
-      "calibration": {
-        "B1": "artifacts/calibration/b1_luna"
-      }
-    },
-    "minimax-m3.1-flash": {
-      "label": "MiniMax M3.1 Flash (OpenCode)",
-      "dev300": {
-        "B0": "artifacts/minimax/dev300/b0",
-        "B1": "artifacts/minimax/dev300/b1",
-        "B2": "artifacts/minimax/dev300/b2",
-        "B3": "artifacts/minimax/dev300/b3",
-        "O": "artifacts/minimax/dev300/o",
-        "V": "artifacts/minimax/dev300/v"
-      },
-      "calibration": {
-        "B1": "artifacts/minimax/calibration/b1"
-      }
-    }
+ "note": "Run registry for the paper. Every table and figure is generated from these artifacts. artifacts/ is gitignored, so the scored metric JSON files are the checked-in copies.",
+ "families": {
+  "gpt-6-luna": {
+   "label": "GPT-6-Luna (API)",
+   "dev300": {
+    "B0": "artifacts/api/dev300/B0",
+    "B1": "artifacts/api/dev300/B1",
+    "B2": "artifacts/api/dev300/b2",
+    "B3": "artifacts/api/dev300/B3",
+    "O": "artifacts/api/dev300/O",
+    "V": "artifacts/api/dev300/v"
+   },
+   "heldout300": {
+    "B2": "artifacts/held_out/b2",
+    "V": "artifacts/held_out/v"
+   },
+   "calibration": {
+    "B1": "artifacts/calibration/b1_luna"
+   }
   },
-  "splits": {
-    "dev300": "development",
-    "heldout300": "held_out_local_eval",
-    "calibration": "calibration"
-  },
-  "claims": {
-    "dev300": "data/manifests/dev300_seed42.json",
-    "heldout300": "data/manifests/heldout300.json"
+  "minimax-m3.1-flash": {
+   "label": "MiniMax M3.1 Flash (OpenCode)",
+   "dev300": {
+    "B1": "artifacts/minimax/dev300/B1",
+    "B2": "artifacts/minimax/dev300/b2",
+    "V": "artifacts/minimax/dev300/v"
+   }
   }
+ },
+ "splits": {
+  "dev300": "development",
+  "heldout300": "held_out_local_eval",
+  "calibration": "calibration"
+ },
+ "claims": {
+  "dev300": "data/manifests/dev300_seed42.json",
+  "heldout300": "data/manifests/heldout300.json"
+ },
+ "notes": {
+  "minimax-m3.1-flash": "B0, B3, O and the calibration subset were started but not completed: the free endpoint that served this model was withdrawn during the study, and the remaining conditions returned ModelUnavailableError. Only B1, B2 and V on the development sample are registered."
+ }
 }

@@ -4,33 +4,33 @@
       "B0": {
         "n_rows": 300,
         "n_scored": 300,
-        "n_correct": 167,
+        "n_correct": 164,
         "n_failed_execution": 0,
-        "n_errors": 133,
+        "n_errors": 136,
         "error_classes": {
           "false endorsement": 82,
-          "missed support": 15,
-          "missed contradiction": 4,
-          "other label error": 32
+          "missed support": 16,
+          "missed contradiction": 7,
+          "other label error": 31
         },
         "error_mechanisms": {
-          "no code recorded": 133
+          "no code recorded": 136
         }
       },
       "B1": {
         "n_rows": 300,
         "n_scored": 300,
-        "n_correct": 252,
+        "n_correct": 253,
         "n_failed_execution": 0,
-        "n_errors": 48,
+        "n_errors": 47,
         "error_classes": {
-          "false endorsement": 9,
-          "missed support": 19,
-          "missed contradiction": 7,
+          "false endorsement": 8,
+          "missed support": 20,
+          "missed contradiction": 6,
           "other label error": 13
         },
         "error_mechanisms": {
-          "no code recorded": 48
+          "no code recorded": 47
         }
       },
       "B2": {
@@ -41,9 +41,9 @@
         "n_errors": 76,
         "error_classes": {
           "false endorsement": 2,
-          "missed support": 55,
+          "missed support": 50,
           "missed contradiction": 13,
-          "other label error": 6
+          "other label error": 11
         },
         "error_mechanisms": {
           "no code recorded": 76
@@ -52,50 +52,50 @@
       "B3": {
         "n_rows": 300,
         "n_scored": 300,
-        "n_correct": 237,
+        "n_correct": 240,
         "n_failed_execution": 0,
-        "n_errors": 63,
+        "n_errors": 60,
         "error_classes": {
-          "false endorsement": 10,
-          "missed support": 24,
-          "missed contradiction": 10,
-          "other label error": 19
+          "false endorsement": 9,
+          "missed support": 22,
+          "missed contradiction": 9,
+          "other label error": 20
         },
         "error_mechanisms": {
-          "no code recorded": 63
+          "no code recorded": 60
         }
       },
       "O": {
         "n_rows": 300,
         "n_scored": 300,
-        "n_correct": 257,
+        "n_correct": 261,
         "n_failed_execution": 0,
-        "n_errors": 43,
+        "n_errors": 39,
         "error_classes": {
-          "false endorsement": 3,
-          "missed support": 31,
-          "missed contradiction": 9,
+          "false endorsement": 1,
+          "missed support": 27,
+          "missed contradiction": 11,
           "other label error": 0
         },
         "error_mechanisms": {
-          "no code recorded": 43
+          "no code recorded": 39
         }
       },
       "V": {
         "n_rows": 300,
-        "n_scored": 268,
-        "n_correct": 181,
-        "n_failed_execution": 32,
-        "n_errors": 87,
+        "n_scored": 300,
+        "n_correct": 206,
+        "n_failed_execution": 0,
+        "n_errors": 94,
         "error_classes": {
           "false endorsement": 0,
-          "missed support": 66,
-          "missed contradiction": 19,
+          "missed support": 67,
+          "missed contradiction": 25,
           "other label error": 2
         },
         "error_mechanisms": {
-          "scope conflict": 59,
-          "scope agreement": 28
+          "scope conflict": 64,
+          "scope agreement": 30
         }
       }
     },
@@ -133,25 +133,75 @@
           "scope agreement": 22
         }
       }
+    },
+    "calibration": {
+      "B1": {
+        "n_rows": 100,
+        "n_scored": 100,
+        "n_correct": 82,
+        "n_failed_execution": 0,
+        "n_errors": 18,
+        "error_classes": {
+          "false endorsement": 3,
+          "missed support": 6,
+          "missed contradiction": 2,
+          "other label error": 7
+        },
+        "error_mechanisms": {
+          "no code recorded": 18
+        }
+      }
     }
   },
   "minimax-m3.1-flash": {
     "dev300": {
+      "B1": {
+        "n_rows": 300,
+        "n_scored": 300,
+        "n_correct": 259,
+        "n_failed_execution": 0,
+        "n_errors": 41,
+        "error_classes": {
+          "false endorsement": 17,
+          "missed support": 4,
+          "missed contradiction": 0,
+          "other label error": 20
+        },
+        "error_mechanisms": {
+          "no code recorded": 41
+        }
+      },
+      "B2": {
+        "n_rows": 300,
+        "n_scored": 300,
+        "n_correct": 261,
+        "n_failed_execution": 0,
+        "n_errors": 39,
+        "error_classes": {
+          "false endorsement": 6,
+          "missed support": 17,
+          "missed contradiction": 6,
+          "other label error": 10
+        },
+        "error_mechanisms": {
+          "no code recorded": 39
+        }
+      },
       "V": {
         "n_rows": 300,
-        "n_scored": 171,
-        "n_correct": 142,
-        "n_failed_execution": 129,
-        "n_errors": 29,
+        "n_scored": 300,
+        "n_correct": 249,
+        "n_failed_execution": 0,
+        "n_errors": 51,
         "error_classes": {
-          "false endorsement": 1,
-          "missed support": 19,
-          "missed contradiction": 6,
+          "false endorsement": 3,
+          "missed support": 36,
+          "missed contradiction": 9,
           "other label error": 3
         },
         "error_mechanisms": {
-          "scope agreement": 10,
-          "scope conflict": 19
+          "scope agreement": 16,
+          "scope conflict": 35
         }
       }
     }

@@ -82,12 +82,10 @@ def _fmt(value: float | None, digits: int = 3) -> str:
 
 
 def _ci(block: dict | None, digits: int = 3) -> str:
+    """The interval alone; the point estimate already has its own column."""
     if not block:
         return "---"
-    return (
-        f"{block['point_estimate']:.{digits}f} "
-        f"[{block['ci_low']:.{digits}f}, {block['ci_high']:.{digits}f}]"
-    )
+    return f"[{block['ci_low']:.{digits}f}, {block['ci_high']:.{digits}f}]"
 
 
 def load_registry() -> dict:
@@ -334,63 +332,133 @@ def write_ablation_table(scored: dict) -> None:
     _write("t2_ablation.tex", "\n".join(lines) + "\n")
 
 
+CALLS_PER_CLAIM = {
+    "B0": 1,
+    "B1": 1,
+    "B2": 2,
+    "B3": 1,
+    "V-D1": 2,
+    "V": 3,
+    "O": 1,
+}
+
+# Below this many recorded calls, a per-call average is too noisy to print.
+MIN_CALLS_FOR_COST = 100
+
+
+def measured_costs(registry: dict) -> dict[tuple[str, str], tuple[str, int, int, dict]]:
+    """Per-condition call counts and token totals, keyed by (family, condition).
+
+    A resumed run keeps only the usage meter of its last invocation, so this
+    picks, for each condition, the split that recorded the most calls, and
+    discards measurements below ``MIN_CALLS_FOR_COST``.
+    """
+    measured: dict[tuple[str, str], tuple[str, int, int, dict]] = {}
+    for family in FAMILY_ORDER:
+        tag = "luna" if family == "gpt-6-luna" else "minimax"
+        for condition in CONDITION_ORDER:
+            if condition == "B0":
+                continue
+            best: tuple[str, int, int, dict] | None = None
+            if tag == "luna":
+                for split_name, conditions in registry["families"][family].items():
+                    if split_name == "label":
+                        continue
+                    directory = conditions.get(condition)
+                    if not directory:
+                        continue
+                    sidecar_path = ROOT / directory / "run.json"
+                    if not sidecar_path.is_file():
+                        continue
+                    usage = (_read_json(sidecar_path).get("run") or {}).get("tokens") or {}
+                    n_calls = int(usage.get("n_calls") or 0)
+                    if n_calls < MIN_CALLS_FOR_COST:
+                        continue
+                    source = (
+                        "dev"
+                        if split_name == "dev300"
+                        else ("held" if split_name == "heldout300" else split_name)
+                    )
+                    candidate = (
+                        source,
+                        n_calls,
+                        int(usage.get("total_tokens") or 0),
+                        usage.get("latency_seconds") or {},
+                    )
+                    if best is None or candidate[1] > best[1]:
+                        best = candidate
+            else:
+                if condition not in ("B2", "V"):
+                    continue
+                sidecar_path = (
+                    ROOT / "artifacts" / "cost_probe" / tag / condition / "run.json"
+                )
+                if sidecar_path.is_file():
+                    usage = (_read_json(sidecar_path).get("run") or {}).get("tokens") or {}
+                    n_calls = int(usage.get("n_calls") or 0)
+                    if n_calls > 0:
+                        best = (
+                            "probe",
+                            n_calls,
+                            int(usage.get("total_tokens") or 0),
+                            usage.get("latency_seconds") or {},
+                        )
+            if best is not None:
+                measured[(family, condition)] = best
+    return measured
+
+
 def write_cost_table(registry: dict) -> None:
+    """Model calls, per-call size, and latency.
+
+    Per-call averages survive a resumed run; per-claim token totals do not,
+    because every invocation writes its own usage meter. The table therefore
+    reports calls per claim (a property of the design) next to the measured
+    tokens per call, and the caption says how to read the product. B0 makes a
+    single batch call for the whole sample, so it has no per-claim row.
+    """
+    measured = measured_costs(registry)
     lines = [
         "\\footnotesize",
         "\\setlength{\\tabcolsep}{5pt}",
         "\\begin{tabular}{@{}llrrrr@{}}",
         "\\toprule",
-        "Split & Method & tokens/claim & calls/claim & median (s) & p95 (s) \\\\",
+        "Method & measured on & calls/claim & tokens/call & median (s) & p95 (s) \\\\",
         "\\midrule",
     ]
     first = True
     for family in FAMILY_ORDER:
-        blocks = []
-        for split_name, conditions in registry["families"][family].items():
-            if split_name == "label":
-                continue
-            for condition in CONDITION_ORDER:
-                directory = conditions.get(condition)
-                if not directory:
-                    continue
-                sidecar_path = ROOT / directory / "run.json"
-                if not sidecar_path.is_file():
-                    continue
-                sidecar = _read_json(sidecar_path)
-                run = sidecar.get("run") or {}
-                usage = run.get("tokens") or {}
-                latency = usage.get("latency_seconds") or {}
-                n = sidecar.get("n_predictions")
-                if n is None:
-                    run_id = str(run.get("run_id", ""))
-                    n = int(run_id.split("-n")[-1].split("-")[0]) if "-n" in run_id else 1
-                n = int(n)
-                tokens_per_claim = (usage.get("total_tokens") or 0) / max(n, 1)
-                calls_per_claim = (usage.get("n_calls") or 0) / max(n, 1)
-                blocks.append(
-                    " & ".join(
-                        [
-                            split_name,
-                            condition,
-                            f"{tokens_per_claim:,.0f}",
-                            f"{calls_per_claim:.2f}",
-                            _fmt(latency.get("median"), 1),
-                            _fmt(latency.get("p95"), 1),
-                        ]
-                    )
-                    + " \\\\"
-                )
+        blocks = [
+            (condition,) + measured[(family, condition)]
+            for condition in CONDITION_ORDER
+            if (family, condition) in measured
+        ]
         if not blocks:
             continue
         if not first:
             lines.append("\\midrule")
         first = False
+        label = registry_label(family)
+        if family != "gpt-6-luna":
+            label += " (50-claim probe)"
         lines.append(
-            "\\multicolumn{6}{@{}l}{\\emph{"
-            + registry_label(family)
-            + "}} \\\\[1pt]"
+            "\\multicolumn{6}{@{}l}{\\emph{" + label + "}} \\\\[1pt]"
         )
-        lines.extend(blocks)
+        for condition, source, n_calls, total_tokens, latency in blocks:
+            tokens_per_call = total_tokens / max(n_calls, 1)
+            lines.append(
+                " & ".join(
+                    [
+                        condition,
+                        source,
+                        f"{CALLS_PER_CLAIM[condition]:.0f}",
+                        f"{tokens_per_call:,.0f}",
+                        _fmt(latency.get("median"), 1),
+                        _fmt(latency.get("p95"), 1),
+                    ]
+                )
+                + " \\\\"
+            )
     lines.append("\\bottomrule")
     lines.append("\\end{tabular}")
     _write("t3_cost.tex", "\n".join(lines) + "\n")
@@ -591,6 +659,18 @@ def write_macros(scored: dict, boots: dict, registry: dict, extra: dict[str, str
                 f"{prefix}neishare",
                 f"{(nei / total) if total else 0:.2f}",
             )
+
+    # Per-call token averages, quoted in the cost paragraph.
+    measured = measured_costs(registry)
+    for condition in ("B2", "V"):
+        entry = measured.get(("gpt-6-luna", condition))
+        if not entry:
+            continue
+        _, n_calls, total_tokens, _ = entry
+        macro(
+            f"lunadev{_tex_name(condition)}TokensPerCall",
+            f"{(total_tokens / n_calls):,.0f}",
+        )
 
     # Mechanism macros: accuracy conditioned on scope agreement.
     for name, value in (extra or {}).items():
@@ -809,6 +889,7 @@ def write_mechanism_table(registry: dict, scored: dict) -> dict[str, str]:
                 macros[f"{prefix}BTwosAcc"] = f"{b2_ok / n:.3f}"
                 macros[f"{prefix}Vacc"] = f"{v_ok / n:.3f}"
                 macros[f"{prefix}Vnei"] = f"{v_nei / n:.3f}"
+                macros[f"{prefix}NeiCount"] = str(v_nei)
     lines.append("\\bottomrule")
     lines.append("\\end{tabular}")
     _write("t9_mechanism.tex", "\n".join(lines) + "\n")
