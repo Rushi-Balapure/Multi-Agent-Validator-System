@@ -568,6 +568,10 @@ def write_macros(scored: dict, boots: dict, registry: dict, extra: dict[str, str
                     f"{prefix}supportPrecision",
                     _fmt(_class_metric(report, "precision", "SUPPORT")),
                 )
+                macro(
+                    f"{prefix}neiPrecision",
+                    _fmt(_class_metric(report, "precision", "NEI")),
+                )
             bootstrap = boots.get(family, {}).get(split_name)
             if bootstrap:
                 diff = (bootstrap.get("bootstrap") or {}).get("paired_difference", {}).get(

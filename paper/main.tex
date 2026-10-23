@@ -733,9 +733,10 @@ precision of the endorsement class (from \lunadevBTwosupportPrecision{} to
 to \mmdevVsupportPrecision{} in the second) by pushing almost everything it is
 unsure about into NEI, and it pays for that with recall
 (\lunadevBTwosupportRecall{} against \lunadevVsupportRecall{}, and
-\mmdevBTwosupportRecall{} against \mmdevVsupportRecall{}) and with a slightly
-worse NEI precision, because the claims it abstains on are not the claims the
-baseline abstained on.
+\mmdevBTwosupportRecall{} against \mmdevVsupportRecall{}) and with lower NEI
+precision (\lunadevBTwoneiPrecision{} against \lunadevVneiPrecision{}, and
+\mmdevBTwoneiPrecision{} against \mmdevVneiPrecision{}), because it abstains on
+far more claims and many of those claims are supported.
 
 \begin{table}[t]
 \centering
