@@ -226,7 +226,7 @@ result about that combination.
 
 \subsection{Abstention, calibration, and selective use}
 
-A system that cannot say ``I do not know`` is dangerous. Work on abstention
+A system that cannot say ``I do not know'' is dangerous. Work on abstention
 \citep{feng2024abstain} and on calibrated selective fact checking
 \citep{yang2026calibratedselective} formalises the trade-off we measure.
 Calibration theory \citep{guo2017calibration} distinguishes a model's
@@ -518,7 +518,8 @@ cited span identifiers, and uncertainty reasons; the citation auditor must
 return a label plus a per-citation adequacy rating from
 \{adequate, inadequate, unverifiable\} and a defect list. The parsers reject
 a label outside the allowed set, a cited identifier that was not supplied,
-and any missing field. Appendix~\ref{app:prompts} lists the prompts in full.
+and any missing field. Appendix~\ref{app:prompts} states each contract; the
+prompt text itself is in the repository, versioned and hashed.
 
 \section{Experimental Setup}
 
@@ -532,12 +533,13 @@ claims) is used as a \emph{local} held-out evaluation set; it is not an
 untouched community test set, and we name it accordingly throughout. Official
 test labels are not used.
 
-Two samples are frozen by manifest: a 300-claim development sample
-(seeded draw, \texttt{dev300\_seed42.json} under \texttt{data/manifests/})
-used for all development and prompt decisions, and a 300-claim held-out
-sample used once under the freeze record. Both samples group claims by
-cited-document family so that paraphrases and derivative claims do not
-straddle the comparison.
+Two samples are frozen by manifest: a 300-claim development sample drawn with
+a fixed seed from the training pool (\texttt{dev300\_seed42.json} under
+\texttt{data/manifests/}), used for all development and prompt decisions, and
+a 300-claim evaluation sample consisting of SciFact's public development
+split, held out locally and used once under the freeze record. Both samples
+group claims by cited-document family so that paraphrases and derivative
+claims do not straddle the comparison.
 
 \subsection{Conditions}
 
@@ -587,8 +589,10 @@ Coverage is the fraction of submitted claims that produced a scored
 prediction; fail-closed rows are counted and reported, never dropped
 silently. Calibration is measured with multiclass Brier score, negative
 log-likelihood, and expected calibration error, fitted with a single
-temperature on the calibration split only. Cost is reported as tokens,
-calls, and latency per claim.
+temperature on the calibration split only. Cost is reported as calls per
+claim, measured tokens per call, and per-call latency, because a resumed run
+keeps only its last invocation's usage record and per-claim token totals are
+therefore not recoverable.
 
 \subsection{Statistics and preregistration}
 
@@ -768,7 +772,7 @@ comparison the study preregistered.
 The RQ2 descriptive split is available because V stores its four-way label
 alongside the mapped native label. On the development sample V predicts NEI
 on \lunadevVlabelsnei{} of \lunadevVlabelstotal{} claims
-(\lunadevVlabelsneishare{} of them), and those NEI predictions split into
+(\lunadevVlabelsneishare{} of the sample), and those NEI predictions split into
 \emph{unaddressed} (no retrieved passage addresses the claim,
 \lunadevVlabelsunaddressed{} claims) and \emph{underdetermined} (relevant
 evidence exists but does not resolve, \lunadevVlabelsunderdetermined{}
@@ -1221,7 +1225,11 @@ prospective power analysis supports stronger claims.
     \path{tools/opencode_bridge.py}, then pass
     \texttt{-{}-base-url} and \texttt{-{}-model-id} to the runners.
   \item Run the conditions on the development sample
-    (\path{scripts/run_minimax_dev300.sh} shows the full sequence).
+    (\path{scripts/run_api_dev300.sh} for the API family,
+    \path{scripts/run_minimax_dev300.sh} for the second family, which also
+    shows the bridge setup). The second family's registered conditions are
+    the three that completed; its remaining conditions returned a
+    model-unavailable error, as noted in Section~\ref{sec:limitations}.
   \item Run the held-out sample once with \texttt{-{}-frozen-final}; the
     runner refuses to start unless the model, prompt, configuration, and
     corpus hashes match \path{docs/freeze.json}.

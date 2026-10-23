@@ -27,10 +27,10 @@ research-paper draft within eight weeks.
 | Fail-closed execution semantics | done | `src/validator/schemas.py`, parsers in `live_judgment.py` |
 | Preregistered primary comparison, paired cluster bootstrap | done | `src/evaluation/bootstrap.py`, `docs/freeze.json` |
 | Locked held-out 300 run | done (one run) | `artifacts/held_out/` |
-| Cost, latency, token accounting | done | `src/validator/usage.py`, Run record |
+| Cost, latency, token accounting | done for the API family | `src/validator/usage.py`, Run record |
 | Calibration on a reserved split | done | `scripts/paper/make_calibration.py` |
 | Error taxonomy and manual sample | done | `scripts/paper/make_failure_taxonomy.py` |
-| Independent model family | done | `tools/opencode_bridge.py`, second family in the paper tables |
+| Independent model family | partial: B1, B2, V on the development sample | `tools/opencode_bridge.py`; endpoint withdrawn, see §3 |
 | Retrieval-metric table (recall@k, D0/D1 overlap, unique yield) | done | `scripts/paper/make_retrieval_metrics.py` |
 | Complete paper in arXiv format | done | `paper/main.tex` |
 | **Custom agentic set with human four-way labels** | **not done** | see §4 |
@@ -72,8 +72,20 @@ Each deviation is stated in the paper as well.
   surface. `tools/opencode_bridge.py` exposes one on loopback, one fresh
   session per request. The harness prepends a fixed agent preamble to every
   request; it is identical across conditions, so it cancels in comparisons,
-  but it inflates the reported prompt-token counts and is called out in the
-  cost discussion.
+  but it inflates the reported prompt-token counts, which is why the paper
+  reports cost for the API family only.
+* **The second family's matrix is partial, and stays partial.** The free
+  endpoint that served MiniMax M3.1 Flash was withdrawn while the study was
+  running (2026-10-23). V, B2 and B1 on the development sample had finished;
+  B3 stopped at 96 of 300 scored rows, and O, B0 and the calibration subset
+  never started. Every later request returns a model-unavailable error from
+  the runtime, so the conditions cannot be completed with the registered
+  model. The registry lists only the finished conditions, the paper reports
+  the factorial as an API-family result, and Limitations names the missing
+  rows instead of imputing them. Do not substitute a different free model
+  for the missing cells: the V and B2 numbers that anchor the replication
+  come from this model, and mixing families inside one block would make the
+  table uninterpretable.
 * **Retry policy for failed executions.** A request that fails for
   transport or parse reasons is retried up to four times; the failed rows
   are dropped from the prediction file between attempts so that the resume
