@@ -66,7 +66,7 @@ already reads the original citations. On the 300-claim development sample the
 paired difference in false endorsement is \lunadevfediff{} (\lunadevfeci),
 and the same pattern repeats on a 300-claim held-out sample
 (\lunaheldfediff{}, \lunaheldfeci). The staged validator does eliminate false
-endorsement -- its rate is \lunadevVfe{} on the development sample and
+endorsement -- measured at \lunadevVfe{} on the development sample and
 \lunaheldVfe{} on the held-out sample -- but it does so by endorsing much
 less: SUPPORT recall falls from \lunadevBTwosupportRecall{} to
 \lunadevVsupportRecall{} on the development sample, and on the held-out
@@ -1022,6 +1022,13 @@ without redesigning it.
     only, abstract-level text. Claims that require full-text methods,
     figures, or supplementary material are out of scope, and the corpus
     bounds every support claim we make.
+  \item \textbf{Supplied claims, not generated reports.} The design includes a
+    proposer that turns a report into atomic claims, but the evaluation
+    scores crowd-sourced SciFact claims, not claims proposed from
+    agent-written research reports. A multi-hop agentic track with human
+    reference inventories and adjudicated annotation was planned and not
+    run, so the results speak to checking a claim whose evidence set is
+    given, not to end-to-end report verification.
   \item \textbf{Abstract-level evidence.} Retrieval and reading operate on
     abstracts. Some claims are simply not decidable from an abstract, which
     should appear as unaddressed but may be read as underdetermined.
@@ -1042,7 +1049,9 @@ without redesigning it.
     the two families were not both run on it.
   \item \textbf{No matched-budget control was run.} V spends several times
     the tokens of B2, so compute is a live rival explanation for part of the
-    F1 gap. We report the gap with that caveat rather than claiming it is
+    F1 gap. The planned control repeats B2's comparison step at $k$ samples
+    and votes, matching V's token budget; it is the first experiment we would
+    run next. We report the gap with that caveat rather than claiming it is
     explained.
   \item \textbf{Retrieval is BM25 only.} Dense retrieval and
     reciprocal-rank fusion were prepared but not enabled in the product path.
