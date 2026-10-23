@@ -12,7 +12,9 @@ Run with the paper virtual environment (matplotlib):
 
 from __future__ import annotations
 
+import datetime as dt
 import json
+import os
 import sys
 from collections import Counter
 from pathlib import Path
@@ -34,6 +36,14 @@ TABLES = ROOT / "docs" / "paper-assets" / "tables"
 GRAPHS = ROOT / "docs" / "paper-assets" / "graphs"
 FIGURES = ROOT / "paper" / "figures"
 REGISTRY = TABLES / "run_registry.json"
+
+# Pin the PDF creation date so that regenerating a figure from unchanged data
+# produces an identical file. Without this, matplotlib stamps the wall clock
+# into the document info and every rebuild shows a binary diff. Set
+# SOURCE_DATE_EPOCH to override the pinned date.
+_EPOCH = int(os.environ.get("SOURCE_DATE_EPOCH", "1790812800"))  # 2026-10-01 UTC
+_PDF_DATE = dt.datetime.fromtimestamp(_EPOCH, dt.timezone.utc).strftime("D:%Y%m%d%H%M%SZ")
+_PDF_META = {"CreationDate": _PDF_DATE, "ModDate": _PDF_DATE}
 
 plt.rcParams.update(
     {
@@ -101,7 +111,7 @@ def _gold_map(predictions: Path, sidecar: Path, split: str) -> dict[str, str]:
 def _save(fig, name: str, meta: dict) -> None:
     FIGURES.mkdir(parents=True, exist_ok=True)
     GRAPHS.mkdir(parents=True, exist_ok=True)
-    fig.savefig(FIGURES / f"{name}.pdf")
+    fig.savefig(FIGURES / f"{name}.pdf", metadata=_PDF_META)
     fig.savefig(GRAPHS / f"{name}.png", dpi=200)
     plt.close(fig)
     (GRAPHS / f"{name}.meta.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
