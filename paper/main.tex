@@ -1159,7 +1159,10 @@ without redesigning it.
     percentage point; most paired intervals collapse to zero. It supports a
     statement about the direction of the shift across models, not about its
     size, and it does not reproduce the SUPPORT-recall gap measured on the
-    full sample.
+    full sample. The rows are the models we could reach without charge or
+    within the spend cap, not a stratified sample of the field, and the
+    closed-weight rows share a training lineage, so they bound sensitivity to
+    model variant rather than to training pipeline.
   \item \textbf{The MiniMax family's matrix is incomplete.} Its B3 condition
     stopped partway through the sample and its B0, O and calibration
     conditions never ran, because the free endpoint that served the model was
