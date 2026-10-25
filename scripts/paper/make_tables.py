@@ -280,6 +280,175 @@ def write_paired_table(boots: dict, split_name: str) -> None:
     _write(f"t1b_{split_name}_paired.tex", "\n".join(lines) + "\n")
 
 
+def score_sweep(registry: dict) -> dict[str, dict[str, Any]]:
+    """Score B2 versus V for every model in the fixed-subset sweep.
+
+    The sweep uses one frozen claim sample, so every row is paired on the
+    same claims. Reports are written as checked-in JSON because the
+    prediction files live under the gitignored artifacts tree.
+    """
+    sweep = registry.get("sweep") or {}
+    split = registry["splits"]["dev300"]
+    results: dict[str, dict[str, Any]] = {}
+    for key, spec in (sweep.get("models") or {}).items():
+        b2_dir = ROOT / spec["B2"]
+        v_dir = ROOT / spec["V"]
+        b2_predictions = b2_dir / "predictions.jsonl"
+        v_predictions = v_dir / "predictions.jsonl"
+        if not b2_predictions.is_file() or not v_predictions.is_file():
+            print(f"  skip sweep/{key}: predictions missing")
+            continue
+        b2_sidecar = b2_dir / "run.json"
+        v_sidecar = v_dir / "run.json"
+        if not b2_sidecar.is_file() or not v_sidecar.is_file():
+            print(f"  skip sweep/{key}: run sidecar missing")
+            continue
+        b2_report = score_predictions_file(b2_predictions, run_sidecar=b2_sidecar, join_gold=split)
+        v_report = score_predictions_file(v_predictions, run_sidecar=v_sidecar, join_gold=split)
+        comparison = compare(
+            b2_predictions=b2_predictions,
+            v_predictions=v_predictions,
+            b2_sidecar=b2_sidecar,
+            v_sidecar=v_sidecar,
+            split=split,
+        )
+        results[key] = {
+            "label": spec["label"],
+            "access": spec.get("access", ""),
+            "b2": b2_report,
+            "v": v_report,
+            "comparison": comparison,
+        }
+        _write_json(TABLES / f"sweep_{key}.json", results[key])
+    return results
+
+
+def _sweep_delta(item: dict[str, Any]) -> dict | None:
+    bootstrap = (item.get("comparison") or {}).get("bootstrap") or {}
+    return (bootstrap.get("paired_difference") or {}).get("false_endorsement_gold_nonsup")
+
+
+def _direction(b2_value: float | None, v_value: float | None) -> int:
+    """-1 when V is lower than B2, +1 when higher, 0 when equal or missing."""
+    if b2_value is None or v_value is None:
+        return 0
+    if v_value < b2_value:
+        return -1
+    if v_value > b2_value:
+        return 1
+    return 0
+
+
+_NUMBER_WORDS = (
+    "none", "one", "two", "three", "four", "five", "six", "seven", "eight",
+    "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen",
+    "sixteen", "seventeen", "eighteen", "nineteen", "twenty",
+)
+
+
+def _number_word(value: int) -> str:
+    """Spell a small count so the prose does not read ``4 of 4 models``."""
+    if 0 <= value < len(_NUMBER_WORDS):
+        return _NUMBER_WORDS[value]
+    return str(value)
+
+
+def write_sweep_table(sweep: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """The cross-model table plus the macros the prose quotes."""
+    lines = [
+        "\\scriptsize",
+        "\\setlength{\\tabcolsep}{5pt}",
+        "\\begin{tabular}{@{}llrrrr@{}}",
+        "\\toprule",
+        "Model & Weights & $\\Delta$FE [95\\% CI] & SUPPORT R & REFUTE R & micro-F1 \\\\",
+        "\\midrule",
+    ]
+    counts = {
+        "fe": {-1: 0, 0: 0, 1: 0},
+        "support": {-1: 0, 0: 0, 1: 0},
+        "refute": {-1: 0, 0: 0, 1: 0},
+        "f1": {-1: 0, 0: 0, 1: 0},
+    }
+    intervals_excluding_zero = 0
+    b2_f1_values = [
+        value
+        for item in sweep.values()
+        if (value := _metric(item["b2"], "micro_f1")) is not None
+    ]
+    closed = [(k, v) for k, v in sweep.items() if v.get("access") == "closed"]
+    open_models = [(k, v) for k, v in sweep.items() if v.get("access") != "closed"]
+    for group_index, group in enumerate((closed, open_models)):
+        if not group:
+            continue
+        if group_index == 1:
+            lines.append("\\midrule")
+        for key, item in group:
+            diff = _sweep_delta(item)
+            point = (diff or {}).get("point_estimate")
+            counts["fe"][_direction(0.0, point) if point is not None else 0] += 1
+            for name, class_label in (("support", "SUPPORT"), ("refute", "REFUTE")):
+                counts[name][
+                    _direction(
+                        _class_metric(item["b2"], "recall", class_label),
+                        _class_metric(item["v"], "recall", class_label),
+                    )
+                ] += 1
+            counts["f1"][
+                _direction(_metric(item["b2"], "micro_f1"), _metric(item["v"], "micro_f1"))
+            ] += 1
+            if diff and diff.get("excludes_zero"):
+                intervals_excluding_zero += 1
+            pair = lambda name, label=None: "%s / %s" % (
+                _fmt(_class_metric(item["b2"], name, label) if label else _metric(item["b2"], name)),
+                _fmt(_class_metric(item["v"], name, label) if label else _metric(item["v"], name)),
+            )
+            lines.append(
+                " & ".join(
+                    [
+                        item["label"],
+                        "closed" if item.get("access") == "closed" else "open",
+                        (f"{point:+.3f} {_ci(diff)}" if diff else "---"),
+                        pair("recall", "SUPPORT"),
+                        pair("recall", "REFUTE"),
+                        pair("micro_f1"),
+                    ]
+                )
+                + " \\\\"
+            )
+    lines.append("\\bottomrule")
+    lines.append("\\end{tabular}")
+    _write("t10_sweep.tex", "\n".join(lines) + "\n")
+    numeric = {
+        "sweepModels": len(sweep),
+        "sweepClosed": len(closed),
+        "sweepOpen": len(open_models),
+        "sweepLower": counts["fe"][-1],
+        "sweepEqual": counts["fe"][0],
+        "sweepHigher": counts["fe"][1],
+        "sweepExcludeZero": intervals_excluding_zero,
+        "sweepFOneLower": counts["f1"][-1],
+        "sweepSupportLower": counts["support"][-1],
+        "sweepRefuteLower": counts["refute"][-1],
+        "sweepRefuteEqual": counts["refute"][0],
+        "sweepSupportEqual": counts["support"][0],
+    }
+    macros = {name: str(value) for name, value in numeric.items()}
+    # "zero of four" and "0 of 4" both read badly, so the prose also gets a
+    # spelled-out form. ``none`` is used for a count of zero.
+    for name, value in numeric.items():
+        macros[f"{name}Word"] = _number_word(value)
+    closed_word = _number_word(len(closed))
+    open_word = _number_word(len(open_models))
+    macros["sweepSplit"] = (
+        f"{closed_word} closed-weight and {open_word} open-weight"
+        if open_models
+        else f"{closed_word} closed-weight"
+    )
+    macros["sweepBTwomin"] = _fmt(min(b2_f1_values)) if b2_f1_values else "---"
+    macros["sweepBTwomax"] = _fmt(max(b2_f1_values)) if b2_f1_values else "---"
+    return macros
+
+
 def write_ablation_table(scored: dict) -> None:
     lines = [
         "\\footnotesize",
@@ -926,6 +1095,8 @@ def main() -> int:
     derive_vd1(registry, scored)
     print("paired bootstrap")
     boots = bootstrap_pairs(registry)
+    print("scoring the model sweep")
+    sweep = score_sweep(registry)
     print("writing LaTeX tables")
     write_main_table(scored, boots, "dev300")
     write_main_table(scored, boots, "heldout300")
@@ -937,7 +1108,10 @@ def main() -> int:
     write_retrieval_table()
     write_sensitivity_table(registry)
     mechanism_macros = write_mechanism_table(registry, scored)
-    write_macros(scored, boots, registry, extra=mechanism_macros)
+    sweep_macros = write_sweep_table(sweep)
+    write_macros(
+        scored, boots, registry, extra={**mechanism_macros, **sweep_macros}
+    )
     print(f"wrote tables under {PAPER_TABLES}")
     return 0
 

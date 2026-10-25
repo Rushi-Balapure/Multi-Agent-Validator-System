@@ -2,7 +2,7 @@
  "note": "Run registry for the paper. Every table and figure is generated from these artifacts. artifacts/ is gitignored, so the scored metric JSON files are the checked-in copies.",
  "families": {
   "gpt-6-luna": {
-   "label": "GPT-6-Luna (API)",
+   "label": "GPT-6 Luna",
    "dev300": {
     "B0": "artifacts/api/dev300/B0",
     "B1": "artifacts/api/dev300/B1",
@@ -20,7 +20,7 @@
    }
   },
   "minimax-m3.1-flash": {
-   "label": "MiniMax M3.1 Flash (OpenCode)",
+   "label": "MiniMax M3.1 Flash",
    "dev300": {
     "B1": "artifacts/minimax/dev300/B1",
     "B2": "artifacts/minimax/dev300/b2",
@@ -39,5 +39,77 @@
  },
  "notes": {
   "minimax-m3.1-flash": "B0, B3, O and the calibration subset were started but not completed: the free endpoint that served this model was withdrawn during the study, and the remaining conditions returned ModelUnavailableError. Only B1, B2 and V on the development sample are registered."
+ },
+ "sweep": {
+  "sample": "data/manifests/sweep30_seed42.json",
+  "note": "B2 versus V repeated on the frozen 30-claim balanced subset. The four closed-weight models were served by the official API under a spend cap; the seven open-weight models were served free of charge. Every row uses the same sample, prompts, and scoring code.",
+  "models": {
+   "astra": {
+    "label": "GPT-6 Astra",
+    "access": "closed",
+    "B2": "artifacts/sweep/astra/b2",
+    "V": "artifacts/sweep/astra/v"
+   },
+   "sol": {
+    "label": "GPT-6 Sol",
+    "access": "closed",
+    "B2": "artifacts/sweep/sol/b2",
+    "V": "artifacts/sweep/sol/v"
+   },
+   "terra": {
+    "label": "GPT-5.6 Terra",
+    "access": "closed",
+    "B2": "artifacts/sweep/terra/b2",
+    "V": "artifacts/sweep/terra/v"
+   },
+   "luna": {
+    "label": "GPT-6 Luna",
+    "access": "closed",
+    "B2": "artifacts/sweep/luna/b2",
+    "V": "artifacts/sweep/luna/v"
+   },
+   "deepseek": {
+    "label": "DeepSeek V4.1 Flash",
+    "access": "open",
+    "B2": "artifacts/sweep/deepseek/b2",
+    "V": "artifacts/sweep/deepseek/v"
+   },
+   "glm": {
+    "label": "GLM-5.3 Flash",
+    "access": "open",
+    "B2": "artifacts/sweep/glm/b2",
+    "V": "artifacts/sweep/glm/v"
+   },
+   "flint": {
+    "label": "Flint 40B",
+    "access": "open",
+    "B2": "artifacts/sweep/flint/b2",
+    "V": "artifacts/sweep/flint/v"
+   },
+   "beam": {
+    "label": "Beam",
+    "access": "open",
+    "B2": "artifacts/sweep/beam/b2",
+    "V": "artifacts/sweep/beam/v"
+   },
+   "mimo": {
+    "label": "MiMo-V2.6 Flash",
+    "access": "open",
+    "B2": "artifacts/sweep/mimo/b2",
+    "V": "artifacts/sweep/mimo/v"
+   },
+   "nemotron": {
+    "label": "Nemotron 3.5 Super VL",
+    "access": "open",
+    "B2": "artifacts/sweep/nemotron/b2",
+    "V": "artifacts/sweep/nemotron/v"
+   },
+   "pickle": {
+    "label": "Big Pickle",
+    "access": "open",
+    "B2": "artifacts/sweep/pickle/b2",
+    "V": "artifacts/sweep/pickle/v"
+   }
+  }
  }
 }

@@ -24,7 +24,7 @@
 \usepackage{enumitem}
 \usepackage[hidelinks]{hyperref}
 \hypersetup{
-  pdftitle={Does Independent Retrieval Help an LLM Fact-Checker? A Staged Evidence-First Validator for Scientific Claims},
+  pdftitle={Multi-Agent Validator System: Independent Evidence for Scientific Claim Verification},
   pdfsubject={Scientific claim verification, independent retrieval, abstention, negative result},
   pdfkeywords={fact checking, scientific claims, retrieval, abstention, calibration, reproducibility}
 }
@@ -43,8 +43,8 @@
 \newcommand{\Done}{\ensuremath{D_1}}
 \newcommand{\Dunion}{\ensuremath{D_0 \cup D_1}}
 
-\title{\textbf{Does Independent Retrieval Help an LLM Fact-Checker?}\\
-A Staged Evidence-First Validator for Scientific Claims}
+\title{\textbf{Multi-Agent Validator System}\\
+Independent Evidence for Scientific Claim Verification}
 \author{}
 \date{}
 
@@ -52,10 +52,9 @@ A Staged Evidence-First Validator for Scientific Claims}
 \maketitle
 
 \begin{abstract}
-A checker that endorses a scientific claim the evidence does not support is
-worse than a checker that abstains, so verification systems are often designed
-to gather their own evidence rather than trust the citations they are handed.
-We test that choice with a validator that stages four isolated roles over two
+False endorsement is a costly error in scientific claim checking. We test
+whether searching beyond the supplied citations reduces it. The validator
+stages four isolated roles over two
 evidence scopes: a sealed reader that answers a neutral question from
 retrieved passages before seeing the claim, a claim-visible judge over four
 labels (supported, contradicted, unaddressed, underdetermined), a citation
@@ -64,28 +63,21 @@ scopes separately instead of collapsing them into one score. Every stage fails
 closed: a transport or parse failure is an execution status, never a
 scientific verdict.
 
-On SciFact, with a frozen corpus, locked splits, and a preregistered primary
-comparison, we find \emph{no significant reduction in false endorsement} from
-independent retrieval plus staged judgment over a same-evidence baseline that
-already reads the original citations. On the 300-claim development sample the
-paired difference in false endorsement is \lunadevfediff{} (\lunadevfeci),
-and the same pattern repeats on a 300-claim held-out sample
-(\lunaheldfediff{}, \lunaheldfeci). The staged validator holds false
-endorsement at \lunadevVfe{} on the development sample and \lunaheldVfe{} on
-the held-out sample, but it endorses much less: SUPPORT
-recall falls from \lunadevBTwosupportRecall{} to \lunadevVsupportRecall{} on
-the development sample, and on the held-out sample \lunaheldVfailclosed{} of
-300 claims fail closed entirely. We replicate the primary comparison with a
-second, architecturally different model family, and we show that the dominant
-failure mode is not retrieval but a systematic disagreement between the two
-evidence scopes: independent retrieval on this corpus cannot find gold
-evidence that the original citations missed, because the benchmark's
-annotated documents are a subset of its cited documents. We report this as a
-negative result with a mechanism analysis, a cost accounting, and an artifact
-that makes the measurement checkable. The lesson is narrow: independent
-retrieval is not sufficient for scientific claim verification, and
-evidence-first staging can make a noisy checker conservative without making
-it correct.
+On SciFact, we compare the system with a baseline that already reads the
+original citations. Across 300 development claims, the baseline incorrectly
+endorses about 1 in 100 claims whose gold label is not support; the staged
+validator makes no such endorsement. Yet it finds only 43\% of supported
+claims, compared with 57\% for the baseline. A separate 300-claim held-out
+sample shows the same trade-off, with 38 validator requests failing closed.
+The reduction is \emph{not statistically significant}. We replicate the
+comparison with a MiniMax family and on a frozen thirty-claim subset with
+\sweepModelsWord{} models, \sweepSplit{}. The direction is stable: false
+endorsement never rises, and the cost appears as withheld contradictions.
+Disagreement between evidence scopes drives many abstentions. In this benchmark, every annotated gold
+document is already among the cited documents, limiting what independent
+retrieval can add. We report the negative result with a mechanism analysis
+and cost accounting. The system offers more conservative verdicts, but
+misses more supported claims.
 \end{abstract}
 
 \noindent\textbf{Artifact.} All tables and figures in this paper are generated
@@ -127,14 +119,14 @@ reading policy (claim-visible versus neutral-question evidence-first).
 
 Our preregistered primary outcome is false endorsement: the rate at which a
 method predicts ``supported'' for a claim that the gold labels do not
-support. The answer is \emph{no}. On the frozen development sample the
+support. The observed answer is inconclusive. On the frozen development sample the
 paired difference between V and B2 is \lunadevfediff{} with a 95\% interval of
 \lunadevfeci{}, which includes zero. The held-out sample repeats the pattern.
 The staged validator does reach zero false endorsements, but it buys that by
 withholding support: SUPPORT recall drops from \lunadevBTwosupportRecall{} to
 \lunadevVsupportRecall{} on the development sample, and on the held-out
-sample \lunaheldVfailclosed{} of 300 claims fail closed entirely. A checker
-that refuses to answer is not a better checker.
+sample \lunaheldVfailclosed{} of 300 claims fail closed entirely. Both
+false endorsement and support recall are needed to judge the trade-off.
 
 Three findings frame the result.
 
@@ -151,11 +143,13 @@ Three findings frame the result.
   Reported as F1 alone, this looks like a regression (\lunadevBTwomicroFOne{}
   against \lunadevVmicroFOne{}); reported as a precision--coverage trade-off it
   is a usable operating point for a conservative reader-facing tool.
-  \item \textbf{The result is not model-specific.} We reproduce the primary
-  comparison with a second model family accessed through a different
-  harness. A single-family result could be an idiosyncrasy of that model, so
-  the replication carries the claim about design. The broader factorial
-  remains a one-family result and we say so where it is reported.
+  \item \textbf{The direction repeats across models.} We repeat the pairing
+  on a fixed thirty-claim subset with \sweepModelsWord{} instruction-tuned
+  models, \sweepSplit{}. False endorsement never rises under staging, and the
+  cost lands on contradiction rather than on support: REFUTE recall falls in
+  \sweepRefuteLowerWord{} of \sweepModelsWord{} models while SUPPORT recall
+  barely moves. The subset is small, so this is a statement about direction,
+  not significance.
 \end{itemize}
 
 No human study was run: no participant was recruited, no ethics review was
@@ -331,6 +325,21 @@ failure yields a failed execution status, not a scientific label.}
 \label{fig:architecture}
 \end{figure}
 
+Figure~\ref{fig:dataflow} traces the records passed between stages. The
+independent reader receives the question and retrieved passages; the claim
+enters only after that reader has sealed its record.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{paper/figures/data_flow.pdf}
+\caption{Data flow for one claim. The top lane carries the neutral question
+through retrieval and claim-blind reading. The lower lane carries the
+original claim and citations to the scoped judges. Reconciliation receives
+both judgments and their evidence identifiers; execution failures are
+recorded separately from verdicts.}
+\label{fig:dataflow}
+\end{figure}
+
 \subsection{Roles and information boundaries}
 
 \begin{table}[t]
@@ -447,14 +456,17 @@ retrieval result we did not measure.
 
 \subsection{Models and harness}
 
-We evaluate two model families to satisfy RQ4 and to protect the negative
-result from being an artefact of one model's behaviour.
+We evaluate two model families on the full samples to satisfy RQ4 and to
+protect the negative result from being an artefact of one model's behaviour,
+and we add nine more models on the fixed subset of
+Section~\ref{sec:sweep}.
 
 \begin{description}[leftmargin=1.1em,style=nextline]
-  \item[\textsc{Gpt-6-luna} (API).] A hosted instruction-tuned model accessed
-    through an OpenAI-compatible chat endpoint.
+  \item[\textsc{GPT-6 Luna}.] A hosted instruction-tuned model accessed
+    through an OpenAI-compatible chat endpoint. It is the model behind the
+    powered comparison, the held-out run, and the cost accounting.
   \item[\textsc{MiniMax M3.1 Flash}.] A second, architecturally unrelated
-    instruction-tuned model, accessed through the OpenCode agent runtime. To
+    instruction-tuned model, accessed through the local agent runtime. To
     keep the repository's endpoint policy intact we expose that runtime
     through a small loopback bridge that implements the OpenAI chat
     completions interface, one fresh session per request. A fresh session
@@ -463,12 +475,20 @@ result from being an artefact of one model's behaviour.
     measured on. The harness adds a fixed agent preamble and tool
     definitions to every request; the preamble is byte-identical across
     conditions, so it cancels in every comparison, but it inflates the
-    prompt-token counts. That is why cost is reported for the API family
-    only, and why the second family contributes no cost row.
+    prompt-token counts. That is why cost is reported for the Luna family
+    only, and why the MiniMax family contributes no cost row.
+  \item[\textsc{Wider set}.] The sweep adds three closed-weight models
+    (Astra, Sol, Terra) from the same hosted family as Luna, and seven
+    open-weight models (DeepSeek V4.1 Flash, GLM-5.3 Flash, Flint 40B, Beam,
+    MiMo-V2.6 Flash, Nemotron 3.5 Super VL, Big Pickle) served through the
+    same local agent runtime as the MiniMax family, with the same bridge and
+    the same fixed preamble. The runtime exposes those models without charge,
+    so their rows carry no cost; their prompt-token counts include the
+    preamble and are not comparable with the Luna family's.
 \end{description}
 
-Both families run with temperature $0$, the same prompts, the same frozen
-corpus, the same claim sample, and the same budgets. The prompts are
+All models run with temperature $0$ where the endpoint accepts it, and with
+the same prompts, frozen corpus, claim sample, and budgets. The prompts are
 versioned text files under \texttt{prompts/}; their hashes enter the freeze
 record.
 
@@ -616,7 +636,7 @@ endorsement \lunadevVfe{} on all \lunadevVn{} scored claims. The paired
 difference in false endorsement is \lunadevfediff{} with 95\% interval
 \lunadevfeci{} over \lunadevnpaired{} paired claims and \lunadevnfamilies{}
 families: the interval includes zero, so the primary comparison is null. The
-second family behaves the same way: B2 reaches micro-F1
+MiniMax family behaves the same way: B2 reaches micro-F1
 \mmdevBTwomicroFOne{} with false endorsement \mmdevBTwofe{}, V reaches
 \mmdevVmicroFOne{} with \mmdevVfe{}, and the paired difference is
 \mmdevfediff{} (\mmdevfeci{}) over \mmdevnpaired{} paired claims, again
@@ -644,6 +664,19 @@ column records whether the interval excludes it.}
 \label{tab:paired-dev}
 \input{paper/tables/t1b_dev300_paired}
 \end{table}
+
+Figure~\ref{fig:falseendorsement} shows the false-endorsement rate for each
+completed development condition. Missing bars are unrun conditions, as
+listed in Table~\ref{tab:main-dev}.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.82\textwidth]{paper/figures/false_endorsement.pdf}
+\caption{False endorsement on gold non-support claims by condition and
+model. Lower is better, but the rate must be read alongside support recall
+and the paired intervals. Missing conditions were not completed.}
+\label{fig:falseendorsement}
+\end{figure}
 
 Fail-closed rows are excluded from the scored metrics above, so a method
 could in principle look better by failing on the hard claims. Table
@@ -673,7 +706,7 @@ micro-F1 \lunaheldVmicroFOne{} with false endorsement \lunaheldVfe{} on
 difference is \lunaheldfediff{} (\lunaheldfeci{}), again including zero.
 
 The null has structure. V achieves near-perfect precision on the endorsement
-class (SUPPORT precision \lunadevVsupportPrecision{} in the API family,
+class (SUPPORT precision \lunadevVsupportPrecision{} in the Luna family,
 \mmdevVsupportPrecision{} in the second) and pays for it in recall. The
 system is a conservative checker, not a better one. Micro-F1 alone reads as a
 regression, and false endorsement alone reads as a success; the paired
@@ -696,7 +729,7 @@ information that the judge needs; the sealing buys isolation, not accuracy.
 
 Second, \emph{evidence access barely moves the evidence-first cell}: V-D1's
 false endorsement (\lunadevVDOnefe{}) is close to B2's (\lunadevBTwofe{}) even
-though V-D1 has access to a larger evidence pool, and in the second family
+though V-D1 has access to a larger evidence pool, and in the MiniMax family
 the two are equal (\mmdevVDOnefe{} against \mmdevBTwofe{}). Independent
 retrieval introduces documents that the original claim was never calibrated
 against, and it does not buy accuracy.
@@ -706,7 +739,7 @@ reconciler resolves scope disagreement into abstention rather than choosing
 a side. V's zero false endorsement is thus a property of the reconciliation
 policy, not of the retrieval.
 
-The factorial is an API-family result. The second family contributes only
+The factorial is an Luna-family result. The MiniMax family contributes only
 B1, B2, V-D1 and V, and those rows do not repeat the claim-visible
 advantage: there B1 reaches micro-F1 \mmdevBOnemicroFOne{} against B2's
 \mmdevBTwomicroFOne{}, and B1 is the less conservative arm (false endorsement
@@ -726,7 +759,7 @@ predictions, not re-run.}
 Table~\ref{tab:perclass} breaks the two primary conditions down by class.
 The pattern is the same in both families. The staged validator raises the
 precision of the endorsement class (from \lunadevBTwosupportPrecision{} to
-\lunadevVsupportPrecision{} in the API family, \mmdevBTwosupportPrecision{}
+\lunadevVsupportPrecision{} in the Luna family, \mmdevBTwosupportPrecision{}
 to \mmdevVsupportPrecision{} in the second) by pushing almost everything it is
 unsure about into NEI, and it pays for that with recall
 (\lunadevBTwosupportRecall{} against \lunadevVsupportRecall{}, and
@@ -749,22 +782,89 @@ Table~\ref{tab:main-dev} reports both families. The pattern (V more
 conservative than B2, lower SUPPORT recall, false endorsement at or near
 zero, primary interval including zero) is reproduced under a second model
 family reached through a different harness: the paired false-endorsement
-difference is \lunadevfediff{} (\lunadevfeci{}) for the API family and
+difference is \lunadevfediff{} (\lunadevfeci{}) for the Luna family and
 \mmdevfediff{} (\mmdevfeci{}) for the second. The two families differ in
-absolute quality: the second family is a markedly better verifier on this
+absolute quality: the MiniMax family is a markedly better verifier on this
 benchmark (B2 micro-F1 \mmdevBTwomicroFOne{} against
 \lunadevBTwomicroFOne{}), and the direction of the V effect is the same in
-both. We read this as evidence that the \emph{design} of the staged
-validator, not the quirks of one model, produces the conservative operating
-point. We do not read it as evidence about the absolute quality of either
+both. This is consistent with the staged design producing a conservative
+operating point, although two model families cannot establish that as a
+general effect. We do not read it as evidence about the absolute quality of either
 model; the two families are not matched for size, training data, or
 capability, and the comparison is between families of systems, not between
-models of equal strength. We also cannot separate the second family's model
+models of equal strength. We also cannot separate the MiniMax family's model
 prior from its design: its prior-knowledge condition (B0) and its
 claim-visible D1 condition (B3) did not complete before the free endpoint
-that served it was withdrawn, so the second family contributes its B1, B2 and
+that served it was withdrawn, so the MiniMax family contributes its B1, B2 and
 V rows rather than the full factorial. It corroborates the preregistered
 comparison and not the wider factorial.
+
+\subsection{The shift across \sweepModelsWord{} models}
+\label{sec:sweep}
+
+Two families answer the preregistered question, but not whether the
+conservative shift belongs to the design or to the two models we happened to
+run. To check the direction more widely we repeated the same B2-versus-V
+pairing on a frozen subset of the development sample: ten SUPPORT, ten
+REFUTE, and ten NEI claims, selected with seed~42 before any model was run.
+In total \sweepModelsWord{} instruction-tuned models took part,
+\sweepSplit{}, all with the same prompts, corpus, retrieval budget, and
+scoring code.
+Table~\ref{tab:sweep} lists them.
+
+The subset is small and we read it that way. Thirty claims can resolve a
+difference of roughly ten percentage points, not the one-point
+false-endorsement rate the full sample was sized for. Most of the paired
+intervals in Table~\ref{tab:sweep} therefore collapse to a point at zero, and
+we do not test these rows for significance. What the subset can show is where
+on the label set the conservative shift lands.
+
+\begin{table}[t]
+\centering
+\caption{B2 versus V on the frozen thirty-claim subset. Cells after the
+interval are ``B2 / V''. $\Delta$FE is the paired difference in false
+endorsement with its 95\% interval; a positive value means V endorses more.
+The subset is descriptive, not powered: read it for direction, not for
+significance.}
+\label{tab:sweep}
+\input{paper/tables/t10_sweep}
+\end{table}
+
+Two regularities hold across the rows. False endorsement never rises:
+$\Delta$FE is zero in \sweepEqualWord{} of the \sweepModelsWord{} models,
+negative in \sweepLowerWord{}, and positive in \sweepHigherWord{};
+\sweepExcludeZeroWord{} of the \sweepModelsWord{} intervals exclude zero. And
+the abstention lands on contradiction rather than on support: REFUTE recall is
+lower under V in \sweepRefuteLowerWord{} of the \sweepModelsWord{} models and
+unchanged in \sweepRefuteEqualWord{}, while SUPPORT recall is unchanged in
+\sweepSupportEqualWord{} models and lower in \sweepSupportLowerWord{}.
+Micro-F1 falls in \sweepFOneLowerWord{} of the \sweepModelsWord{}.
+
+The closed-weight rows make the pattern visible. Under B2 each of them
+identifies most refuted claims; under V each of them identifies half. Support
+recall moves by at most one claim in the same rows. On the full sample the
+loss is not exclusive to REFUTE (Table~\ref{tab:perclass} shows both classes
+falling), so the subset is better read as showing where the shift is
+concentrated than as a separate finding. The mechanism is the same one Section~\ref{sec:results-cases}
+describes: when the two scopes disagree, the reconciler prefers
+\emph{underdetermined}, and disagreement is more common exactly where a
+citation states the opposite of the claim.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{paper/figures/model_sweep.pdf}
+\caption{B2 to V on the thirty-claim subset, per model. Hollow marks are B2,
+filled marks are V. The conservative shift costs REFUTE recall in almost
+every model while SUPPORT recall and false endorsement barely move.}
+\label{fig:modelsweep}
+\end{figure}
+
+The sweep also bounds how much of the result can be a model artefact. Models
+differ in absolute quality: B2 micro-F1 ranges from \sweepBTwomin{} to
+\sweepBTwomax{} across the \sweepModelsWord{}, and that ordering does not
+predict which models lose the most under staging. What does not vary is the
+direction of the change. A design whose only effect were to make a weak model
+abstain more would not produce that regularity.
 
 \subsection{Where the abstentions come from}
 
@@ -796,7 +896,7 @@ sample); when they differ, V abstains on every claim and its accuracy falls
 to the share of NEI in that subset (\lunadevConflictVacc{}). The shape
 repeats on the held-out sample (\lunaheldAgreeVacc{} against
 \lunaheldAgreeBTwosAcc{} when the scopes agree, \lunaheldConflictVacc{} when
-they differ) and in the second family (\mmdevAgreeVacc{} against
+they differ) and in the MiniMax family (\mmdevAgreeVacc{} against
 \mmdevAgreeBTwosAcc{}).
 
 \begin{table}[t]
@@ -869,11 +969,20 @@ coverage, which is the usable form of the system's conservatism.
 \centering
 \caption{Calibration of the claim-visible judge (B1). One temperature is
 fitted on the calibration split; no parameter is fitted on the development
-or held-out samples. The second family had no calibration-split run, so its
+or held-out samples. The MiniMax family had no calibration-split run, so its
 row is absent rather than imputed.}
 \label{tab:calibration}
 \input{paper/tables/t4_calibration}
 \end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.62\textwidth]{paper/figures/reliability.pdf}
+\caption{For B1, observed accuracy against verbalised confidence after
+calibration. Only bins with at least three claims are drawn; this is not a
+calibration result for the staged validator.}
+\label{fig:reliability}
+\end{figure}
 
 \begin{figure}[t]
 \centering
@@ -888,12 +997,12 @@ calibrated probabilities.}
 \end{figure}
 
 Table~\ref{tab:cost} reports model calls, measured tokens per call, and
-latency for the API family. V issues three calls per claim against B2's two,
+latency for the Luna family. V issues three calls per claim against B2's two,
 because it runs a sealed reader, a claim-visible judge, and a citation
 auditor. A B2 call measures about \lunadevBTwoTokensPerCall{} tokens and a V
 call about \lunadevVTokensPerCall{}, so V's three calls per claim cost roughly
 six times B2's two (Figure~\ref{fig:accuracycost} plots quality against
-per-call prompt size). The second family's cost is not in the table: its harness
+per-call prompt size). The MiniMax family's cost is not in the table: its harness
 prepends a fixed agent preamble to every request, so a per-call figure would
 measure the harness more than the task, and the endpoint that served the
 model was withdrawn before the probe could be run. The call ratio does carry
@@ -905,12 +1014,12 @@ of V is that its two scopes are separately auditable.
 \begin{table}[t]
 \centering
 \caption{Calls per claim, measured tokens per call, and per-call latency for
-the API family. Calls per claim is fixed by the design. Tokens per call is the
+the Luna family. Calls per claim is fixed by the design. Tokens per call is the
 run's recorded total divided by its recorded calls, which survives a resumed
 run; per-claim cost is the product of the first two columns. Each row is taken
 from the run that recorded the most calls for that condition, which for V is
 the held-out run: the development sidecar retains only the calls of its final
-resume pass. The second family has no cost row; its harness preamble is
+resume pass. The MiniMax family has no cost row; its harness preamble is
 included in every call and the endpoint that served it was withdrawn before a
 cost probe could be run.}
 \label{tab:cost}
@@ -920,9 +1029,9 @@ cost probe could be run.}
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.6\textwidth]{paper/figures/accuracy_cost.pdf}
-\caption{Verification quality against per-call prompt size, API family. Cost
+\caption{Verification quality against per-call prompt size, Luna family. Cost
 is measured per call rather than per claim because resumed runs keep only the
-last invocation's usage record. The second family is not plotted: its harness
+last invocation's usage record. The MiniMax family is not plotted: its harness
 preamble dominates every prompt, so a token axis would compare harnesses
 rather than tasks.}
 \label{fig:accuracycost}
@@ -943,12 +1052,21 @@ Table~\ref{tab:failures} gives the distribution over conditions.
 \caption{Error taxonomy over every scored condition. Counts are rows whose
 predicted label differs from the gold label; execution failures are excluded
 and reported in the main tables. ``held'' is the held-out sample and
-``calibration'' the 100-claim calibration split. The second family has only
+``calibration'' the 100-claim calibration split. The MiniMax family has only
 its development conditions for the reasons given in
 Section~\ref{sec:limitations}.}
 \label{tab:failures}
 \input{paper/tables/t6_failures}
 \end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.82\textwidth]{paper/figures/failure_breakdown.pdf}
+\caption{Scored error counts for B2 and V on the development sample,
+separated by failure type. Execution failures are excluded and counted in
+the main tables.}
+\label{fig:failurebreakdown}
+\end{figure}
 
 \subsection{Case studies}
 \label{sec:results-cases}
@@ -976,7 +1094,7 @@ while \Done{} supplied better evidence.
 \section{Discussion}
 
 \emph{Independent retrieval is not sufficient.} In both model families on
-the development sample, and again for the API family under the freeze, the
+the development sample, and again for the Luna family under the freeze, the
 staged validator did not significantly reduce false endorsement relative to
 a baseline that already read the original citations. The 95\% interval on
 the primary comparison includes zero in all three comparisons we ran.
@@ -1027,12 +1145,19 @@ without redesigning it.
     size, training, and harness. The transfer result is about the
     \emph{direction} of the effect, not its magnitude, and the second
     family's harness preamble is included in every request, so its token
-    counts are not comparable with the API family's.
-  \item \textbf{The second family's matrix is incomplete.} Its B3 condition
+    counts are not comparable with the Luna family's.
+  \item \textbf{The cross-model sweep is descriptive.} The thirty-claim
+    subset is balanced by gold label and frozen before any model was run, but
+    it is too small to resolve a false-endorsement difference of one
+    percentage point; most paired intervals collapse to zero. It supports a
+    statement about the direction of the shift across models, not about its
+    size, and it does not reproduce the SUPPORT-recall gap measured on the
+    full sample.
+  \item \textbf{The MiniMax family's matrix is incomplete.} Its B3 condition
     stopped partway through the sample and its B0, O and calibration
     conditions never ran, because the free endpoint that served the model was
     withdrawn and the remaining requests return a model-unavailable error. The
-    second family therefore corroborates the preregistered V-versus-B2
+    MiniMax family therefore corroborates the preregistered V-versus-B2
     contrast and the class breakdown, not the full factorial, and we report
     its missing rows as absent rather than imputing them.
   \item \textbf{One frozen held-out run.} The held-out sample was run once
@@ -1064,11 +1189,11 @@ new error. We therefore keep the scientific verdict (``underdetermined'')
 separate from the system action (``defer to a reviewer''), and we recommend
 that any deployment display them separately.
 
-The agent harness used for the second model family is an interactive coding
+The agent harness used for the MiniMax family is an interactive coding
 agent runtime; a research run inside it inherits that runtime's permissions
 and preamble. We ran it with a fixed preamble, a fixed corpus, and no
 tool-enabled tasks. The model itself was withdrawn from its free endpoint
-during the study, which is why the second family's matrix is partial; we
+during the study, which is why the MiniMax family's matrix is partial; we
 report the conditions that completed and do not fill the rest by
 substitution.
 
@@ -1222,20 +1347,25 @@ recorded.}
 \begin{enumerate}
   \item Install the package and its development extras, and verify the
     pinned corpus hash (\path{data/pins/scifact/}).
-  \item Start the model endpoint. For the API family, set
+  \item Start the model endpoint. For the Luna family, set
     \texttt{OPENAI\_API\_KEY} and \texttt{OPENAI\_MODEL}. For the second
-    family, start an OpenCode server and the loopback bridge in
+    family, start a local agent server and the loopback bridge in
     \path{tools/opencode_bridge.py}, then pass
     \texttt{-{}-base-url} and \texttt{-{}-model-id} to the runners.
   \item Run the conditions on the development sample
-    (\path{scripts/run_api_dev300.sh} for the API family,
-    \path{scripts/run_minimax_dev300.sh} for the second family, which also
-    shows the bridge setup). The second family's registered conditions are
+    (\path{scripts/run_api_dev300.sh} for the Luna family,
+    \path{scripts/run_minimax_dev300.sh} for the MiniMax family, which also
+    shows the bridge setup). The MiniMax family's registered conditions are
     the three that completed; its remaining conditions returned a
     model-unavailable error, as noted in Section~\ref{sec:limitations}.
   \item Run the held-out sample once with \texttt{-{}-frozen-final}; the
     runner refuses to start unless the model, prompt, configuration, and
     corpus hashes match \path{docs/freeze.json}.
+  \item Reproduce the cross-model sweep with
+    \path{scripts/make_sweep_sample.py} (builds the frozen thirty-claim
+    subset from the development manifest and the pinned gold release) and
+    \path{scripts/run_model_sweep.sh} (runs B2 and V for each registered
+    model, resumably, and stops the closed-weight models at a spend cap).
   \item Regenerate every table and figure
     (\path{scripts/paper/make_tables.py},
     \path{scripts/paper/make_figures.py}) and rebuild the PDF

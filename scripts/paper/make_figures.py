@@ -42,7 +42,7 @@ REGISTRY = TABLES / "run_registry.json"
 # into the document info and every rebuild shows a binary diff. Set
 # SOURCE_DATE_EPOCH to override the pinned date.
 _EPOCH = int(os.environ.get("SOURCE_DATE_EPOCH", "1790812800"))  # 2026-10-01 UTC
-_PDF_DATE = dt.datetime.fromtimestamp(_EPOCH, dt.timezone.utc).strftime("D:%Y%m%d%H%M%SZ")
+_PDF_DATE = dt.datetime.fromtimestamp(_EPOCH, dt.timezone.utc)
 _PDF_META = {"CreationDate": _PDF_DATE, "ModDate": _PDF_DATE}
 
 plt.rcParams.update(
@@ -80,6 +80,40 @@ CONDITION_COLORS = {
 
 def _registry() -> dict:
     return json.loads(REGISTRY.read_text(encoding="utf-8"))
+
+
+ACCESS_COLORS = {"closed": "#1f4e79", "open": "#c0504d"}
+
+
+def _sweep_items(registry: dict) -> list[tuple[str, dict, dict]]:
+    """Sweep rows in registry order, skipping models that have not run."""
+    items: list[tuple[str, dict, dict]] = []
+    models = (registry.get("sweep") or {}).get("models") or {}
+    for key, spec in models.items():
+        path = TABLES / f"sweep_{key}.json"
+        if not path.is_file():
+            continue
+        items.append((key, spec, json.loads(path.read_text(encoding="utf-8"))))
+    return items
+
+
+def _report_metric(report: dict, name: str) -> float | None:
+    for item in report.get("metrics") or []:
+        if item.get("metric") == name:
+            return float(item["value"])
+    return None
+
+
+def _report_class_metric(report: dict, name: str, label: str) -> float | None:
+    for item in report.get("metrics") or []:
+        if item.get("metric") == name and item.get("class") == label:
+            return float(item["value"])
+    return None
+
+
+def _sweep_delta(item: dict) -> dict | None:
+    bootstrap = (item.get("comparison") or {}).get("bootstrap") or {}
+    return (bootstrap.get("paired_difference") or {}).get("false_endorsement_gold_nonsup")
 
 
 def _label(registry: dict, family: str) -> str:
@@ -203,6 +237,94 @@ def figure_architecture() -> None:
     _save(fig, "architecture", {"figure": "architecture", "source": "method diagram"})
 
 
+def _flow_box(ax, x: float, y: float, label: str, color: str) -> None:
+    patch = patches.FancyBboxPatch(
+        (x, y), 1.75, 0.78, boxstyle="round,pad=0.03",
+        linewidth=1, edgecolor="#334155", facecolor=color,
+    )
+    ax.add_patch(patch)
+    ax.text(x + 0.875, y + 0.39, label, ha="center", va="center", fontsize=7.4)
+
+
+def _flow_arrow(ax, points, *, dashed: bool = False) -> None:
+    """Polyline arrow through ``points`` with a head on the last segment."""
+    style = {"color": "#475569", "lw": 1.1, "linestyle": "--" if dashed else "-"}
+    for (x1, y1), (x2, y2) in zip(points[:-2], points[1:-1]):
+        ax.plot([x1, x2], [y1, y2], **style)
+    (x1, y1), (x2, y2) = points[-2], points[-1]
+    ax.annotate(
+        "",
+        (x2, y2),
+        (x1, y1),
+        arrowprops={"arrowstyle": "-|>", **style},
+    )
+
+
+def figure_data_flow() -> None:
+    """The records passed between stages, for one claim.
+
+    Two paths run in parallel: the sealed D1 path (neutral question through
+    independent retrieval) and the D0 path (the claim beside its own
+    citations). They meet only in the reconciler, which is the point of the
+    design. The D0 arrow is routed under the D1 row so that no edge crosses a
+    box.
+    """
+    fig, ax = plt.subplots(figsize=(7.4, 3.0))
+    ax.set(xlim=(0, 10.15), ylim=(0, 3.55))
+    ax.axis("off")
+
+    top, bottom, middle = 2.42, 1.02, 1.68
+    boxes = [
+        (0.10, middle, "Claim", "#fff0e9"),
+        (2.10, top, "Neutral\nquestion", "#e8f1fa"),
+        (2.10, bottom, "Claim + original\ncitations", "#fff0e9"),
+        (4.15, top, "BM25\nretrieval", "#e8f1fa"),
+        (4.15, bottom, "D0 citation\nauditor", "#fff0e9"),
+        (6.20, top, "Sealed reader\nrecord", "#e8f1fa"),
+        (6.20, bottom, "D1 claim\njudge", "#fff0e9"),
+        (8.25, middle, "Reconciled\nclaim card", "#f3ebfa"),
+    ]
+    for x, y, label, color in boxes:
+        _flow_box(ax, x, y, label, color)
+
+    _flow_arrow(ax, [(1.85, middle + 0.45), (1.98, top), (2.10, top + 0.20)])
+    _flow_arrow(ax, [(1.85, middle + 0.33), (1.98, bottom + 0.78), (2.10, bottom + 0.58)])
+    _flow_arrow(ax, [(3.85, top + 0.39), (4.15, top + 0.39)])
+    _flow_arrow(ax, [(3.85, bottom + 0.39), (4.15, bottom + 0.39)])
+    _flow_arrow(ax, [(5.90, top + 0.39), (6.20, top + 0.39)])
+    _flow_arrow(
+        ax,
+        [(7.075, top), (7.075, bottom + 0.78)],
+        dashed=True,
+    )
+    # D0 reaches the reconciler from below, routed under the D1 row so no
+    # edge crosses a box.
+    _flow_arrow(
+        ax,
+        [(5.60, bottom), (5.60, 0.68), (9.45, 0.68), (9.45, middle)],
+    )
+    _flow_arrow(ax, [(7.95, bottom + 0.72), (8.25, middle + 0.20)])
+    ax.text(
+        7.16,
+        (top + bottom) / 2 + 0.39,
+        "claim revealed\nafter sealing",
+        ha="left",
+        va="center",
+        fontsize=6.6,
+        color="#475569",
+        bbox={"facecolor": "white", "edgecolor": "none", "pad": 0.6},
+    )
+    ax.text(
+        5.07,
+        0.20,
+        "Execution failure \u2192 status record (no scientific verdict)",
+        ha="center",
+        fontsize=8,
+        color="#9b2c2c",
+    )
+    _save(fig, "data_flow", {"figure": "data_flow", "source": "method diagram"})
+
+
 # --------------------------------------------------------------------------
 # false endorsement bars
 # --------------------------------------------------------------------------
@@ -224,16 +346,18 @@ def figure_false_endorsement(registry: dict, scored: dict) -> None:
                         break
             values.append(value)
         offsets = [p + (index - (len(families) - 1) / 2) * width for p in positions]
-        bars = ax.bar(
-            offsets,
-            [v if v is not None else 0 for v in values],
-            width=width * 0.92,
-            color=FAMILY_COLORS.get(family, "#444444"),
-            label=_label(registry, family),
-        )
-        for bar, value in zip(bars, values, strict=True):
+        labelled = False
+        for offset, value in zip(offsets, values, strict=True):
             if value is None:
+                ax.text(offset, 0.008, "n/a", ha="center", fontsize=6, rotation=90)
                 continue
+            bars = ax.bar(
+                offset, value, width=width * 0.92,
+                color=FAMILY_COLORS.get(family, "#444444"),
+                label=_label(registry, family) if not labelled else None,
+            )
+            labelled = True
+            bar = bars[0]
             ax.text(
                 bar.get_x() + bar.get_width() / 2,
                 value + 0.008,
@@ -280,7 +404,7 @@ def figure_label_distribution(registry: dict) -> None:
     order = ["supported", "contradicted", "unaddressed", "underdetermined"]
     colors = ["#1f4e79", "#c0504d", "#9bbb59", "#e08214"]
     display = {
-        "gpt-6-luna": "GPT-6-Luna (API)",
+        "gpt-6-luna": "GPT-6 Luna",
         "minimax-m3.1-flash": "MiniMax M3.1 Flash",
     }
     fig, ax = plt.subplots(figsize=(5.4, 3.2))
@@ -552,7 +676,7 @@ def figure_accuracy_cost(registry: dict, scored: dict) -> None:
 # --------------------------------------------------------------------------
 # reliability
 # --------------------------------------------------------------------------
-def figure_reliability() -> None:
+def figure_reliability(registry: dict) -> None:
     path = TABLES / "calibration_by_family.json"
     if not path.is_file():
         print("  skip reliability: run scripts/paper/make_calibration.py")
@@ -576,7 +700,7 @@ def figure_reliability() -> None:
             marker="o",
             markersize=4,
             color=FAMILY_COLORS.get(family, "#333333"),
-            label=family,
+            label=_label(registry, family),
         )
         drawn = True
     if not drawn:
@@ -591,6 +715,65 @@ def figure_reliability() -> None:
         fig,
         "reliability",
         {"figure": "reliability", "source": "docs/paper-assets/tables/calibration_by_family.json"},
+    )
+
+
+def figure_model_sweep(registry: dict) -> None:
+    """B2 to V per model on the four outcomes the sweep can speak to.
+
+    A dumbbell rather than a forest: on a thirty-claim subset the paired
+    false-endorsement interval collapses to a point at zero, which hides the
+    shift that actually happens. The shift is visible as lost REFUTE recall
+    while SUPPORT recall and false endorsement stay put.
+    """
+    items = _sweep_items(registry)
+    if len(items) < 3:
+        print("  skip model_sweep: fewer than three sweep models scored")
+        return
+
+    panels = [
+        ("micro_f1", None, "micro-F1"),
+        ("false_endorsement_gold_nonsup", None, "false endorsement"),
+        ("recall", "SUPPORT", "SUPPORT recall"),
+        ("recall", "REFUTE", "REFUTE recall"),
+    ]
+    fig, axes = plt.subplots(1, len(panels), figsize=(7.2, 1.3 + 0.24 * len(items)), sharey=True)
+    positions = list(range(len(items)))[::-1]
+    for ax, (metric, class_label, title) in zip(axes, panels):
+        for y, (key, spec, data) in zip(positions, items):
+            access = spec.get("access", "")
+            color = ACCESS_COLORS.get(access, "#444444")
+
+            def value(report: dict) -> float | None:
+                if class_label is None:
+                    return _report_metric(report, metric)
+                return _report_class_metric(report, metric, class_label)
+
+            b2_value = value(data["b2"])
+            v_value = value(data["v"])
+            if b2_value is None or v_value is None:
+                continue
+            ax.plot([b2_value * 100, v_value * 100], [y, y],
+                    color=color, linewidth=1.0, alpha=0.55)
+            ax.scatter(b2_value * 100, y, s=20, facecolors="none",
+                       edgecolors=color, linewidths=1.0, zorder=3)
+            ax.scatter(v_value * 100, y, s=22, color=color, zorder=4)
+        ax.set_title(title, fontsize=8)
+        ax.set_xlim(-4, 104)
+        ax.set_xlabel("%", fontsize=7)
+        ax.tick_params(axis="x", labelsize=7)
+        ax.grid(axis="x", linestyle=":", linewidth=0.5, alpha=0.6)
+    axes[0].set_yticks(positions)
+    axes[0].set_yticklabels([spec["label"] for _key, spec, _data in items], fontsize=6.6)
+    axes[0].set_ylim(-0.7, len(items) - 0.3)
+    axes[0].scatter([], [], s=20, facecolors="none", edgecolors="#555555", label="B2")
+    axes[0].scatter([], [], s=22, color="#555555", label="V")
+    axes[0].legend(frameon=False, fontsize=6.4, loc="lower left")
+    fig.tight_layout(pad=0.4)
+    _save(
+        fig,
+        "model_sweep",
+        {"figure": "model_sweep", "source": "docs/paper-assets/tables/sweep_*.json"},
     )
 
 
@@ -614,12 +797,14 @@ def main() -> int:
                 )
     print("writing figures")
     figure_architecture()
+    figure_data_flow()
     figure_false_endorsement(registry, scored)
     figure_label_distribution(registry)
     figure_risk_coverage(registry)
     figure_failures()
     figure_accuracy_cost(registry, scored)
-    figure_reliability()
+    figure_reliability(registry)
+    figure_model_sweep(registry)
     print(f"wrote figures under {FIGURES}")
     return 0
 
