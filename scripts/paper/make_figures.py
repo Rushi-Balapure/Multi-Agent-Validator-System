@@ -189,19 +189,43 @@ def figure_architecture() -> None:
     arrow(4.55, 4.12, 4.95, 4.12)
     arrow(6.95, 4.12, 7.35, 4.12)
     arrow(2.55, 2.27, 4.95, 2.27)
-    # Judge output reaches the reconciler along an explicit elbow.
-    ax.plot([8.35, 8.35], [3.7, 2.27], color="#e08214", linewidth=1.1)
-    arrow(8.35, 2.27, 6.95, 2.27, color="#e08214")
-    arrow(6.95, 2.27, 7.35, 2.27)
+    # Judge output reaches the reconciler through the gap between the
+    # reconciler and the claim card, so no edge crosses a box.
+    ax.plot([7.35, 7.15], [3.78, 3.78], color="#e08214", linewidth=1.1)
+    ax.plot([7.15, 7.15], [3.78, 2.27], color="#e08214", linewidth=1.1)
+    arrow(7.15, 2.27, 6.95, 2.27, color="#e08214")
+    arrow(6.95, 2.10, 7.35, 2.10)
 
     ax.text(
-        5.0,
+        3.9,
         5.02,
-        "Claim + neutral question enter only at the judge and the auditor",
+        "Each role sees only what its contract allows",
         ha="center",
         va="center",
         fontsize=8.5,
         style="italic",
+    )
+    # The claim reaches the judge only after the reader's record is sealed;
+    # the dashed arrow is that single path.
+    ax.annotate(
+        "",
+        xy=(8.55, 4.56),
+        xytext=(8.55, 4.99),
+        arrowprops={
+            "arrowstyle": "-|>",
+            "color": "#c0504d",
+            "linestyle": "--",
+            "linewidth": 1.0,
+        },
+    )
+    ax.text(
+        8.38,
+        4.86,
+        "claim, revealed\nafter sealing",
+        fontsize=7,
+        color="#c0504d",
+        ha="right",
+        va="center",
     )
     ax.text(
         5.0,
@@ -212,27 +236,6 @@ def figure_architecture() -> None:
         fontsize=8,
         style="italic",
         color="#c0504d",
-    )
-    # The claim reaches the judge only after the reader's record is sealed.
-    ax.annotate(
-        "",
-        xy=(7.45, 3.72),
-        xytext=(5.95, 3.35),
-        arrowprops={
-            "arrowstyle": "-|>",
-            "color": "#c0504d",
-            "linestyle": "--",
-            "linewidth": 1.0,
-            "connectionstyle": "arc3,rad=-0.35",
-        },
-    )
-    ax.text(
-        6.35,
-        2.95,
-        "claim revealed\nafter sealing",
-        fontsize=7.5,
-        color="#c0504d",
-        ha="center",
     )
     _save(fig, "architecture", {"figure": "architecture", "source": "method diagram"})
 
