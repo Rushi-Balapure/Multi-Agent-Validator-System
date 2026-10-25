@@ -353,6 +353,24 @@ def _number_word(value: int) -> str:
     return str(value)
 
 
+def _count_phrase(value: int, total: int, noun: str) -> str:
+    """``all four models`` when every row counts, otherwise ``ten of eleven``."""
+    if value == total:
+        return f"all {_number_word(total)} {noun}"
+    if value == 0:
+        return f"none of the {_number_word(total)} {noun}"
+    return f"{_number_word(value)} of the {_number_word(total)} {noun}"
+
+
+def _and_list(items: list[str]) -> str:
+    """Join names the way a sentence does: ``A, B and C``."""
+    if not items:
+        return "none"
+    if len(items) == 1:
+        return items[0]
+    return ", ".join(items[:-1]) + " and " + items[-1]
+
+
 def write_sweep_table(sweep: dict[str, dict[str, Any]]) -> dict[str, Any]:
     """The cross-model table plus the macros the prose quotes."""
     lines = [
@@ -439,11 +457,49 @@ def write_sweep_table(sweep: dict[str, dict[str, Any]]) -> dict[str, Any]:
         macros[f"{name}Word"] = _number_word(value)
     closed_word = _number_word(len(closed))
     open_word = _number_word(len(open_models))
+    # "four models, four closed-weight" reads badly, so a sweep with no
+    # open-weight row says "all closed-weight" instead.
     macros["sweepSplit"] = (
         f"{closed_word} closed-weight and {open_word} open-weight"
         if open_models
-        else f"{closed_word} closed-weight"
+        else "all closed-weight"
     )
+    # The Models section names only rows that have a prediction file, so the
+    # prose cannot advertise a model the sweep did not run.
+    additional = [item["label"] for key, item in sweep.items() if key != "luna"]
+    closed_extra = [item["label"] for key, item in closed if key != "luna"]
+    open_extra = [item["label"] for key, item in open_models]
+    macros["sweepAdditional"] = str(len(additional))
+    macros["sweepAdditionalWord"] = _number_word(len(additional))
+    macros["sweepAdditionalList"] = _and_list(additional)
+    if closed_extra and open_extra:
+        route = (
+            "The closed-weight rows use the same hosted API as the Luna family; "
+            "the open-weight rows use the local agent runtime described above, "
+            "through the same loopback bridge and with the same fixed preamble. "
+            "The runtime exposes those models without charge, so their rows carry "
+            "no cost, and their prompt-token counts include the preamble and are "
+            "not comparable with the Luna family's."
+        )
+    elif closed_extra:
+        route = (
+            "They use the same hosted API as the Luna family, so their cost and "
+            "token accounting match the Luna family's."
+        )
+    else:
+        route = (
+            "They use the local agent runtime described above, through the same "
+            "loopback bridge and with the same fixed preamble. The runtime "
+            "exposes them without charge, so their rows carry no cost, and their "
+            "prompt-token counts include the preamble and are not comparable with "
+            "the Luna family's."
+        )
+    macros["sweepRoute"] = route
+    total = len(sweep)
+    macros["sweepRefuteLowerPhrase"] = _count_phrase(
+        counts["refute"][-1], total, "models"
+    )
+    macros["sweepFOneLowerPhrase"] = _count_phrase(counts["f1"][-1], total, "models")
     macros["sweepBTwomin"] = _fmt(min(b2_f1_values)) if b2_f1_values else "---"
     macros["sweepBTwomax"] = _fmt(max(b2_f1_values)) if b2_f1_values else "---"
     return macros

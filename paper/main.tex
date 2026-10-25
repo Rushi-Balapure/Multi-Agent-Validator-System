@@ -147,8 +147,7 @@ Three findings frame the result.
   on a fixed thirty-claim subset with \sweepModelsWord{} instruction-tuned
   models, \sweepSplit{}. False endorsement never rises under staging, and the
   cost lands on contradiction rather than on support: REFUTE recall falls in
-  \sweepRefuteLowerWord{} of \sweepModelsWord{} models while SUPPORT recall
-  barely moves. The subset is small, so this is a statement about direction,
+  \sweepRefuteLowerPhrase{} while SUPPORT recall barely moves. The subset is small, so this is a statement about direction,
   not significance.
 \end{itemize}
 
@@ -458,7 +457,7 @@ retrieval result we did not measure.
 
 We evaluate two model families on the full samples to satisfy RQ4 and to
 protect the negative result from being an artefact of one model's behaviour,
-and we add nine more models on the fixed subset of
+and we repeat the pairing on a wider set of models over the fixed subset of
 Section~\ref{sec:sweep}.
 
 \begin{description}[leftmargin=1.1em,style=nextline]
@@ -477,14 +476,8 @@ Section~\ref{sec:sweep}.
     conditions, so it cancels in every comparison, but it inflates the
     prompt-token counts. That is why cost is reported for the Luna family
     only, and why the MiniMax family contributes no cost row.
-  \item[\textsc{Wider set}.] The sweep adds three closed-weight models
-    (Astra, Sol, Terra) from the same hosted family as Luna, and seven
-    open-weight models (DeepSeek V4.1 Flash, GLM-5.3 Flash, Flint 40B, Beam,
-    MiMo-V2.6 Flash, Nemotron 3.5 Super VL, Big Pickle) served through the
-    same local agent runtime as the MiniMax family, with the same bridge and
-    the same fixed preamble. The runtime exposes those models without charge,
-    so their rows carry no cost; their prompt-token counts include the
-    preamble and are not comparable with the Luna family's.
+  \item[\textsc{Wider set}.] The sweep adds \sweepAdditionalWord{} more models
+    on that subset: \sweepAdditionalList{}. \sweepRoute{}
 \end{description}
 
 All models run with temperature $0$ where the endpoint accepts it, and with
@@ -739,7 +732,7 @@ reconciler resolves scope disagreement into abstention rather than choosing
 a side. V's zero false endorsement is thus a property of the reconciliation
 policy, not of the retrieval.
 
-The factorial is an Luna-family result. The MiniMax family contributes only
+The factorial is a Luna-family result. The MiniMax family contributes only
 B1, B2, V-D1 and V, and those rows do not repeat the claim-visible
 advantage: there B1 reaches micro-F1 \mmdevBOnemicroFOne{} against B2's
 \mmdevBTwomicroFOne{}, and B1 is the less conservative arm (false endorsement
@@ -808,7 +801,7 @@ run. To check the direction more widely we repeated the same B2-versus-V
 pairing on a frozen subset of the development sample: ten SUPPORT, ten
 REFUTE, and ten NEI claims, selected with seed~42 before any model was run.
 In total \sweepModelsWord{} instruction-tuned models took part,
-\sweepSplit{}, all with the same prompts, corpus, retrieval budget, and
+\sweepSplit{}. All used the same prompts, corpus, retrieval budget, and
 scoring code.
 Table~\ref{tab:sweep} lists them.
 
@@ -854,8 +847,9 @@ citation states the opposite of the claim.
 \centering
 \includegraphics[width=\textwidth]{paper/figures/model_sweep.pdf}
 \caption{B2 to V on the thirty-claim subset, per model. Hollow marks are B2,
-filled marks are V. The conservative shift costs REFUTE recall in almost
-every model while SUPPORT recall and false endorsement barely move.}
+filled marks are V. The conservative shift costs REFUTE recall in
+\sweepRefuteLowerPhrase{} while SUPPORT recall and false endorsement barely
+move.}
 \label{fig:modelsweep}
 \end{figure}
 
