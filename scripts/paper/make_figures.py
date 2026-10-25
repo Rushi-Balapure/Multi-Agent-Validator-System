@@ -663,8 +663,9 @@ def figure_accuracy_cost(registry: dict, scored: dict) -> None:
     ax.set_xticks([300, 600, 1200, 3000])
     ax.set_xlabel("prompt tokens per call (log scale)")
     ax.set_ylabel("micro-F1")
-    ax.set_title("Verification quality against per-call prompt size")
-    ax.legend(frameon=False, fontsize=7.5, loc="best")
+    # One family is plotted (the caption explains why), so a legend would put
+    # a single floating marker inside the data area and read as a data point.
+    ax.set_title("Luna family: quality against per-call prompt size")
     fig.tight_layout()
     _save(
         fig,
