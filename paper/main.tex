@@ -83,7 +83,8 @@ misses more supported claims.
 \noindent\textbf{Artifact.} All tables and figures in this paper are generated
 from saved prediction files by the scripts in \texttt{scripts/paper/}. The
 corpus, splits, prompts, and frozen configurations are in the accompanying
-repository, and the held-out split is protected by a hash freeze that
+repository (Appendix~\ref{app:repro} lists the commands), and the held-out
+split is protected by a hash freeze that
 refuses a run whose model, prompt, configuration, or corpus differs from the
 locked record.
 
@@ -341,6 +342,9 @@ recorded separately from verdicts.}
 
 \subsection{Roles and information boundaries}
 
+Table~\ref{tab:pipeline} gives the procedure for one claim and the evidence
+scope each step may read.
+
 \begin{table}[t]
 \centering
 \caption{The validation procedure for one claim. ``Scope'' is the evidence
@@ -556,7 +560,7 @@ claims do not straddle the comparison.
 
 All conditions share the frozen reports, the corpus snapshot, the claim
 sample, the scoring code, and the prompt files. They differ only in the
-intervention named in the table.
+intervention named in Table~\ref{tab:conditions}.
 
 \begin{table}[t]
 \centering
@@ -843,6 +847,8 @@ describes: when the two scopes disagree, the reconciler prefers
 \emph{underdetermined}, and disagreement is more common exactly where a
 citation states the opposite of the claim.
 
+Figure~\ref{fig:modelsweep} draws the same shift per model.
+
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{paper/figures/model_sweep.pdf}
@@ -965,7 +971,8 @@ Because the judge emits labels but no probabilities, we report two things.
 First, calibration of the one condition that verbalises confidence (B1): a
 single temperature fitted on the calibration split, giving Brier score, NLL,
 and ECE on the development split (Table~\ref{tab:calibration} and
-Appendix~\ref{app:calibration}). Second, a selective-use analysis that does
+Appendix~\ref{app:calibration}); Figure~\ref{fig:reliability} plots the
+reliability curve for that condition. Second, a selective-use analysis that does
 not require probabilities: accepting a claim only when the two evidence
 scopes agree, and measuring error among accepted claims as a function of
 coverage. Figure~\ref{fig:riskcoverage} shows the result for both families.
@@ -1052,7 +1059,8 @@ other label errors, plus a separate count of execution failures that are
 never scored as scientific verdicts. The classification uses only fields the
 runner records, so it is reproducible; a sample of the rows was then read
 manually to check that the automatic classes describe the actual failure.
-Table~\ref{tab:failures} gives the distribution over conditions.
+Table~\ref{tab:failures} gives the distribution over conditions, and
+Figure~\ref{fig:failurebreakdown} separates the development counts by type.
 
 \begin{table}[t]
 \centering
