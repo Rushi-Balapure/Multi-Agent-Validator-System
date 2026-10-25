@@ -25,6 +25,7 @@ sys.path.insert(0, str(ROOT))
 
 from evaluation.compare_runs import compare  # noqa: E402
 from evaluation.score_predictions import score_predictions_file  # noqa: E402
+from data.scifact_loader import load_split  # noqa: E402
 from validator.baselines.extract_vd1 import extract_vd1_file  # noqa: E402
 
 TABLES = ROOT / "docs" / "paper-assets" / "tables"
@@ -353,6 +354,15 @@ def _number_word(value: int) -> str:
     return str(value)
 
 
+def _pair_phrase(value: int) -> str:
+    """``no model--claim pair``, ``one model--claim pair``, ``five ... pairs``."""
+    if value == 0:
+        return "no model--claim pair"
+    if value == 1:
+        return "one model--claim pair"
+    return f"{_number_word(value)} model--claim pairs"
+
+
 def _count_phrase(value: int, total: int, noun: str) -> str:
     """``all four models`` when every row counts, otherwise ``ten of eleven``."""
     if value == total:
@@ -371,7 +381,99 @@ def _and_list(items: list[str]) -> str:
     return ", ".join(items[:-1]) + " and " + items[-1]
 
 
-def write_sweep_table(sweep: dict[str, dict[str, Any]]) -> dict[str, Any]:
+def _sweep_gold(registry: dict, claim_ids: list[str]) -> dict[str, str]:
+    """Gold label per sweep claim, in the three-way scored space."""
+    split = registry["splits"]["dev300"]
+    bundles = {bundle.claim.claim_id: bundle for bundle in load_split(split, ROOT)}
+    gold: dict[str, str] = {}
+    for claim_id in claim_ids:
+        labels = {judgment.label for judgment in bundles[claim_id].gold_labels}
+        if labels == {"SUPPORT"}:
+            gold[claim_id] = "SUPPORT"
+        elif labels == {"CONTRADICT"}:
+            gold[claim_id] = "REFUTE"
+        else:
+            gold[claim_id] = "NEI"
+    return gold
+
+
+def _sweep_consistency(
+    registry: dict, sweep: dict[str, dict[str, Any]], split_root: Path
+) -> dict[str, Any]:
+    """Claim-level agreement across the sweep.
+
+    The aggregate table can hide whether four models lose the same claims or
+    four different ones. This counts, per gold class, how many claims every
+    model withholds, how many none withholds, and how many fall in between,
+    plus the labels the models agree on.
+    """
+    def read(directory: str) -> dict[str, dict[str, Any]]:
+        path = ROOT / directory / "predictions.jsonl"
+        rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+        return {row["claim_id"]: row for row in rows}
+
+    specs = (registry.get("sweep") or {}).get("models") or {}
+    per_model = {
+        key: (read(specs[key]["B2"]), read(specs[key]["V"])) for key in sweep
+    }
+    claim_ids = sorted(next(iter(per_model.values()))[0])
+    gold = _sweep_gold(registry, claim_ids)
+    models = list(per_model)
+
+    summary: dict[str, Any] = {"n_claims": len(claim_ids), "models": len(models)}
+    for label in ("REFUTE", "SUPPORT"):
+        all_withheld = none_withheld = some_withheld = 0
+        for claim_id in claim_ids:
+            if gold[claim_id] != label:
+                continue
+            called = [
+                per_model[key][0][claim_id]["label"] == label for key in models
+            ]
+            withheld = [
+                per_model[key][0][claim_id]["label"] == label
+                and per_model[key][1][claim_id]["label"] != label
+                for key in models
+            ]
+            if not any(called):
+                continue
+            if all(withheld[i] for i in range(len(models)) if called[i]):
+                all_withheld += 1
+            elif any(withheld):
+                some_withheld += 1
+            else:
+                none_withheld += 1
+        summary[f"{label.lower()}_all"] = all_withheld
+        summary[f"{label.lower()}_some"] = some_withheld
+        summary[f"{label.lower()}_none"] = none_withheld
+
+    summary["gained_support"] = sum(
+        1
+        for claim_id in claim_ids
+        for key in models
+        if per_model[key][0][claim_id]["label"] != "SUPPORT"
+        and per_model[key][1][claim_id]["label"] == "SUPPORT"
+    )
+    summary["gained_refute"] = sum(
+        1
+        for claim_id in claim_ids
+        for key in models
+        if per_model[key][0][claim_id]["label"] != "REFUTE"
+        and per_model[key][1][claim_id]["label"] == "REFUTE"
+    )
+    summary["agree_b2"] = sum(
+        len({per_model[key][0][claim_id]["label"] for key in models}) == 1
+        for claim_id in claim_ids
+    )
+    summary["agree_v"] = sum(
+        len({per_model[key][1][claim_id]["label"] for key in models}) == 1
+        for claim_id in claim_ids
+    )
+    return summary
+
+
+def write_sweep_table(
+    sweep: dict[str, dict[str, Any]], registry: dict[str, Any]
+) -> dict[str, Any]:
     """The cross-model table plus the macros the prose quotes."""
     lines = [
         "\\scriptsize",
@@ -495,6 +597,31 @@ def write_sweep_table(sweep: dict[str, dict[str, Any]]) -> dict[str, Any]:
             "the Luna family's."
         )
     macros["sweepRoute"] = route
+    consistency = _sweep_consistency(registry, sweep, ROOT)
+    for name, value in (
+        ("sweepRefuteAll", consistency["refute_all"]),
+        ("sweepRefuteSome", consistency["refute_some"]),
+        ("sweepRefuteNone", consistency["refute_none"]),
+        ("sweepSupportAll", consistency["support_all"]),
+        ("sweepSupportSome", consistency["support_some"]),
+        ("sweepSupportNone", consistency["support_none"]),
+        ("sweepGainedSupport", consistency["gained_support"]),
+        ("sweepGainedRefute", consistency["gained_refute"]),
+        ("sweepAgreeBTwo", consistency["agree_b2"]),
+        ("sweepAgreeV", consistency["agree_v"]),
+    ):
+        macros[name] = str(value)
+        macros[f"{name}Word"] = _number_word(value)
+    macros["sweepRefuteTotal"] = str(
+        consistency["refute_all"] + consistency["refute_some"] + consistency["refute_none"]
+    )
+    macros["sweepSupportTotal"] = str(
+        consistency["support_all"] + consistency["support_some"] + consistency["support_none"]
+    )
+    for name in ("sweepRefuteTotal", "sweepSupportTotal"):
+        macros[f"{name}Word"] = _number_word(int(macros[name]))
+    macros["sweepGainedSupportPhrase"] = _pair_phrase(consistency["gained_support"])
+    macros["sweepGainedRefutePhrase"] = _pair_phrase(consistency["gained_refute"])
     total = len(sweep)
     macros["sweepRefuteLowerPhrase"] = _count_phrase(
         counts["refute"][-1], total, "models"
@@ -1164,7 +1291,7 @@ def main() -> int:
     write_retrieval_table()
     write_sensitivity_table(registry)
     mechanism_macros = write_mechanism_table(registry, scored)
-    sweep_macros = write_sweep_table(sweep)
+    sweep_macros = write_sweep_table(sweep, registry)
     write_macros(
         scored, boots, registry, extra={**mechanism_macros, **sweep_macros}
     )

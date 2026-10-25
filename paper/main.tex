@@ -853,6 +853,19 @@ move.}
 \label{fig:modelsweep}
 \end{figure}
 
+The claim-level records say whether the models lose the same claims or
+different ones. Of the \sweepRefuteTotalWord{} refuted claims that the baseline
+identifies, \sweepRefuteAllWord{} are withheld under V by every model that
+called them refuted, \sweepRefuteNoneWord{} by none, and \sweepRefuteSomeWord{}
+by some but not all: the recall loss is a handful of specific claims, not a
+diffuse erosion. Support loss is concentrated the same way: of the
+\sweepSupportTotalWord{} supported claims the baseline finds,
+\sweepSupportNoneWord{} are kept by every model and \sweepSupportSomeWord{} is
+lost by some but not all. No model gains a refutation the baseline missed, and
+the reverse gain for support occurs in \sweepGainedSupportPhrase{}. The models also agree on the
+labels themselves: all \sweepModelsWord{} give the same B2 label on
+\sweepAgreeBTwo{} of the thirty claims and the same V label on \sweepAgreeV{}.
+
 The sweep also bounds how much of the result can be a model artefact. Models
 differ in absolute quality: B2 micro-F1 ranges from \sweepBTwomin{} to
 \sweepBTwomax{} across the \sweepModelsWord{}, and that ordering does not
