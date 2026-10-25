@@ -744,6 +744,7 @@ def figure_model_sweep(registry: dict) -> None:
     fig, axes = plt.subplots(1, len(panels), figsize=(7.2, 1.3 + 0.24 * len(items)), sharey=True)
     positions = list(range(len(items)))[::-1]
     for ax, (metric, class_label, title) in zip(axes, panels):
+        drawn: list[float] = []
         for y, (key, spec, data) in zip(positions, items):
             access = spec.get("access", "")
             color = ACCESS_COLORS.get(access, "#444444")
@@ -757,12 +758,25 @@ def figure_model_sweep(registry: dict) -> None:
             v_value = value(data["v"])
             if b2_value is None or v_value is None:
                 continue
+            drawn.extend([b2_value * 100, v_value * 100])
             ax.plot([b2_value * 100, v_value * 100], [y, y],
                     color=color, linewidth=1.0, alpha=0.55)
             ax.scatter(b2_value * 100, y, s=20, facecolors="none",
                        edgecolors=color, linewidths=1.0, zorder=3)
             ax.scatter(v_value * 100, y, s=22, color=color, zorder=4)
         ax.set_title(title, fontsize=8)
+        # A panel whose rows are all zero would otherwise read as missing data.
+        if drawn and max(abs(value) for value in drawn) < 0.05:
+            ax.text(
+                50,
+                (len(items) - 1) / 2,
+                "0 in every row",
+                ha="center",
+                va="center",
+                fontsize=7,
+                color="#666666",
+                style="italic",
+            )
         ax.set_xlim(-4, 104)
         ax.set_xlabel("%", fontsize=7)
         ax.tick_params(axis="x", labelsize=7)

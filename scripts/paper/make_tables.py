@@ -627,6 +627,13 @@ def write_sweep_table(
         counts["refute"][-1], total, "models"
     )
     macros["sweepFOneLowerPhrase"] = _count_phrase(counts["f1"][-1], total, "models")
+    fe_values = [
+        value
+        for item in sweep.values()
+        for side in ("b2", "v")
+        if (value := _metric(item[side], "false_endorsement_gold_nonsup")) is not None
+    ]
+    macros["sweepFEmaxPct"] = f"{max(fe_values) * 100:.0f}\\%" if fe_values else "---"
     macros["sweepBTwomin"] = _fmt(min(b2_f1_values)) if b2_f1_values else "---"
     macros["sweepBTwomax"] = _fmt(max(b2_f1_values)) if b2_f1_values else "---"
     return macros
