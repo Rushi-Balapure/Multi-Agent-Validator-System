@@ -1,58 +1,44 @@
-# Results (dev-300 gpt-6-luna)
+# Results (primary = frozen-configuration 2026-09-25 run)
 
-Sample: `data/manifests/dev300_seed42.json` (seed 42). Gold mix: SUPPORT 117,
-CONTRADICT 62, NEI 121. Model: gpt-6-luna. 226 cited-document families.
-Paired bootstrap 2000 resamples on 268 claims (32 V rows fail-closed).
+Primary development artifacts: `artifacts/same_evidence_b2_dev300` and
+`artifacts/validator_v_dev300` (config hash `c3d7773f7287…`, the hash locked
+in `docs/freeze.json`). Held-out: `artifacts/held_out/`. The 2026-10-20
+retry re-run lives under `artifacts/api/dev300/` and is a second run, not
+the primary.
+
+Gold mix on the 300-claim development sample: SUPPORT 117, CONTRADICT 62,
+NEI 121.
 
 ## Primary (RQ1)
 
-| Method | n scored | micro-F1 | macro-F1 | FE gold-nonsup | SUPPORT recall | fail-closed |
-| --- | --- | --- | --- | --- | --- | --- |
-| B2 | 300 | 0.747 | 0.755 | 0.011 [0.000, 0.031] | 0.530 | 0 |
-| V | 268 | 0.675 | 0.673 | 0.000 [0.000, 0.000] | 0.383 | 32 |
+Exact McNemar on gold non-support discordant pairs (B2 endorses and V does
+not, versus the reverse):
 
-Paired FE difference V−B2: −0.012 [−0.031, 0.000], excludes_zero=false, p=0.46.
+| Model | Run | n paired | non-supp. | B2 only | V only | McNemar p | ΔFE [95% CI] |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GPT-6 Luna | development (frozen) | 268 | 161 | 2 | 0 | 0.50 | −0.012 [−0.031, 0.000] |
+| GPT-6 Luna | development (2026-10-20 re-run) | 300 | 183 | 2 | 0 | 0.50 | −0.011 [−0.029, 0.000] |
+| GPT-6 Luna | held-out | 262 | 156 | 2 | 0 | 0.50 | −0.013 [−0.033, 0.000] |
+| MiniMax M3.1 Flash | development | 300 | 183 | 5 | 2 | 0.45 | −0.016 [−0.046, 0.011] |
 
-**Decision:** null primary result. V is more conservative (zero false
-endorsements, lower recall and F1) but the FE interval includes no
-difference. Report as a negative-results / no-significant-gain paper on
-the same tables.
+**Decision:** inconclusive. V is more conservative (zero or near-zero false
+endorsement, lower SUPPORT recall and F1). The comparison is underpowered
+(two discordant events on Luna). Independent retrieval's unique yield is 0
+on this corpus, so the motivating “repair a wrong citation” mechanism
+cannot occur.
 
-## 2x2 and references
+## Class trade-off (frozen Luna development)
 
-| Cell | micro-F1 | FE gold-nonsup | SUPPORT recall |
-| --- | --- | --- | --- |
-| B0 prior knowledge | 0.557 | 0.448 | 0.872 |
-| B1 D0 claim-visible | 0.840 | 0.049 | 0.838 |
-| B2 D0 evidence-first | 0.747 | 0.011 | 0.530 |
-| B3 D1 claim-visible | 0.790 | 0.055 | 0.795 |
-| V-D1 D1 only | 0.743 | 0.019 | 0.598 |
-| V reconciled | 0.675 | 0.000 | 0.383 |
-| O gold rationales | 0.857 | 0.016 | 0.735 |
-
-B2@k matched budget: V uses 7462 tokens/claim vs B2 1209, so k=7. Extra
-self-consistency seeds were not spent after the null primary.
-
-## RQ2 descriptive
-
-V predicted NEI on 225 claims: 60 unaddressed, 165 underdetermined.
-Rationale codes: labels_agree 163, d0_d1_conflict 137.
-
-## Calibration (B1 verbalized confidence)
-
-n=300, temperature=1.8, Brier=0.256, NLL=0.492, ECE=0.060.
-
-## Held-out 300 (frozen, one run)
-
-219 cited-document families. 262 paired claims (38 V fail-closed).
-
-| Method | n scored | micro-F1 | FE gold-nonsup | SUPPORT recall | fail-closed |
+| Method | n scored | micro-F1 | FE | SUPPORT R | fail-closed |
 | --- | --- | --- | --- | --- | --- |
-| B2 | 300 | 0.760 | 0.017 (paired 0.013 [0.000, 0.033]) | 0.581 | 0 |
-| V | 262 | 0.618 | 0.000 [0.000, 0.000] | 0.368 | 38 |
+| B2 | 300 | 0.747 | 0.011 | 0.530 | 0 |
+| V | 268 | 0.675 | 0.000 | 0.383 | 32 |
+| V-D1 (derived) | 268 | 0.743 | 0.019 | 0.598 | 32 |
 
-Paired FE difference V−B2: −0.013 [−0.033, 0.000], excludes_zero=false, p=0.44.
+V misses 66 supported claims and 19 contradicted ones. Held-out V-D1 FE is
+0.032 against B2 0.017.
 
-The held-out run confirms the development null: V remains fail-closed and
-zero-FE, B2 is higher-F1, and the primary interval still includes no
-difference.
+## Run-to-run
+
+B2 flipped 26/300 labels (9%) between the frozen run and the 2026-10-20
+re-run; V flipped 14/268 previously-ok labels (5%).

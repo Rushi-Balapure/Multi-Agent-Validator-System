@@ -1,9 +1,17 @@
-\begin{thebibliography}{23}
+\begin{thebibliography}{30}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
   \providecommand{\doi}[1]{doi: #1}\else
   \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Alvarez et~al.(2024)Alvarez, Bennett, and Wang]{alvarez2024zeroshot}
+Carlos Alvarez, Maxwell Bennett, and Lucy~Lu Wang.
+\newblock Zero-shot scientific claim verification using {LLMs} and citation
+  text.
+\newblock In \emph{Proceedings of the Fourth Workshop on Scholarly Document
+  Processing ({SDP} 2024)}, pages 269--276, 2024.
+\newblock URL \url{https://aclanthology.org/2024.sdp-1.25/}.
 
 \bibitem[Aly et~al.(2021)Aly, Guo, Schlichtkrull, Thorne, Vlachos,
   Christodoulopoulos, Cocarascu, and Mittal]{aly2021feverous}
@@ -23,6 +31,13 @@ Shehzaad Dhuliawala, Mojtaba Komeili, Jing Xu, Roberta Raileanu, Xian Li, Asli
   ACL 2024}, pages 3563--3578, 2024.
 \newblock \doi{10.18653/v1/2024.findings-acl.212}.
 
+\bibitem[El-Yaniv and Wiener(2010)]{elyaniv2010selective}
+Ran El-Yaniv and Yair Wiener.
+\newblock On the foundations of noise-free selective classification.
+\newblock \emph{Journal of Machine Learning Research}, 11\penalty0
+  (53):\penalty0 1605--1641, 2010.
+\newblock URL \url{https://jmlr.org/papers/v11/el-yaniv10a.html}.
+
 \bibitem[Feng et~al.(2024)Feng, Shi, Wang, Ding, Balachandran, and
   Tsvetkov]{feng2024abstain}
 Shangbin Feng, Weijia Shi, Yike Wang, Wenxuan Ding, Vidhisha Balachandran, and
@@ -35,18 +50,19 @@ Shangbin Feng, Weijia Shi, Yike Wang, Wenxuan Ding, Vidhisha Balachandran, and
 \newblock \doi{10.18653/v1/2024.acl-long.786}.
 \newblock URL \url{https://aclanthology.org/2024.acl-long.786/}.
 
-\bibitem[Gao et~al.(2023)Gao, Dai, Pasupat, Chen, Chaganty, Fan, Zhao, Lao,
-  Lee, Juan, and Guu]{gao2023rarr}
-Luyu Gao, Zhuyun Dai, Panupong Pasupat, Anthony Chen, Arun~Tejasvi Chaganty,
-  Yicheng Fan, Vincent Zhao, Ni~Lao, Hongrae Lee, Da-Cheng Juan, and Kelvin
-  Guu.
-\newblock {RARR}: Researching and revising what language models say, using
-  language models.
-\newblock In \emph{Proceedings of the 61st Annual Meeting of the Association
-  for Computational Linguistics (Volume 1: Long Papers)}, pages 16477--16508,
-  2023.
-\newblock \doi{10.18653/v1/2023.acl-long.910}.
-\newblock URL \url{https://aclanthology.org/2023.acl-long.910/}.
+\bibitem[Gao et~al.(2023)Gao, Yen, Yu, and Chen]{gao2023alce}
+Tianyu Gao, Howard Yen, Jiatong Yu, and Danqi Chen.
+\newblock Enabling large language models to generate text with citations.
+\newblock In \emph{Proceedings of the 2023 Conference on Empirical Methods in
+  Natural Language Processing}, pages 6465--6488, 2023.
+\newblock \doi{10.18653/v1/2023.emnlp-main.398}.
+\newblock URL \url{https://aclanthology.org/2023.emnlp-main.398/}.
+
+\bibitem[Geifman and El-Yaniv(2017)]{geifman2017selective}
+Yonatan Geifman and Ran El-Yaniv.
+\newblock Selective classification for deep neural networks.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~30, 2017.
 
 \bibitem[Glockner et~al.(2024)Glockner, Hou, Nakov, and
   Gurevych]{glockner2024missci}
@@ -57,6 +73,17 @@ Max Glockner, Yufang Hou, Preslav Nakov, and Iryna Gurevych.
   2024.
 \newblock \doi{10.18653/v1/2024.acl-long.240}.
 \newblock URL \url{https://aclanthology.org/2024.acl-long.240/}.
+
+\bibitem[Gonz{\'a}lez et~al.(2025)Gonz{\'a}lez, Boldsen, and
+  Hangelbroek]{gonzalez2025triplecheck}
+Ana~Valeria Gonz{\'a}lez, Sidsel Boldsen, and Roland Hangelbroek.
+\newblock {TripleCheck}: Transparent post-hoc verification of biomedical claims
+  in {AI}-generated answers.
+\newblock In \emph{Proceedings of the Fourth Workshop on Bridging
+  Human--Computer Interaction and Natural Language Processing ({HCI}+{NLP})},
+  pages 33--47, 2025.
+\newblock \doi{10.18653/v1/2025.hcinlp-1.4}.
+\newblock URL \url{https://aclanthology.org/2025.hcinlp-1.4/}.
 
 \bibitem[Guo et~al.(2017)Guo, Pleiss, Sun, and Weinberger]{guo2017calibration}
 Chuan Guo, Geoff Pleiss, Yu~Sun, and Kilian~Q. Weinberger.
@@ -69,24 +96,40 @@ Chuan Guo, Geoff Pleiss, Yu~Sun, and Kilian~Q. Weinberger.
 Eran Hirsch, David Wan, Han Wang, Elias Stengel-Eskin, Mohit Bansal, and Ido
   Dagan.
 \newblock Who is the agent to blame? localizing faithfulness and citation
-  mistakes in agentic deep research, 2026.
+  mistakes in agentic deep research.
+\newblock In \emph{Proceedings of the 2026 Conference on Empirical Methods in
+  Natural Language Processing}, pages 38261--38286, 2026.
+\newblock URL \url{https://aclanthology.org/2026.emnlp-main.1681/}.
+
+\bibitem[Jacovi et~al.(2023)Jacovi, Caciularu, Goldman, and
+  Goldberg]{jacovi2023contamination}
+Alon Jacovi, Avi Caciularu, Omer Goldman, and Yoav Goldberg.
+\newblock Stop uploading test data in plain text: Practical strategies for
+  mitigating data contamination by evaluation benchmarks.
+\newblock In \emph{Proceedings of the 2023 Conference on Empirical Methods in
+  Natural Language Processing}, pages 5075--5084, 2023.
+\newblock \doi{10.18653/v1/2023.emnlp-main.308}.
+\newblock URL \url{https://aclanthology.org/2023.emnlp-main.308/}.
 
 \bibitem[Li et~al.(2026)Li, Zhang, Cheng, Song, Zhou, Li, Hu, Qin, Zhao, Jiang,
   and Jiang]{march2026}
 Zhuo Li, Yupeng Zhang, Pengyu Cheng, Jiajun Song, Mengyu Zhou, Hao Li, Shujie
   Hu, Yu~Qin, Erchao Zhao, Xiaoxi Jiang, and Guanjun Jiang.
-\newblock {MARCH}: Multi-agent reinforced self-check for {LLM} hallucination,
-  2026.
+\newblock {MARCH}: Multi-agent reinforced self-check for {LLM} hallucination.
+\newblock In \emph{Proceedings of the 64th Annual Meeting of the Association
+  for Computational Linguistics (Volume 1: Long Papers)}, 2026.
+\newblock \doi{10.18653/v1/2026.acl-long.1828}.
 
-\bibitem[Manakul et~al.(2023)Manakul, Liusie, and
-  Gales]{manakul2023selfcheckgpt}
-Potsawee Manakul, Adian Liusie, and Mark Gales.
-\newblock {SelfCheckGPT}: Zero-resource black-box hallucination detection for
-  generative large language models.
+\bibitem[Min et~al.(2023)Min, Krishna, Lyu, Lewis, Yih, Koh, Iyyer,
+  Zettlemoyer, and Hajishirzi]{min2023factscore}
+Sewon Min, Kalpesh Krishna, Xinxi Lyu, Mike Lewis, Wen-tau Yih, Pang~Wei Koh,
+  Mohit Iyyer, Luke Zettlemoyer, and Hannaneh Hajishirzi.
+\newblock {FActScore}: Fine-grained atomic evaluation of factual precision in
+  long form text generation.
 \newblock In \emph{Proceedings of the 2023 Conference on Empirical Methods in
-  Natural Language Processing (EMNLP)}, pages 9004--9017, 2023.
-\newblock \doi{10.18653/v1/2023.emnlp-main.557}.
-\newblock URL \url{https://aclanthology.org/2023.emnlp-main.557/}.
+  Natural Language Processing}, pages 12076--12100, 2023.
+\newblock \doi{10.18653/v1/2023.emnlp-main.741}.
+\newblock URL \url{https://aclanthology.org/2023.emnlp-main.741/}.
 
 \bibitem[Niu et~al.(2024)Niu, Wu, Zhu, Xu, Shum, Zhong, Song, and
   Zhang]{niu2024ragtruth}
@@ -114,6 +157,15 @@ Ra{\'u}l Ortega and Jose~Manuel Gomez-Perez.
 \newblock {MARCH}: official implementation, 2026.
 \newblock URL \url{https://github.com/Qwen-Applications/MARCH}.
 \newblock GitHub repository \texttt{Qwen-Applications/MARCH}.
+
+\bibitem[Tang et~al.(2024)Tang, Laban, and Durrett]{tang2024minicheck}
+Liyan Tang, Philippe Laban, and Greg Durrett.
+\newblock {MiniCheck}: Efficient fact-checking of {LLMs} on grounding
+  documents.
+\newblock In \emph{Proceedings of the 2024 Conference on Empirical Methods in
+  Natural Language Processing}, pages 8818--8847, 2024.
+\newblock \doi{10.18653/v1/2024.emnlp-main.499}.
+\newblock URL \url{https://aclanthology.org/2024.emnlp-main.499/}.
 
 \bibitem[Thorne et~al.(2018)Thorne, Vlachos, Christodoulopoulos, and
   Mittal]{thorne2018fever}
@@ -146,14 +198,25 @@ David Wadden, Shanchuan Lin, Kyle Lo, Lucy~Lu Wang, Madeleine van Zuylen, Arman
 \newblock \doi{10.18653/v1/2020.emnlp-main.609}.
 \newblock URL \url{https://aclanthology.org/2020.emnlp-main.609/}.
 
-\bibitem[Wadden et~al.(2022)Wadden, Lo, Kuehl, Cohan, Beltagy, Wang, and
-  Hajishirzi]{wadden2022scifactopen}
+\bibitem[Wadden et~al.(2022{\natexlab{a}})Wadden, Lo, Kuehl, Cohan, Beltagy,
+  Wang, and Hajishirzi]{wadden2022scifactopen}
 David Wadden, Kyle Lo, Bailey Kuehl, Arman Cohan, Iz~Beltagy, Lucy~Lu Wang, and
   Hannaneh Hajishirzi.
 \newblock {SciFact-Open}: Towards open-domain scientific claim verification.
 \newblock In \emph{Findings of the Association for Computational Linguistics:
-  EMNLP 2022}, pages 4719--4734, 2022.
+  EMNLP 2022}, pages 4719--4734, 2022{\natexlab{a}}.
 \newblock \doi{10.18653/v1/2022.findings-emnlp.347}.
+
+\bibitem[Wadden et~al.(2022{\natexlab{b}})Wadden, Lo, Wang, Cohan, Beltagy, and
+  Hajishirzi]{wadden2022multivers}
+David Wadden, Kyle Lo, Lucy~Lu Wang, Arman Cohan, Iz~Beltagy, and Hannaneh
+  Hajishirzi.
+\newblock {MultiVerS}: Improving scientific claim verification with weak
+  supervision and full-document context.
+\newblock In \emph{Findings of the Association for Computational Linguistics:
+  NAACL 2022}, pages 61--76, 2022{\natexlab{b}}.
+\newblock \doi{10.18653/v1/2022.findings-naacl.6}.
+\newblock URL \url{https://aclanthology.org/2022.findings-naacl.6/}.
 
 \bibitem[Wei et~al.(2024)Wei, Yang, Song, Lu, Hu, Huang, Tran, Peng, Liu,
   Huang, Du, and Le]{wei2024longform}
@@ -163,23 +226,26 @@ Jerry Wei, Chengrun Yang, Xinying Song, Yifeng Lu, Nathan Hu, Jie Huang, Dustin
 \newblock In \emph{Advances in Neural Information Processing Systems
   (NeurIPS)}, 2024.
 
+\bibitem[Wu et~al.(2024)Wu, Wu, and Zou]{wu2024clasheval}
+Kevin Wu, Eric Wu, and James Zou.
+\newblock {ClashEval}: Quantifying the tug-of-war between an {LLM}'s internal
+  prior and external evidence.
+\newblock In \emph{Advances in Neural Information Processing Systems Datasets
+  and Benchmarks Track}, pages 33402--33422, 2024.
+\newblock \doi{10.52202/079017-1053}.
+
+\bibitem[Xie et~al.(2024)Xie, Zhang, Chen, Lou, and Su]{xie2024chameleon}
+Jian Xie, Kai Zhang, Jiangjie Chen, Renze Lou, and Yu~Su.
+\newblock Adaptive chameleon or stubborn sloth: Revealing the behavior of large
+  language models in knowledge conflicts.
+\newblock In \emph{The Twelfth International Conference on Learning
+  Representations}, 2024.
+\newblock URL \url{https://openreview.net/forum?id=auKAUJZMO6}.
+
 \bibitem[Yang(2026)]{yang2026calibratedselective}
 Dekun Yang.
 \newblock Calibrated selective fact-checking via evidence chain evaluation,
   2026.
-
-\bibitem[Yang et~al.(2022)Yang, Vega-Oliveros, Seibt, and
-  Rocha]{yang2022explainablefactchecking}
-Jing Yang, Didier Vega-Oliveros, Ta{\'i}s Seibt, and Anderson Rocha.
-\newblock Explainable fact-checking through question answering.
-\newblock In \emph{IEEE International Conference on Acoustics, Speech and
-  Signal Processing (ICASSP)}, 2022.
-\newblock \doi{10.1109/ICASSP43922.2022.9747214}.
-
-\bibitem[Yu et~al.(2026)Yu, Zhang, Lin, Briand, and Mu{\~n}oz]{yu2026rt4chart}
-Boxi Yu, Yuzhong Zhang, Liting Lin, Lionel Briand, and Emir Mu{\~n}oz.
-\newblock Retromorphic testing with hierarchical verification for hallucination
-  detection in {RAG}, 2026.
 
 \bibitem[Yue et~al.(2024)Yue, Zeng, Shang, Liu, Zhang, and Wang]{yue2024rafts}
 Zhenrui Yue, Huimin Zeng, Lanyu Shang, Yifan Liu, Yang Zhang, and Dong Wang.
@@ -190,13 +256,14 @@ Zhenrui Yue, Huimin Zeng, Lanyu Shang, Yifan Liu, Yang Zhang, and Dong Wang.
   2024.
 \newblock \doi{10.18653/v1/2024.acl-long.556}.
 
-\bibitem[Zhang et~al.(2020)Zhang, Liao, and Bellamy]{zhang2020trustcalibration}
-Yunfeng Zhang, Q.~Vera Liao, and Rachel K.~E. Bellamy.
-\newblock Effect of confidence and explanation on accuracy and trust
-  calibration in {AI}-assisted decision making.
-\newblock In \emph{Proceedings of the 2020 Conference on Fairness,
-  Accountability, and Transparency (FAT*)}, pages 295--305, 2020.
-\newblock \doi{10.1145/3351095.3372852}.
+\bibitem[Zheng et~al.(2023)Zheng, Chiang, Sheng, Zhuang, Wu, Zhuang, Lin, Li,
+  Li, Xing, Zhang, Gonzalez, and Stoica]{zheng2023llmasjudge}
+Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang, Zhanghao Wu, Yonghao
+  Zhuang, Zi~Lin, Zhuohan Li, Dacheng Li, Eric~P. Xing, Hao Zhang, Joseph~E.
+  Gonzalez, and Ion Stoica.
+\newblock Judging {LLM}-as-a-judge with {MT}-bench and chatbot arena.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~36, 2023.
 
 \bibitem[Zheng et~al.(2024)Zheng, Li, Zhang, Shang, Huang, and
   Jia]{zheng2024rav}
