@@ -1,11 +1,11 @@
 [
   {
     "case": "scope_conflict",
-    "claim_id": "scifact:1015",
-    "claim": "Rapamycin delays aging in fruit flies.",
+    "claim_id": "scifact:1018",
+    "claim": "Rapid phosphotransfer rates are correlated with histidine kinase regulator specificity.",
     "gold": "SUPPORT",
-    "b2_label": "SUPPORT",
-    "b2_rationale": "The cited abstract reports that feeding rapamycin to adult fruit flies extends their lifespan, supporting the claim that it delays aging.",
+    "b2_label": "NEI",
+    "b2_rationale": "The abstract links altered regulator interaction specificity to rapid phosphotransfer in the described system, but does not report a correlation between specificity and phosphotransfer rates more generally.",
     "v_label": "NEI",
     "v_label_4way": "underdetermined",
     "d0_label_4way": "underdetermined",
@@ -15,33 +15,33 @@
     ]
   },
   {
-    "case": "missed_support",
-    "claim_id": "scifact:1084",
-    "claim": "Side effects associated with antidepressants increases risk of stroke.",
-    "gold": "SUPPORT",
-    "b2_label": "SUPPORT",
-    "b2_rationale": "The study reported a higher adjusted hazard of stroke or transient ischaemic attack among users of “other antidepressants” than among nonusers. This supports an association with increased risk, although it does not establish causation.",
-    "v_label": "NEI",
-    "v_label_4way": "underdetermined",
-    "d0_label_4way": "underdetermined",
-    "d1_label_4way": "underdetermined",
-    "v_rationale_codes": [
-      "labels_agree"
-    ]
-  },
-  {
     "case": "false_endorsement",
-    "claim_id": "scifact:1307",
-    "claim": "Tonic signaling from the scFv induces constitutive stimulation.",
+    "claim_id": "scifact:175",
+    "claim": "Beta-band coherence is enhanced for visible stimuli over invisible stimuli.",
     "gold": "NEI",
     "b2_label": "SUPPORT",
-    "b2_rationale": "The abstract describes antigen-independent clustering of CAR scFvs triggering tonic CAR signaling, i.e., ongoing signaling without antigen. This supports the claim’s description of constitutive stimulation.",
+    "b2_rationale": "The cited abstract reports increased long-distance beta-range phase synchrony during conscious processing of unmasked words compared with nonconscious processing of masked words, supporting enhanced beta-band coherence for visible versus invisible stimuli.",
     "v_label": "NEI",
     "v_label_4way": "underdetermined",
     "d0_label_4way": "supported",
     "d1_label_4way": "unaddressed",
     "v_rationale_codes": [
       "d0_d1_conflict"
+    ]
+  },
+  {
+    "case": "missed_support",
+    "claim_id": "scifact:52",
+    "claim": "ALDH1 expression is associated with poorer prognosis for breast cancer primary tumors.",
+    "gold": "SUPPORT",
+    "b2_label": "SUPPORT",
+    "b2_rationale": "The cited abstract reports that ALDH1 expression in breast carcinomas correlated with poor prognosis.",
+    "v_label": "NEI",
+    "v_label_4way": "underdetermined",
+    "d0_label_4way": "underdetermined",
+    "d1_label_4way": "underdetermined",
+    "v_rationale_codes": [
+      "labels_agree"
     ]
   }
 ]

@@ -1,0 +1,28 @@
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Decision rule & accuracy & FE & SUPPORT R & REFUTE R \\
+\midrule
+\multicolumn{5}{@{}l}{\emph{GPT-6 Luna, development ($n=268$)}} \\[1pt]
+B2 baseline (reference) & 0.743 & 0.012 & 0.523 & 0.804 \\
+Both scopes must agree (V as run) & 0.675 & 0.000 & 0.383 & 0.627 \\
+Citation scope only (D0) & 0.683 & 0.019 & 0.430 & 0.686 \\
+Independent scope only (D1) & 0.743 & 0.019 & 0.598 & 0.745 \\
+D0, falling back to D1 when D0 has no verdict & 0.750 & 0.037 & 0.645 & 0.804 \\
+\midrule
+\multicolumn{5}{@{}l}{\emph{GPT-6 Luna, held-out ($n=262$)}} \\[1pt]
+B2 baseline (reference) & 0.763 & 0.013 & 0.585 & 0.754 \\
+Both scopes must agree (V as run) & 0.618 & 0.000 & 0.368 & 0.456 \\
+Citation scope only (D0) & 0.653 & 0.000 & 0.415 & 0.526 \\
+Independent scope only (D1) & 0.721 & 0.032 & 0.585 & 0.614 \\
+D0, falling back to D1 when D0 has no verdict & 0.756 & 0.032 & 0.632 & 0.684 \\
+\midrule
+\multicolumn{5}{@{}l}{\emph{MiniMax M3.1 Flash, development ($n=300$)}} \\[1pt]
+B2 baseline (reference) & 0.870 & 0.033 & 0.855 & 0.903 \\
+Both scopes must agree (V as run) & 0.830 & 0.016 & 0.692 & 0.823 \\
+Citation scope only (D0) & 0.847 & 0.038 & 0.769 & 0.919 \\
+Independent scope only (D1) & 0.853 & 0.033 & 0.829 & 0.823 \\
+D0, falling back to D1 when D0 has no verdict & 0.873 & 0.055 & 0.906 & 0.919 \\
+\bottomrule
+\end{tabular}

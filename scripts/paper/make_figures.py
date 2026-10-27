@@ -156,231 +156,105 @@ def _save(fig, name: str, meta: dict) -> None:
 # architecture
 # --------------------------------------------------------------------------
 def figure_architecture() -> None:
-    fig, ax = plt.subplots(figsize=(7.2, 3.5))
-    ax.set_xlim(0, 10)
-    ax.set_ylim(0, 5.2)
+    """The staged validator: two evidence lanes that meet only in the reconciler."""
+    fig, ax = plt.subplots(figsize=(7.4, 3.0))
+    ax.set(xlim=(0, 10.5), ylim=(0, 3.7))
     ax.axis("off")
 
-    def box(x, y, w, h, text, style="round,pad=0.02,rounding_size=0.08", fc="#ffffff", ec="#1f4e79"):
-        patch = patches.FancyBboxPatch(
-            (x, y), w, h, boxstyle=style, linewidth=1.1, edgecolor=ec, facecolor=fc
+    blue, red, amber, grey = "#eef3f8", "#fdecea", "#fff4e5", "#f2f2f2"
+
+    def box(x, y, text, fc, ec="#334155", w=1.75, h=0.78):
+        ax.add_patch(
+            patches.FancyBboxPatch(
+                (x, y), w, h, boxstyle="round,pad=0.03",
+                linewidth=1.0, edgecolor=ec, facecolor=fc,
+            )
         )
-        ax.add_patch(patch)
-        ax.text(x + w / 2, y + h / 2, text, ha="center", va="center", fontsize=8.5)
+        ax.text(x + w / 2, y + h / 2, text, ha="center", va="center", fontsize=7.6)
 
-    def arrow(x1, y1, x2, y2, style="-|>", color="#1f4e79", ls="-"):
-        ax.annotate(
-            "",
-            xy=(x2, y2),
-            xytext=(x1, y1),
-            arrowprops={"arrowstyle": style, "color": color, "linestyle": ls, "linewidth": 1.1},
-        )
+    def arrow(points, color="#334155", dashed=False):
+        style = {"color": color, "lw": 1.1, "linestyle": "--" if dashed else "-"}
+        for (x1, y1), (x2, y2) in zip(points[:-2], points[1:-1]):
+            ax.plot([x1, x2], [y1, y2], **style)
+        (x1, y1), (x2, y2) = points[-2], points[-1]
+        ax.annotate("", (x2, y2), (x1, y1), arrowprops={"arrowstyle": "-|>", **style})
 
-    box(0.15, 3.7, 2.0, 0.85, "Frozen corpus\n(BM25 index)", fc="#eef3f8")
-    box(2.55, 3.7, 2.0, 0.85, "Independent\ngatherer", fc="#eef3f8")
-    box(4.95, 3.7, 2.0, 0.85, "Sealed reader\n(claim-blind)", fc="#eef3f8")
-    box(7.35, 3.7, 2.0, 0.85, "Judge\n(claim-visible)", fc="#fdecea", ec="#c0504d")
+    top, bottom = 2.45, 0.85
+    w = 1.9
+    xs = (0.05, 2.25, 4.45, 6.65)
+    ax.text(0.05, top + 0.98, "$D_1$ lane: independent evidence", fontsize=8, style="italic")
+    ax.text(0.05, bottom - 0.40, "$D_0$ lane: the claim's own citations", fontsize=8, style="italic")
+    box(xs[0], top, "Neutral question\n(answer hidden)", blue, w=w)
+    box(xs[1], top, "BM25 retrieval\n(frozen corpus)", blue, w=w)
+    box(xs[2], top, "Sealed reader\n(claim-blind)", blue, w=w)
+    box(xs[3], top, "$D_1$ judge\n(claim-visible)", red, ec="#c0504d", w=w)
+    box(xs[0], bottom, "Claim +\noriginal citations", red, ec="#c0504d", w=w)
+    box(xs[2], bottom, "Citation auditor\n($D_0$ only)", red, ec="#c0504d", w=w)
+    rx, ry, rh = 8.9, 1.35, 1.1
+    box(rx, ry, "Reconciler\nagree: keep label\nelse: NEI", amber, ec="#e08214", w=1.55, h=rh)
 
-    box(2.55, 1.85, 2.0, 0.85, "Citation auditor\n($D_0$ only)", fc="#fdecea", ec="#c0504d")
-    box(4.95, 1.85, 2.0, 0.85, "Reconciler\n(scope-separated)", fc="#fff4e5", ec="#e08214")
-    box(7.35, 1.85, 2.0, 0.85, "Claim card\n(no new claims)", fc="#f2f2f2", ec="#808080")
-
-    arrow(2.15, 4.12, 2.55, 4.12)
-    arrow(4.55, 4.12, 4.95, 4.12)
-    arrow(6.95, 4.12, 7.35, 4.12)
-    arrow(2.55, 2.27, 4.95, 2.27)
-    # Judge output reaches the reconciler through the gap between the
-    # reconciler and the claim card, so no edge crosses a box.
-    ax.plot([7.35, 7.15], [3.78, 3.78], color="#e08214", linewidth=1.1)
-    ax.plot([7.15, 7.15], [3.78, 2.27], color="#e08214", linewidth=1.1)
-    arrow(7.15, 2.27, 6.95, 2.27, color="#e08214")
-    arrow(6.95, 2.10, 7.35, 2.10)
-
+    for left, right in zip(xs[:3], xs[1:]):
+        arrow([(left + w, top + 0.39), (right, top + 0.39)])
+    arrow([(xs[0] + w, bottom + 0.39), (xs[2], bottom + 0.39)])
+    # The claim enters the D1 lane only after the reader's record is sealed.
+    arrow([(xs[0] + w / 2, bottom + 0.78), (xs[0] + w / 2, 1.95), (xs[3] + w / 2, 1.95), (xs[3] + w / 2, top)],
+          color="#c0504d", dashed=True)
+    ax.text(3.6, 2.02, "claim revealed only after the reader seals its record",
+            fontsize=6.8, color="#c0504d", ha="center", va="bottom")
+    arrow([(xs[3] + w, top + 0.39), (8.75, top + 0.39), (8.75, ry + rh * 0.72), (rx, ry + rh * 0.72)])
+    arrow([(xs[2] + w, bottom + 0.39), (8.75, bottom + 0.39), (8.75, ry + rh * 0.28), (rx, ry + rh * 0.28)])
     ax.text(
-        3.9,
-        5.02,
-        "Each role sees only what its contract allows",
-        ha="center",
-        va="center",
-        fontsize=8.5,
-        style="italic",
-    )
-    # The claim reaches the judge only after the reader's record is sealed;
-    # the dashed arrow is that single path.
-    ax.annotate(
-        "",
-        xy=(8.55, 4.56),
-        xytext=(8.55, 4.99),
-        arrowprops={
-            "arrowstyle": "-|>",
-            "color": "#c0504d",
-            "linestyle": "--",
-            "linewidth": 1.0,
-        },
-    )
-    ax.text(
-        8.38,
-        4.86,
-        "claim, revealed\nafter sealing",
-        fontsize=7,
-        color="#c0504d",
-        ha="right",
-        va="center",
-    )
-    ax.text(
-        5.0,
-        1.25,
-        "Failure of any stage (transport, parse, out-of-set label) becomes an execution status, never a verdict",
-        ha="center",
-        va="center",
-        fontsize=8,
-        style="italic",
-        color="#c0504d",
+        5.2, 0.08,
+        "Any transport or parse failure becomes an execution status, never a verdict",
+        ha="center", fontsize=7.4, style="italic", color="#9b2c2c",
     )
     _save(fig, "architecture", {"figure": "architecture", "source": "method diagram"})
 
 
-def _flow_box(ax, x: float, y: float, label: str, color: str) -> None:
-    patch = patches.FancyBboxPatch(
-        (x, y), 1.75, 0.78, boxstyle="round,pad=0.03",
-        linewidth=1, edgecolor="#334155", facecolor=color,
-    )
-    ax.add_patch(patch)
-    ax.text(x + 0.875, y + 0.39, label, ha="center", va="center", fontsize=7.4)
-
-
-def _flow_arrow(ax, points, *, dashed: bool = False) -> None:
-    """Polyline arrow through ``points`` with a head on the last segment."""
-    style = {"color": "#475569", "lw": 1.1, "linestyle": "--" if dashed else "-"}
-    for (x1, y1), (x2, y2) in zip(points[:-2], points[1:-1]):
-        ax.plot([x1, x2], [y1, y2], **style)
-    (x1, y1), (x2, y2) = points[-2], points[-1]
-    ax.annotate(
-        "",
-        (x2, y2),
-        (x1, y1),
-        arrowprops={"arrowstyle": "-|>", **style},
-    )
-
-
-def figure_data_flow() -> None:
-    """The records passed between stages, for one claim.
-
-    Two paths run in parallel: the sealed D1 path (neutral question through
-    independent retrieval) and the D0 path (the claim beside its own
-    citations). They meet only in the reconciler, which is the point of the
-    design. The D0 arrow is routed under the D1 row so that no edge crosses a
-    box.
-    """
-    fig, ax = plt.subplots(figsize=(7.4, 3.0))
-    ax.set(xlim=(0, 10.15), ylim=(0, 3.55))
-    ax.axis("off")
-
-    top, bottom, middle = 2.42, 1.02, 1.68
-    boxes = [
-        (0.10, middle, "Claim", "#fff0e9"),
-        (2.10, top, "Neutral\nquestion", "#e8f1fa"),
-        (2.10, bottom, "Claim + original\ncitations", "#fff0e9"),
-        (4.15, top, "BM25\nretrieval", "#e8f1fa"),
-        (4.15, bottom, "D0 citation\nauditor", "#fff0e9"),
-        (6.20, top, "Sealed reader\nrecord", "#e8f1fa"),
-        (6.20, bottom, "D1 claim\njudge", "#fff0e9"),
-        (8.25, middle, "Reconciled\nclaim card", "#f3ebfa"),
-    ]
-    for x, y, label, color in boxes:
-        _flow_box(ax, x, y, label, color)
-
-    _flow_arrow(ax, [(1.85, middle + 0.45), (1.98, top), (2.10, top + 0.20)])
-    _flow_arrow(ax, [(1.85, middle + 0.33), (1.98, bottom + 0.78), (2.10, bottom + 0.58)])
-    _flow_arrow(ax, [(3.85, top + 0.39), (4.15, top + 0.39)])
-    _flow_arrow(ax, [(3.85, bottom + 0.39), (4.15, bottom + 0.39)])
-    _flow_arrow(ax, [(5.90, top + 0.39), (6.20, top + 0.39)])
-    _flow_arrow(
-        ax,
-        [(7.075, top), (7.075, bottom + 0.78)],
-        dashed=True,
-    )
-    # D0 reaches the reconciler from below, routed under the D1 row so no
-    # edge crosses a box.
-    _flow_arrow(
-        ax,
-        [(5.60, bottom), (5.60, 0.68), (9.45, 0.68), (9.45, middle)],
-    )
-    _flow_arrow(ax, [(7.95, bottom + 0.72), (8.25, middle + 0.20)])
-    ax.text(
-        7.16,
-        (top + bottom) / 2 + 0.39,
-        "claim revealed\nafter sealing",
-        ha="left",
-        va="center",
-        fontsize=6.6,
-        color="#475569",
-        bbox={"facecolor": "white", "edgecolor": "none", "pad": 0.6},
-    )
-    ax.text(
-        5.07,
-        0.20,
-        "Execution failure \u2192 status record (no scientific verdict)",
-        ha="center",
-        fontsize=8,
-        color="#9b2c2c",
-    )
-    _save(fig, "data_flow", {"figure": "data_flow", "source": "method diagram"})
-
-
 # --------------------------------------------------------------------------
-# false endorsement bars
+# false endorsement against support recall
 # --------------------------------------------------------------------------
 def figure_false_endorsement(registry: dict, scored: dict) -> None:
-    conditions = ["B0", "B1", "B2", "B3", "V-D1", "V", "O"]
-    families = [f for f in registry["families"] if f in scored]
-    fig, ax = plt.subplots(figsize=(7.0, 3.1))
-    width = 0.8 / max(len(families), 1)
-    positions = list(range(len(conditions)))
-    for index, family in enumerate(families):
-        values = []
+    """Each development condition as a point: what it endorses wrongly against
+    what supported claims it still finds. V-D1 is read from its scored report."""
+    conditions = ["B1", "B2", "B3", "V-D1", "V", "O"]
+    markers = {"gpt-6-luna": "o", "minimax-m3.1-flash": "s"}
+    fig, ax = plt.subplots(figsize=(6.2, 3.4))
+    for family in registry["families"]:
+        xs, ys = [], []
         for condition in conditions:
             report = scored.get(family, {}).get("dev300", {}).get(condition)
-            value = None
-            if report:
-                for item in report.get("metrics") or []:
-                    if item.get("metric") == "false_endorsement_gold_nonsup":
-                        value = float(item["value"])
-                        break
-            values.append(value)
-        offsets = [p + (index - (len(families) - 1) / 2) * width for p in positions]
-        labelled = False
-        for offset, value in zip(offsets, values, strict=True):
-            if value is None:
-                ax.text(offset, 0.008, "n/a", ha="center", fontsize=6, rotation=90)
+            if report is None:
+                path = TABLES / f"{family}_dev300_{condition}_metrics.json"
+                report = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
+            if not report:
                 continue
-            bars = ax.bar(
-                offset, value, width=width * 0.92,
-                color=FAMILY_COLORS.get(family, "#444444"),
-                label=_label(registry, family) if not labelled else None,
+            fe = _report_metric(report, "false_endorsement_gold_nonsup")
+            recall = _report_class_metric(report, "recall", "SUPPORT")
+            if fe is None or recall is None:
+                continue
+            xs.append(fe)
+            ys.append(recall)
+            ax.scatter(
+                fe, recall, s=46, marker=markers.get(family, "o"),
+                color=CONDITION_COLORS[condition], edgecolor="#222222", linewidth=0.5, zorder=3,
             )
-            labelled = True
-            bar = bars[0]
-            ax.text(
-                bar.get_x() + bar.get_width() / 2,
-                value + 0.008,
-                f"{value:.3f}",
-                ha="center",
-                va="bottom",
-                fontsize=7,
-                rotation=90,
-            )
-    ax.set_xticks(positions)
-    ax.set_xticklabels(conditions)
-    ax.set_ylabel("false endorsement (gold non-support)")
-    ax.set_title("False endorsement by condition (development sample)")
-    ax.legend(frameon=False)
+            ax.annotate(condition, (fe, recall), xytext=(5, 3), textcoords="offset points", fontsize=7.5)
+    for family, marker in markers.items():
+        if family in registry["families"]:
+            ax.scatter([], [], marker=marker, color="#ffffff", edgecolor="#222222", label=_label(registry, family))
+    ax.set_xlabel("false endorsement (share of gold non-support predicted SUPPORT)")
+    ax.set_ylabel("SUPPORT recall")
+    ax.xaxis.set_major_formatter(mticker.PercentFormatter(1.0, decimals=0))
+    ax.set_xlim(left=-0.004)
+    ax.legend(frameon=False, loc="lower right")
     _save(
         fig,
         "false_endorsement",
         {
             "figure": "false_endorsement",
             "source": "docs/paper-assets/tables/*_dev300_*_metrics.json",
+            "note": "B0 (prior knowledge only) is omitted: its false endorsement is an order of magnitude larger.",
         },
     )
 
@@ -815,7 +689,6 @@ def main() -> int:
                 )
     print("writing figures")
     figure_architecture()
-    figure_data_flow()
     figure_false_endorsement(registry, scored)
     figure_label_distribution(registry)
     figure_risk_coverage(registry)

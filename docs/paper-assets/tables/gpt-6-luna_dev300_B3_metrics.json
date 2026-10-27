@@ -15,25 +15,25 @@
     "notes_path": "docs/paper-assets/formulas/F-native-scifact.md",
     "per_class": {
       "SUPPORT": {
-        "tp": 95,
-        "fp": 9,
-        "fn": 22
+        "tp": 93,
+        "fp": 10,
+        "fn": 24
       },
       "REFUTE": {
-        "tp": 51,
-        "fp": 22,
-        "fn": 11
+        "tp": 50,
+        "fp": 20,
+        "fn": 12
       },
       "NEI": {
         "tp": 94,
-        "fp": 29,
+        "fp": 33,
         "fn": 27
       }
     },
     "micro": {
-      "tp": 240,
-      "fp": 60,
-      "fn": 60
+      "tp": 237,
+      "fp": 63,
+      "fn": 63
     }
   },
   "metrics": [
@@ -42,7 +42,7 @@
       "formula_id": "F-native-scifact",
       "metric": "precision",
       "class": "SUPPORT",
-      "value": 0.9134615384615384,
+      "value": 0.9029126213592233,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
@@ -50,7 +50,7 @@
       "formula_id": "F-native-scifact",
       "metric": "recall",
       "class": "SUPPORT",
-      "value": 0.811965811965812,
+      "value": 0.7948717948717948,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
@@ -58,7 +58,7 @@
       "formula_id": "F-native-scifact",
       "metric": "f1",
       "class": "SUPPORT",
-      "value": 0.8597285067873303,
+      "value": 0.8454545454545455,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
@@ -66,7 +66,7 @@
       "formula_id": "F-native-scifact",
       "metric": "precision",
       "class": "REFUTE",
-      "value": 0.6986301369863014,
+      "value": 0.7142857142857143,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
@@ -74,7 +74,7 @@
       "formula_id": "F-native-scifact",
       "metric": "recall",
       "class": "REFUTE",
-      "value": 0.8225806451612904,
+      "value": 0.8064516129032258,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
@@ -82,7 +82,7 @@
       "formula_id": "F-native-scifact",
       "metric": "f1",
       "class": "REFUTE",
-      "value": 0.7555555555555556,
+      "value": 0.7575757575757576,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
@@ -90,7 +90,7 @@
       "formula_id": "F-native-scifact",
       "metric": "precision",
       "class": "NEI",
-      "value": 0.7642276422764228,
+      "value": 0.7401574803149606,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
@@ -106,7 +106,7 @@
       "formula_id": "F-native-scifact",
       "metric": "f1",
       "class": "NEI",
-      "value": 0.7704918032786886,
+      "value": 0.7580645161290321,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
@@ -114,7 +114,7 @@
       "formula_id": "F-native-scifact",
       "metric": "micro_precision",
       "class": null,
-      "value": 0.8,
+      "value": 0.79,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
@@ -122,7 +122,7 @@
       "formula_id": "F-native-scifact",
       "metric": "micro_recall",
       "class": null,
-      "value": 0.8,
+      "value": 0.79,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
@@ -130,7 +130,7 @@
       "formula_id": "F-native-scifact",
       "metric": "micro_f1",
       "class": null,
-      "value": 0.8000000000000002,
+      "value": 0.79,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
@@ -138,7 +138,7 @@
       "formula_id": "F-native-scifact",
       "metric": "macro_precision",
       "class": null,
-      "value": 0.7921064392414209,
+      "value": 0.7857852719866328,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
@@ -146,7 +146,7 @@
       "formula_id": "F-native-scifact",
       "metric": "macro_recall",
       "class": null,
-      "value": 0.8038019870864446,
+      "value": 0.7927276373024172,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
@@ -154,7 +154,7 @@
       "formula_id": "F-native-scifact",
       "metric": "macro_f1",
       "class": null,
-      "value": 0.7952586218738582,
+      "value": 0.787031606386445,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
@@ -162,11 +162,11 @@
       "formula_id": "F-false-endorsement",
       "metric": "false_endorsement_gold_nonsup",
       "class": "SUPPORT",
-      "value": 0.04918032786885246,
+      "value": 0.0546448087431694,
       "notes_path": "docs/paper-assets/formulas/F-false-endorsement.md",
-      "n_false_endorsements": 9,
+      "n_false_endorsements": 10,
       "n_gold_nonsupported": 183,
-      "n_predicted_supported": 104,
+      "n_predicted_supported": 103,
       "endorsement_label": "SUPPORT",
       "alias": "false_support_rate"
     },
@@ -175,19 +175,19 @@
       "formula_id": "F-false-endorsement",
       "metric": "false_endorsement_pred_sup",
       "class": "SUPPORT",
-      "value": 0.08653846153846154,
+      "value": 0.0970873786407767,
       "notes_path": "docs/paper-assets/formulas/F-false-endorsement.md",
-      "n_false_endorsements": 9,
+      "n_false_endorsements": 10,
       "n_gold_nonsupported": 183,
-      "n_predicted_supported": 104,
+      "n_predicted_supported": 103,
       "endorsement_label": "SUPPORT",
       "alias": "false_support_among_predicted_support"
     }
   ],
   "provenance": {
     "run_id": "b3-development-s0-n300-1ddf08261d8d",
-    "predictions": "/home/rushi/Desktop/Rushi/open_source/Multi-Agent-Validator-System/artifacts/api/dev300/B3/predictions.jsonl",
-    "run_sidecar": "/home/rushi/Desktop/Rushi/open_source/Multi-Agent-Validator-System/artifacts/api/dev300/B3/run.json",
+    "predictions": "/home/rushi/Desktop/Rushi/open_source/Multi-Agent-Validator-System/artifacts/baselines/b3/predictions.jsonl",
+    "run_sidecar": "/home/rushi/Desktop/Rushi/open_source/Multi-Agent-Validator-System/artifacts/baselines/b3/run.json",
     "join_gold": "development",
     "include_failed": false
   },
@@ -333,7 +333,7 @@
       },
       {
         "claim_id": "scifact:176",
-        "label": "NEI",
+        "label": "SUPPORT",
         "label_gold": "NEI",
         "native_labels": [],
         "gold_source": "data.scifact_loader.load_split"
@@ -779,7 +779,7 @@
       },
       {
         "claim_id": "scifact:1334",
-        "label": "SUPPORT",
+        "label": "NEI",
         "label_gold": "SUPPORT",
         "native_labels": [
           "SUPPORT",
@@ -890,7 +890,7 @@
       },
       {
         "claim_id": "scifact:1074",
-        "label": "REFUTE",
+        "label": "NEI",
         "label_gold": "NEI",
         "native_labels": [],
         "gold_source": "data.scifact_loader.load_split"
@@ -988,7 +988,7 @@
       },
       {
         "claim_id": "scifact:635",
-        "label": "REFUTE",
+        "label": "NEI",
         "label_gold": "CONTRADICT",
         "native_labels": [
           "CONTRADICT"
@@ -1154,7 +1154,7 @@
       },
       {
         "claim_id": "scifact:877",
-        "label": "NEI",
+        "label": "REFUTE",
         "label_gold": "NEI",
         "native_labels": [],
         "gold_source": "data.scifact_loader.load_split"
@@ -2298,7 +2298,7 @@
       },
       {
         "claim_id": "scifact:989",
-        "label": "REFUTE",
+        "label": "NEI",
         "label_gold": "NEI",
         "native_labels": [],
         "gold_source": "data.scifact_loader.load_split"
@@ -2315,7 +2315,7 @@
       },
       {
         "claim_id": "scifact:441",
-        "label": "SUPPORT",
+        "label": "NEI",
         "label_gold": "SUPPORT",
         "native_labels": [
           "SUPPORT"
@@ -2765,7 +2765,7 @@
       },
       {
         "claim_id": "scifact:935",
-        "label": "REFUTE",
+        "label": "NEI",
         "label_gold": "SUPPORT",
         "native_labels": [
           "SUPPORT"

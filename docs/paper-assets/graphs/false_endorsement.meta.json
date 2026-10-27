@@ -1,4 +1,5 @@
 {
   "figure": "false_endorsement",
-  "source": "docs/paper-assets/tables/*_dev300_*_metrics.json"
+  "source": "docs/paper-assets/tables/*_dev300_*_metrics.json",
+  "note": "B0 (prior knowledge only) is omitted: its false endorsement is an order of magnitude larger."
 }

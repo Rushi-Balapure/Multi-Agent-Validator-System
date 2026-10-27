@@ -4,6 +4,14 @@
   "gpt-6-luna": {
    "label": "GPT-6 Luna",
    "dev300": {
+    "B0": "artifacts/baselines/b0",
+    "B1": "artifacts/baselines/b1",
+    "B2": "artifacts/same_evidence_b2_dev300",
+    "B3": "artifacts/baselines/b3",
+    "O": "artifacts/baselines/oracle",
+    "V": "artifacts/validator_v_dev300"
+   },
+   "dev300rerun": {
     "B0": "artifacts/api/dev300/B0",
     "B1": "artifacts/api/dev300/B1",
     "B2": "artifacts/api/dev300/b2",
@@ -30,6 +38,7 @@
  },
  "splits": {
   "dev300": "development",
+  "dev300rerun": "development",
   "heldout300": "held_out_local_eval",
   "calibration": "calibration"
  },
@@ -38,11 +47,12 @@
   "heldout300": "data/manifests/heldout300.json"
  },
  "notes": {
+  "gpt-6-luna": "dev300 is the run under the frozen configuration recorded in docs/freeze.json (2026-09-25, no retry policy), the same configuration and protocol as heldout300. dev300rerun is the 2026-10-20 replicate made after the retry policy was added; it differs in configuration hash and is reported as a second run, not as the primary development result.",
   "minimax-m3.1-flash": "B0, B3, O and the calibration subset were started but not completed: the free endpoint that served this model was withdrawn during the study, and the remaining conditions returned ModelUnavailableError. Only B1, B2 and V on the development sample are registered."
  },
  "sweep": {
   "sample": "data/manifests/sweep30_seed42.json",
-  "note": "B2 versus V repeated on the frozen 30-claim balanced subset. The four closed-weight models were served by the official API under a spend cap; the seven open-weight models were served free of charge. Every row uses the same sample, prompts, and scoring code.",
+  "note": "B2 versus V repeated on the frozen 30-claim balanced subset. The four closed-weight models were served by the official API under a spend cap. The open-weight models were attempted through free endpoints and none completed both conditions, so they contribute no row. Every row uses the same sample, prompts, and scoring code.",
   "models": {
    "astra": {
     "label": "GPT-6 Astra",

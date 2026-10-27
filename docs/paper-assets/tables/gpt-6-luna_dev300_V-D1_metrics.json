@@ -1,193 +1,193 @@
 {
-  "run_id": "validator-v-gather-development-s0-n300-0c4a3fb21c2e",
+  "run_id": "validator-v-gather-development-s0-n300-c3d7773f7287",
   "method_id": "V-D1",
   "inference_mode": "live",
   "prediction_label_space": "scifact_SUPPORT_REFUTE_NEI",
   "endorsement_label": "SUPPORT",
   "n_rows": 300,
-  "n_scored": 300,
+  "n_scored": 268,
   "n_skipped_unlabeled": 0,
-  "n_skipped_not_ok": 0,
+  "n_skipped_not_ok": 32,
   "scoring_status": "scored",
   "counts": {
-    "run_id": "validator-v-gather-development-s0-n300-0c4a3fb21c2e",
+    "run_id": "validator-v-gather-development-s0-n300-c3d7773f7287",
     "formula_id": "F-native-scifact",
     "notes_path": "docs/paper-assets/formulas/F-native-scifact.md",
     "per_class": {
       "SUPPORT": {
-        "tp": 74,
+        "tp": 64,
         "fp": 3,
         "fn": 43
       },
       "REFUTE": {
-        "tp": 43,
-        "fp": 9,
-        "fn": 19
+        "tp": 38,
+        "fp": 11,
+        "fn": 13
       },
       "NEI": {
-        "tp": 110,
-        "fp": 61,
-        "fn": 11
+        "tp": 97,
+        "fp": 55,
+        "fn": 13
       }
     },
     "micro": {
-      "tp": 227,
-      "fp": 73,
-      "fn": 73
+      "tp": 199,
+      "fp": 69,
+      "fn": 69
     }
   },
   "metrics": [
     {
-      "run_id": "validator-v-gather-development-s0-n300-0c4a3fb21c2e",
+      "run_id": "validator-v-gather-development-s0-n300-c3d7773f7287",
       "formula_id": "F-native-scifact",
       "metric": "precision",
       "class": "SUPPORT",
-      "value": 0.961038961038961,
+      "value": 0.9552238805970149,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
-      "run_id": "validator-v-gather-development-s0-n300-0c4a3fb21c2e",
+      "run_id": "validator-v-gather-development-s0-n300-c3d7773f7287",
       "formula_id": "F-native-scifact",
       "metric": "recall",
       "class": "SUPPORT",
-      "value": 0.6324786324786325,
+      "value": 0.5981308411214953,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
-      "run_id": "validator-v-gather-development-s0-n300-0c4a3fb21c2e",
+      "run_id": "validator-v-gather-development-s0-n300-c3d7773f7287",
       "formula_id": "F-native-scifact",
       "metric": "f1",
       "class": "SUPPORT",
-      "value": 0.7628865979381442,
+      "value": 0.735632183908046,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
-      "run_id": "validator-v-gather-development-s0-n300-0c4a3fb21c2e",
+      "run_id": "validator-v-gather-development-s0-n300-c3d7773f7287",
       "formula_id": "F-native-scifact",
       "metric": "precision",
       "class": "REFUTE",
-      "value": 0.8269230769230769,
+      "value": 0.7755102040816326,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
-      "run_id": "validator-v-gather-development-s0-n300-0c4a3fb21c2e",
+      "run_id": "validator-v-gather-development-s0-n300-c3d7773f7287",
       "formula_id": "F-native-scifact",
       "metric": "recall",
       "class": "REFUTE",
-      "value": 0.6935483870967742,
+      "value": 0.7450980392156863,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
-      "run_id": "validator-v-gather-development-s0-n300-0c4a3fb21c2e",
+      "run_id": "validator-v-gather-development-s0-n300-c3d7773f7287",
       "formula_id": "F-native-scifact",
       "metric": "f1",
       "class": "REFUTE",
-      "value": 0.7543859649122807,
+      "value": 0.76,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
-      "run_id": "validator-v-gather-development-s0-n300-0c4a3fb21c2e",
+      "run_id": "validator-v-gather-development-s0-n300-c3d7773f7287",
       "formula_id": "F-native-scifact",
       "metric": "precision",
       "class": "NEI",
-      "value": 0.6432748538011696,
+      "value": 0.6381578947368421,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
-      "run_id": "validator-v-gather-development-s0-n300-0c4a3fb21c2e",
+      "run_id": "validator-v-gather-development-s0-n300-c3d7773f7287",
       "formula_id": "F-native-scifact",
       "metric": "recall",
       "class": "NEI",
-      "value": 0.9090909090909091,
+      "value": 0.8818181818181818,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
-      "run_id": "validator-v-gather-development-s0-n300-0c4a3fb21c2e",
+      "run_id": "validator-v-gather-development-s0-n300-c3d7773f7287",
       "formula_id": "F-native-scifact",
       "metric": "f1",
       "class": "NEI",
-      "value": 0.7534246575342466,
+      "value": 0.7404580152671757,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
-      "run_id": "validator-v-gather-development-s0-n300-0c4a3fb21c2e",
+      "run_id": "validator-v-gather-development-s0-n300-c3d7773f7287",
       "formula_id": "F-native-scifact",
       "metric": "micro_precision",
       "class": null,
-      "value": 0.7566666666666667,
+      "value": 0.7425373134328358,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
-      "run_id": "validator-v-gather-development-s0-n300-0c4a3fb21c2e",
+      "run_id": "validator-v-gather-development-s0-n300-c3d7773f7287",
       "formula_id": "F-native-scifact",
       "metric": "micro_recall",
       "class": null,
-      "value": 0.7566666666666667,
+      "value": 0.7425373134328358,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
-      "run_id": "validator-v-gather-development-s0-n300-0c4a3fb21c2e",
+      "run_id": "validator-v-gather-development-s0-n300-c3d7773f7287",
       "formula_id": "F-native-scifact",
       "metric": "micro_f1",
       "class": null,
-      "value": 0.7566666666666667,
+      "value": 0.7425373134328358,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
-      "run_id": "validator-v-gather-development-s0-n300-0c4a3fb21c2e",
+      "run_id": "validator-v-gather-development-s0-n300-c3d7773f7287",
       "formula_id": "F-native-scifact",
       "metric": "macro_precision",
       "class": null,
-      "value": 0.8104122972544024,
+      "value": 0.7896306598051632,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
-      "run_id": "validator-v-gather-development-s0-n300-0c4a3fb21c2e",
+      "run_id": "validator-v-gather-development-s0-n300-c3d7773f7287",
       "formula_id": "F-native-scifact",
       "metric": "macro_recall",
       "class": null,
-      "value": 0.7450393095554385,
+      "value": 0.7416823540517878,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
-      "run_id": "validator-v-gather-development-s0-n300-0c4a3fb21c2e",
+      "run_id": "validator-v-gather-development-s0-n300-c3d7773f7287",
       "formula_id": "F-native-scifact",
       "metric": "macro_f1",
       "class": null,
-      "value": 0.7568990734615572,
+      "value": 0.7453633997250738,
       "notes_path": "docs/paper-assets/formulas/F-native-scifact.md"
     },
     {
-      "run_id": "validator-v-gather-development-s0-n300-0c4a3fb21c2e",
+      "run_id": "validator-v-gather-development-s0-n300-c3d7773f7287",
       "formula_id": "F-false-endorsement",
       "metric": "false_endorsement_gold_nonsup",
       "class": "SUPPORT",
-      "value": 0.01639344262295082,
+      "value": 0.018633540372670808,
       "notes_path": "docs/paper-assets/formulas/F-false-endorsement.md",
       "n_false_endorsements": 3,
-      "n_gold_nonsupported": 183,
-      "n_predicted_supported": 77,
+      "n_gold_nonsupported": 161,
+      "n_predicted_supported": 67,
       "endorsement_label": "SUPPORT",
       "alias": "false_support_rate"
     },
     {
-      "run_id": "validator-v-gather-development-s0-n300-0c4a3fb21c2e",
+      "run_id": "validator-v-gather-development-s0-n300-c3d7773f7287",
       "formula_id": "F-false-endorsement",
       "metric": "false_endorsement_pred_sup",
       "class": "SUPPORT",
-      "value": 0.03896103896103896,
+      "value": 0.04477611940298507,
       "notes_path": "docs/paper-assets/formulas/F-false-endorsement.md",
       "n_false_endorsements": 3,
-      "n_gold_nonsupported": 183,
-      "n_predicted_supported": 77,
+      "n_gold_nonsupported": 161,
+      "n_predicted_supported": 67,
       "endorsement_label": "SUPPORT",
       "alias": "false_support_among_predicted_support"
     }
   ],
   "provenance": {
-    "run_id": "validator-v-gather-development-s0-n300-0c4a3fb21c2e",
-    "predictions": "/home/rushi/Desktop/Rushi/open_source/Multi-Agent-Validator-System/artifacts/api/dev300/v/predictions_vd1.jsonl",
-    "run_sidecar": "/home/rushi/Desktop/Rushi/open_source/Multi-Agent-Validator-System/artifacts/api/dev300/v/run.json",
+    "run_id": "validator-v-gather-development-s0-n300-c3d7773f7287",
+    "predictions": "/home/rushi/Desktop/Rushi/open_source/Multi-Agent-Validator-System/artifacts/validator_v_dev300/predictions_vd1.jsonl",
+    "run_sidecar": "/home/rushi/Desktop/Rushi/open_source/Multi-Agent-Validator-System/artifacts/validator_v_dev300/run.json",
     "join_gold": "development",
     "include_failed": false
   },
@@ -356,7 +356,7 @@
       },
       {
         "claim_id": "scifact:1031",
-        "label": "SUPPORT",
+        "label": "NEI",
         "label_gold": "SUPPORT",
         "native_labels": [
           "SUPPORT"
@@ -481,7 +481,7 @@
       },
       {
         "claim_id": "scifact:1391",
-        "label": "SUPPORT",
+        "label": "NEI",
         "label_gold": "SUPPORT",
         "native_labels": [
           "SUPPORT"
@@ -499,7 +499,7 @@
       },
       {
         "claim_id": "scifact:1353",
-        "label": "NEI",
+        "label": "REFUTE",
         "label_gold": "NEI",
         "native_labels": [],
         "gold_source": "data.scifact_loader.load_split"
@@ -607,7 +607,7 @@
       },
       {
         "claim_id": "scifact:940",
-        "label": "REFUTE",
+        "label": "NEI",
         "label_gold": "CONTRADICT",
         "native_labels": [
           "CONTRADICT",
@@ -799,7 +799,7 @@
       },
       {
         "claim_id": "scifact:928",
-        "label": "REFUTE",
+        "label": "NEI",
         "label_gold": "CONTRADICT",
         "native_labels": [
           "CONTRADICT",
@@ -960,7 +960,7 @@
       },
       {
         "claim_id": "scifact:98",
-        "label": "REFUTE",
+        "label": "NEI",
         "label_gold": "CONTRADICT",
         "native_labels": [
           "CONTRADICT",
@@ -1072,7 +1072,7 @@
       },
       {
         "claim_id": "scifact:795",
-        "label": "SUPPORT",
+        "label": "NEI",
         "label_gold": "SUPPORT",
         "native_labels": [
           "SUPPORT"
@@ -1154,7 +1154,7 @@
       },
       {
         "claim_id": "scifact:877",
-        "label": "REFUTE",
+        "label": "NEI",
         "label_gold": "NEI",
         "native_labels": [],
         "gold_source": "data.scifact_loader.load_split"
@@ -1244,7 +1244,7 @@
       },
       {
         "claim_id": "scifact:220",
-        "label": "SUPPORT",
+        "label": "NEI",
         "label_gold": "SUPPORT",
         "native_labels": [
           "SUPPORT",
@@ -1270,7 +1270,7 @@
       },
       {
         "claim_id": "scifact:1349",
-        "label": "NEI",
+        "label": "REFUTE",
         "label_gold": "NEI",
         "native_labels": [],
         "gold_source": "data.scifact_loader.load_split"
@@ -1439,7 +1439,7 @@
       },
       {
         "claim_id": "scifact:1018",
-        "label": "NEI",
+        "label": "SUPPORT",
         "label_gold": "SUPPORT",
         "native_labels": [
           "SUPPORT"
@@ -1469,7 +1469,7 @@
       },
       {
         "claim_id": "scifact:603",
-        "label": "NEI",
+        "label": "SUPPORT",
         "label_gold": "SUPPORT",
         "native_labels": [
           "SUPPORT",
@@ -1581,7 +1581,7 @@
       },
       {
         "claim_id": "scifact:736",
-        "label": "SUPPORT",
+        "label": "NEI",
         "label_gold": "SUPPORT",
         "native_labels": [
           "SUPPORT"
@@ -1702,7 +1702,7 @@
       },
       {
         "claim_id": "scifact:863",
-        "label": "SUPPORT",
+        "label": "NEI",
         "label_gold": "SUPPORT",
         "native_labels": [
           "SUPPORT",
@@ -1794,7 +1794,7 @@
       },
       {
         "claim_id": "scifact:444",
-        "label": "SUPPORT",
+        "label": "NEI",
         "label_gold": "SUPPORT",
         "native_labels": [
           "SUPPORT"
@@ -1803,7 +1803,7 @@
       },
       {
         "claim_id": "scifact:1159",
-        "label": "SUPPORT",
+        "label": "NEI",
         "label_gold": "SUPPORT",
         "native_labels": [
           "SUPPORT"
@@ -1819,7 +1819,7 @@
       },
       {
         "claim_id": "scifact:30",
-        "label": "NEI",
+        "label": "SUPPORT",
         "label_gold": "SUPPORT",
         "native_labels": [
           "SUPPORT",
@@ -1867,7 +1867,7 @@
       },
       {
         "claim_id": "scifact:106",
-        "label": "NEI",
+        "label": "REFUTE",
         "label_gold": "CONTRADICT",
         "native_labels": [
           "CONTRADICT",
@@ -1880,7 +1880,7 @@
       },
       {
         "claim_id": "scifact:1231",
-        "label": "SUPPORT",
+        "label": "NEI",
         "label_gold": "SUPPORT",
         "native_labels": [
           "SUPPORT"
@@ -2011,7 +2011,7 @@
       },
       {
         "claim_id": "scifact:580",
-        "label": "SUPPORT",
+        "label": "NEI",
         "label_gold": "SUPPORT",
         "native_labels": [
           "SUPPORT"
@@ -2054,7 +2054,7 @@
       },
       {
         "claim_id": "scifact:998",
-        "label": "REFUTE",
+        "label": "NEI",
         "label_gold": "CONTRADICT",
         "native_labels": [
           "CONTRADICT"
@@ -2118,7 +2118,7 @@
       },
       {
         "claim_id": "scifact:1345",
-        "label": "NEI",
+        "label": "REFUTE",
         "label_gold": "NEI",
         "native_labels": [],
         "gold_source": "data.scifact_loader.load_split"
@@ -2195,7 +2195,7 @@
       },
       {
         "claim_id": "scifact:661",
-        "label": "SUPPORT",
+        "label": "NEI",
         "label_gold": "SUPPORT",
         "native_labels": [
           "SUPPORT"
@@ -2298,14 +2298,14 @@
       },
       {
         "claim_id": "scifact:989",
-        "label": "NEI",
+        "label": "REFUTE",
         "label_gold": "NEI",
         "native_labels": [],
         "gold_source": "data.scifact_loader.load_split"
       },
       {
         "claim_id": "scifact:1376",
-        "label": "REFUTE",
+        "label": "NEI",
         "label_gold": "CONTRADICT",
         "native_labels": [
           "CONTRADICT",
@@ -2391,7 +2391,7 @@
       },
       {
         "claim_id": "scifact:67",
-        "label": "SUPPORT",
+        "label": "NEI",
         "label_gold": "SUPPORT",
         "native_labels": [
           "SUPPORT",
@@ -2465,7 +2465,7 @@
       },
       {
         "claim_id": "scifact:658",
-        "label": "NEI",
+        "label": "SUPPORT",
         "label_gold": "NEI",
         "native_labels": [],
         "gold_source": "data.scifact_loader.load_split"
@@ -2524,7 +2524,7 @@
       },
       {
         "claim_id": "scifact:866",
-        "label": "SUPPORT",
+        "label": "NEI",
         "label_gold": "NEI",
         "native_labels": [],
         "gold_source": "data.scifact_loader.load_split"
@@ -2566,7 +2566,7 @@
       },
       {
         "claim_id": "scifact:1073",
-        "label": "REFUTE",
+        "label": "NEI",
         "label_gold": "CONTRADICT",
         "native_labels": [
           "CONTRADICT",
@@ -2649,7 +2649,7 @@
       },
       {
         "claim_id": "scifact:259",
-        "label": "REFUTE",
+        "label": "NEI",
         "label_gold": "NEI",
         "native_labels": [],
         "gold_source": "data.scifact_loader.load_split"
@@ -2695,7 +2695,7 @@
       },
       {
         "claim_id": "scifact:1126",
-        "label": "NEI",
+        "label": "REFUTE",
         "label_gold": "CONTRADICT",
         "native_labels": [
           "CONTRADICT",
@@ -2735,7 +2735,7 @@
       },
       {
         "claim_id": "scifact:1023",
-        "label": "SUPPORT",
+        "label": "NEI",
         "label_gold": "SUPPORT",
         "native_labels": [
           "SUPPORT"
@@ -2807,7 +2807,7 @@
       },
       {
         "claim_id": "scifact:745",
-        "label": "REFUTE",
+        "label": "NEI",
         "label_gold": "CONTRADICT",
         "native_labels": [
           "CONTRADICT"
@@ -2841,6 +2841,6 @@
       }
     ]
   },
-  "derived_from": "artifacts/api/dev300/v/predictions.jsonl",
+  "derived_from": "artifacts/validator_v_dev300/predictions.jsonl",
   "n_rows_derived": 300
 }

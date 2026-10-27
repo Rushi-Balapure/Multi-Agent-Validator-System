@@ -325,20 +325,9 @@ failure yields a failed execution status, not a scientific label.}
 \label{fig:architecture}
 \end{figure}
 
-Figure~\ref{fig:dataflow} traces the records passed between stages. The
-independent reader receives the question and retrieved passages; the claim
+Figure~\ref{fig:architecture} also traces the records passed between stages.
+The independent reader receives the question and retrieved passages; the claim
 enters only after that reader has sealed its record.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\textwidth]{paper/figures/data_flow.pdf}
-\caption{Data flow for one claim. The top lane carries the neutral question
-through retrieval and claim-blind reading. The lower lane carries the
-original claim and citations to the scoped judges. Reconciliation receives
-both judgments and their evidence identifiers; execution failures are
-recorded separately from verdicts.}
-\label{fig:dataflow}
-\end{figure}
 
 \subsection{Roles and information boundaries}
 
@@ -654,12 +643,12 @@ metrics and accounted for in Table~\ref{tab:sensitivity}.}
 
 \begin{table}[t]
 \centering
-\caption{Preregistered paired comparison (V $-$ B2) on false endorsement.
-$p$ is the bootstrap probability mass on the side that excludes zero; a
-value near $0.5$ means the interval straddles zero, and the second-to-last
-column records whether the interval excludes it.}
+\caption{Paired comparison of V against B2 on false endorsement, by family and
+split. A claim enters once both methods produced an execution-ok row; $p$ is
+the exact McNemar test on the discordant pairs, and the interval is a paired
+cluster bootstrap over cited-document families.}
 \label{tab:paired-dev}
-\input{paper/tables/t1b_dev300_paired}
+\input{paper/tables/t1b_paired}
 \end{table}
 
 Figure~\ref{fig:falseendorsement} shows the false-endorsement rate for each

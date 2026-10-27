@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import sys
+from math import comb
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +45,13 @@ CONDITION_LABELS = {
 CONDITION_ORDER = ["B0", "B1", "B2", "B3", "V-D1", "V", "O"]
 FAMILY_ORDER = ["gpt-6-luna", "minimax-m3.1-flash"]
 SPLIT_ORDER = ["dev300", "heldout300"]
+SPLIT_TAGS = (("dev300", "dev"), ("dev300rerun", "rerun"), ("heldout300", "held"))
+SPLIT_NAMES = {
+    "dev300": "development",
+    "dev300rerun": "development, second run",
+    "heldout300": "held-out",
+}
+NATIVE_FROM_FOUR_WAY = {"supported": "SUPPORT", "contradicted": "REFUTE"}
 
 
 def _read_json(path: Path) -> Any:
@@ -236,49 +244,9 @@ def registry_label(family: str) -> str:
     return str(registry["families"][family].get("label", family))
 
 
-def write_paired_table(boots: dict, split_name: str) -> None:
-    lines = [
-        "\\footnotesize",
-        "\\setlength{\\tabcolsep}{5pt}",
-        "\\begin{tabular}{@{}lrrrrr@{}}",
-        "\\toprule",
-        "Method & $\\Delta$FE & 95\\% CI & $p$ & Excludes 0 & $n$ paired \\\\",
-        "\\midrule",
-    ]
-    first = True
-    for family in FAMILY_ORDER:
-        report = boots.get(family, {}).get(split_name)
-        if not report:
-            continue
-        bootstrap = report.get("bootstrap") or {}
-        diff = (bootstrap.get("paired_difference") or {}).get("false_endorsement_gold_nonsup")
-        n_paired = bootstrap.get("n_claims_paired")
-        excludes = (diff or {}).get("excludes_zero")
-        p_text = "---" if not diff else f"{float(diff['p_raw']):.2f}"
-        if not first:
-            lines.append("\\midrule")
-        first = False
-        lines.append(
-            "\\multicolumn{6}{@{}l}{\\emph{"
-            + registry_label(family)
-            + "}} \\\\[1pt]"
-        )
-        lines.append(
-            " & ".join(
-                [
-                    "V $-$ B2",
-                    _fmt((diff or {}).get("point_estimate")) if diff else "---",
-                    _ci(diff),
-                    p_text,
-                    "yes" if excludes else "no",
-                    str(n_paired if n_paired is not None else "---"),
-                ]
-            )
-            + " \\\\"
-        )
-    lines.append("\\bottomrule")
-    lines.append("\\end{tabular}")
-    _write(f"t1b_{split_name}_paired.tex", "\n".join(lines) + "\n")
+def _sweep_claim_ids(registry: dict) -> list[str]:
+    sample = (registry.get("sweep") or {}).get("sample")
+    return list(_read_json(ROOT / sample)["claim_ids"]) if sample else []
 
 
 def score_sweep(registry: dict) -> dict[str, dict[str, Any]]:
@@ -303,6 +271,10 @@ def score_sweep(registry: dict) -> dict[str, dict[str, Any]]:
         v_sidecar = v_dir / "run.json"
         if not b2_sidecar.is_file() or not v_sidecar.is_file():
             print(f"  skip sweep/{key}: run sidecar missing")
+            continue
+        sample_size = len(_sweep_claim_ids(registry))
+        if min(len(_read_rows(b2_predictions)), len(_read_rows(v_predictions))) < sample_size:
+            print(f"  skip sweep/{key}: run is incomplete")
             continue
         b2_report = score_predictions_file(b2_predictions, run_sidecar=b2_sidecar, join_gold=split)
         v_report = score_predictions_file(v_predictions, run_sidecar=v_sidecar, join_gold=split)
@@ -733,11 +705,11 @@ def measured_costs(registry: dict) -> dict[tuple[str, str], tuple[str, int, int,
                     n_calls = int(usage.get("n_calls") or 0)
                     if n_calls < MIN_CALLS_FOR_COST:
                         continue
-                    source = (
-                        "dev"
-                        if split_name == "dev300"
-                        else ("held" if split_name == "heldout300" else split_name)
-                    )
+                    source = {
+                        "dev300": "dev",
+                        "dev300rerun": "dev rerun",
+                        "heldout300": "held",
+                    }.get(split_name, split_name)
                     candidate = (
                         source,
                         n_calls,
@@ -780,9 +752,9 @@ def write_cost_table(registry: dict) -> None:
     lines = [
         "\\footnotesize",
         "\\setlength{\\tabcolsep}{5pt}",
-        "\\begin{tabular}{@{}llrrrr@{}}",
+        "\\begin{tabular}{@{}llrrr@{}}",
         "\\toprule",
-        "Method & measured on & calls/claim & tokens/call & median (s) & p95 (s) \\\\",
+        "Method & measured on & calls/claim & tokens/call & est.\\ tokens/claim \\\\",
         "\\midrule",
     ]
     first = True
@@ -801,9 +773,9 @@ def write_cost_table(registry: dict) -> None:
         if family != "gpt-6-luna":
             label += " (50-claim probe)"
         lines.append(
-            "\\multicolumn{6}{@{}l}{\\emph{" + label + "}} \\\\[1pt]"
+            "\\multicolumn{5}{@{}l}{\\emph{" + label + "}} \\\\[1pt]"
         )
-        for condition, source, n_calls, total_tokens, latency in blocks:
+        for condition, source, n_calls, total_tokens, _latency in blocks:
             tokens_per_call = total_tokens / max(n_calls, 1)
             lines.append(
                 " & ".join(
@@ -812,8 +784,7 @@ def write_cost_table(registry: dict) -> None:
                         source,
                         f"{CALLS_PER_CLAIM[condition]:.0f}",
                         f"{tokens_per_call:,.0f}",
-                        _fmt(latency.get("median"), 1),
-                        _fmt(latency.get("p95"), 1),
+                        f"{CALLS_PER_CLAIM[condition] * tokens_per_call:,.0f}",
                     ]
                 )
                 + " \\\\"
@@ -904,7 +875,7 @@ def write_macros(scored: dict, boots: dict, registry: dict, extra: dict[str, str
 
     for family in FAMILY_ORDER:
         tag = "luna" if family == "gpt-6-luna" else "mm"
-        for split_name, split_tag in (("dev300", "dev"), ("heldout300", "held")):
+        for split_name, split_tag in SPLIT_TAGS:
             reports = scored.get(family, {}).get(split_name, {})
             for condition in CONDITION_ORDER:
                 report = reports.get(condition)
@@ -954,7 +925,7 @@ def write_macros(scored: dict, boots: dict, registry: dict, extra: dict[str, str
     # All-rows (fail-closed scored as recorded) variants for B2 and V.
     for family in FAMILY_ORDER:
         tag = "luna" if family == "gpt-6-luna" else "mm"
-        for split_name, split_tag in (("dev300", "dev"), ("heldout300", "held")):
+        for split_name, split_tag in SPLIT_TAGS:
             conditions = registry["families"][family].get(split_name, {})
             split = registry["splits"][split_name]
             for condition in ("B2", "V"):
@@ -1034,6 +1005,14 @@ def write_macros(scored: dict, boots: dict, registry: dict, extra: dict[str, str
             f"lunadev{_tex_name(condition)}TokensPerCall",
             f"{(total_tokens / n_calls):,.0f}",
         )
+    b2_cost = measured.get(("gpt-6-luna", "B2"))
+    v_cost = measured.get(("gpt-6-luna", "V"))
+    if b2_cost and v_cost:
+        per_claim = {
+            name: CALLS_PER_CLAIM[name] * entry[2] / entry[1]
+            for name, entry in (("B2", b2_cost), ("V", v_cost))
+        }
+        macro("lunaTokenRatio", f"{per_claim['V'] / per_claim['B2']:.1f}")
 
     # Mechanism macros: accuracy conditioned on scope agreement.
     for name, value in (extra or {}).items():
@@ -1211,16 +1190,24 @@ def write_mechanism_table(registry: dict, scored: dict) -> dict[str, str]:
 
             v_rows = read(v_path)
             b2_rows = read(b2_path)
-            subsets = {"agree": [0, 0, 0, 0], "differ": [0, 0, 0, 0]}
-            errors = {"agree": 0, "differ": 0}
-            four_way: dict[str, dict[str, int]] = {"agree": {}, "differ": {}}
+            keys = ("agree", "neionly", "differ")
+            subsets = {key: [0, 0, 0, 0] for key in keys}
+            errors = {key: 0 for key in keys}
+            four_way: dict[str, dict[str, int]] = {key: {} for key in keys}
             for claim_id, gold_label in gold.items():
                 v_row = v_rows.get(claim_id)
                 b2_row = b2_rows.get(claim_id)
                 if not v_row or not b2_row:
                     continue
                 codes = v_row.get("rationale_codes") or []
-                key = "differ" if "d0_d1_conflict" in codes else "agree"
+                if "d0_d1_conflict" not in codes:
+                    key = "agree"
+                elif _native(v_row.get("d0_label_4way")) == _native(
+                    v_row.get("d1_label_4way")
+                ):
+                    key = "neionly"
+                else:
+                    key = "differ"
                 counts = subsets[key]
                 counts[0] += 1
                 counts[1] += int(str(b2_row.get("label")) == gold_label)
@@ -1247,22 +1234,28 @@ def write_mechanism_table(registry: dict, scored: dict) -> dict[str, str]:
                 + pretty_split
                 + "}} \\\\[1pt]"
             )
-            for key, name in (("agree", "agree"), ("differ", "differ")):
+            names = {
+                "agree": ("same four-way label", "Agree"),
+                "neionly": ("both no verdict, different kind", "NeiOnly"),
+                "differ": ("different scored label", "Conflict"),
+            }
+            for key in keys:
                 n, b2_ok, v_ok, v_nei = subsets[key]
                 if n == 0:
                     continue
+                name, macro_name = names[key]
                 lines.append(
                     f"{name} & {n} & {b2_ok / n:.3f} & {v_ok / n:.3f} & "
                     f"{v_nei / n:.3f} \\\\"
                 )
-                prefix = f"{tag}{split_tag}{'Agree' if key == 'agree' else 'Conflict'}"
+                prefix = f"{tag}{split_tag}{macro_name}"
                 macros[f"{prefix}N"] = str(n)
                 macros[f"{prefix}BTwosAcc"] = f"{b2_ok / n:.3f}"
                 macros[f"{prefix}Vacc"] = f"{v_ok / n:.3f}"
                 macros[f"{prefix}Vnei"] = f"{v_nei / n:.3f}"
                 macros[f"{prefix}NeiCount"] = str(v_nei)
-            total_errors = errors["agree"] + errors["differ"]
-            macros[f"{tag}{split_tag}Verrors"] = str(total_errors)
+                macros[f"{prefix}Verrors"] = str(errors[key])
+            macros[f"{tag}{split_tag}Verrors"] = str(sum(errors.values()))
             macros[f"{tag}{split_tag}VconflictErrors"] = str(errors["differ"])
             for four_way_label, key_name in (
                 ("unaddressed", "AgreeUnaddressed"),
@@ -1274,6 +1267,249 @@ def write_mechanism_table(registry: dict, scored: dict) -> dict[str, str]:
     lines.append("\\bottomrule")
     lines.append("\\end{tabular}")
     _write("t9_mechanism.tex", "\n".join(lines) + "\n")
+    return macros
+
+
+def _native(four_way: str | None) -> str:
+    return NATIVE_FROM_FOUR_WAY.get(str(four_way or ""), "NEI")
+
+
+def _read_rows(path: Path) -> dict[str, dict]:
+    rows = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            row = json.loads(line)
+            rows[row["claim_id"]] = row
+    return rows
+
+
+def _is_ok(row: dict | None) -> bool:
+    return bool(row) and row.get("execution_status") in (None, "ok")
+
+
+def _gold_for(scored: dict, family: str, split_name: str) -> dict[str, str]:
+    """Native gold labels for every claim of a split, taken from the B2 report."""
+    report = scored.get(family, {}).get(split_name, {}).get("B2")
+    if not report or not report.get("gold_join"):
+        return {}
+    gold = {}
+    for item in report["gold_join"]["claims"]:
+        if item.get("label_gold"):
+            label = str(item["label_gold"]).upper()
+            gold[item["claim_id"]] = "REFUTE" if label == "CONTRADICT" else label
+    return gold
+
+
+def exact_mcnemar(b: int, c: int) -> float:
+    """Two-sided exact McNemar p-value on b and c discordant pairs."""
+    n = b + c
+    if n == 0:
+        return 1.0
+    tail = sum(comb(n, i) for i in range(min(b, c) + 1)) / 2**n
+    return min(1.0, 2 * tail)
+
+
+def min_discordant_for_significance(alpha: float = 0.05) -> int:
+    """Smallest one-sided discordant count that an exact McNemar test can call significant."""
+    n = 1
+    while exact_mcnemar(n, 0) >= alpha:
+        n += 1
+    return n
+
+
+def write_paired_summary(registry: dict, scored: dict, boots: dict) -> dict[str, str]:
+    """V versus B2 on false endorsement, with exact McNemar on discordant pairs.
+
+    A claim enters only when both methods produced an execution-ok row. The
+    bootstrap interval is reported next to the exact test because V's false
+    endorsement is zero, which pins the percentile interval's upper bound.
+    """
+    macros: dict[str, str] = {}
+    lines = [
+        "\\footnotesize",
+        "\\setlength{\\tabcolsep}{4.5pt}",
+        "\\begin{tabular}{@{}llrrrrrl@{}}",
+        "\\toprule",
+        "Model & Run & $n$ & non-supp. & B2 only & V only & McNemar $p$ & $\\Delta$FE [95\\% CI] \\\\",
+        "\\midrule",
+    ]
+    for family in FAMILY_ORDER:
+        tag = "luna" if family == "gpt-6-luna" else "mm"
+        for split_name, split_tag in SPLIT_TAGS:
+            conditions = registry["families"][family].get(split_name) or {}
+            if not conditions.get("B2") or not conditions.get("V"):
+                continue
+            gold = _gold_for(scored, family, split_name)
+            b2 = _read_rows(ROOT / conditions["B2"] / "predictions.jsonl")
+            v = _read_rows(ROOT / conditions["V"] / "predictions.jsonl")
+            paired = [
+                c for c in gold if _is_ok(b2.get(c)) and _is_ok(v.get(c))
+            ]
+            nonsup = [c for c in paired if gold[c] != "SUPPORT"]
+            b2_only = sum(
+                b2[c]["label"] == "SUPPORT" and v[c]["label"] != "SUPPORT" for c in nonsup
+            )
+            v_only = sum(
+                b2[c]["label"] != "SUPPORT" and v[c]["label"] == "SUPPORT" for c in nonsup
+            )
+            p_value = exact_mcnemar(b2_only, v_only)
+            diff = (
+                ((boots.get(family, {}).get(split_name) or {}).get("bootstrap") or {})
+                .get("paired_difference", {})
+                .get("false_endorsement_gold_nonsup")
+            )
+            interval = (
+                f"{diff['point_estimate']:+.3f} {_ci(diff)}" if diff else "---"
+            )
+            lines.append(
+                " & ".join(
+                    [
+                        registry_label(family),
+                        SPLIT_NAMES[split_name],
+                        str(len(paired)),
+                        str(len(nonsup)),
+                        str(b2_only),
+                        str(v_only),
+                        f"{p_value:.2f}",
+                        interval,
+                    ]
+                )
+                + " \\\\"
+            )
+            prefix = f"{tag}{split_tag}"
+            macros[f"{prefix}discBTwo"] = str(b2_only)
+            macros[f"{prefix}discV"] = str(v_only)
+            macros[f"{prefix}mcnemarp"] = f"{p_value:.2f}"
+            macros[f"{prefix}nnonsup"] = str(len(nonsup))
+    lines.append("\\bottomrule")
+    lines.append("\\end{tabular}")
+    _write("t1b_paired.tex", "\n".join(lines) + "\n")
+    macros["feMinDiscordant"] = str(min_discordant_for_significance())
+    return macros
+
+
+RECONCILE_RULES = (
+    ("asrun", "Both scopes must agree (V as run)"),
+    ("dzero", "Citation scope only (D0)"),
+    ("done", "Independent scope only (D1)"),
+    ("fallback", "D0, falling back to D1 when D0 has no verdict"),
+)
+
+
+def _reconcile(rule: str, d0: str | None, d1: str | None) -> str:
+    n0, n1 = _native(d0), _native(d1)
+    if rule == "asrun":
+        return n0 if str(d0) == str(d1) else "NEI"
+    if rule == "dzero":
+        return n0
+    if rule == "done":
+        return n1
+    return n0 if n0 != "NEI" else n1
+
+
+def write_reconcile_table(registry: dict, scored: dict) -> dict[str, str]:
+    """Alternative reconciliation rules applied to the saved per-scope labels.
+
+    No model is called: every rule reads the D0 and D1 four-way labels that the
+    V run already recorded, on the claims where V completed.
+    """
+    macros: dict[str, str] = {}
+    lines = [
+        "\\footnotesize",
+        "\\setlength{\\tabcolsep}{5pt}",
+        "\\begin{tabular}{@{}lrrrr@{}}",
+        "\\toprule",
+        "Decision rule & accuracy & FE & SUPPORT R & REFUTE R \\\\",
+        "\\midrule",
+    ]
+    first = True
+    for family in FAMILY_ORDER:
+        tag = "luna" if family == "gpt-6-luna" else "mm"
+        for split_name, split_tag in (("dev300", "dev"), ("heldout300", "held")):
+            conditions = registry["families"][family].get(split_name) or {}
+            if not conditions.get("V") or not conditions.get("B2"):
+                continue
+            gold = _gold_for(scored, family, split_name)
+            v = _read_rows(ROOT / conditions["V"] / "predictions.jsonl")
+            b2 = _read_rows(ROOT / conditions["B2"] / "predictions.jsonl")
+            claims = [c for c in gold if _is_ok(v.get(c)) and _is_ok(b2.get(c))]
+            if not claims:
+                continue
+            if not first:
+                lines.append("\\midrule")
+            first = False
+            lines.append(
+                f"\\multicolumn{{5}}{{@{{}}l}}{{\\emph{{{registry_label(family)}, "
+                f"{SPLIT_NAMES[split_name]} ($n={len(claims)}$)}}}} \\\\[1pt]"
+            )
+
+            def score(predict) -> tuple[float, float, float, float]:
+                pairs = [(predict(c), gold[c]) for c in claims]
+                nonsup = [p for p, g in pairs if g != "SUPPORT"]
+                sup = [p for p, g in pairs if g == "SUPPORT"]
+                ref = [p for p, g in pairs if g == "REFUTE"]
+                return (
+                    sum(p == g for p, g in pairs) / len(pairs),
+                    sum(p == "SUPPORT" for p in nonsup) / max(len(nonsup), 1),
+                    sum(p == "SUPPORT" for p in sup) / max(len(sup), 1),
+                    sum(p == "REFUTE" for p in ref) / max(len(ref), 1),
+                )
+
+            rows = [("btwo", "B2 baseline (reference)", lambda c: str(b2[c]["label"]))]
+            for rule, name in RECONCILE_RULES:
+                rows.append(
+                    (
+                        rule,
+                        name,
+                        lambda c, rule=rule: _reconcile(
+                            rule, v[c].get("d0_label_4way"), v[c].get("d1_label_4way")
+                        ),
+                    )
+                )
+            for key, name, predict in rows:
+                acc, fe, sup_r, ref_r = score(predict)
+                lines.append(
+                    f"{name} & {acc:.3f} & {fe:.3f} & {sup_r:.3f} & {ref_r:.3f} \\\\"
+                )
+                prefix = f"{tag}{split_tag}Rule{key}"
+                macros[f"{prefix}acc"] = f"{acc:.3f}"
+                macros[f"{prefix}fe"] = f"{fe:.3f}"
+                macros[f"{prefix}supportRecall"] = f"{sup_r:.3f}"
+                macros[f"{prefix}refuteRecall"] = f"{ref_r:.3f}"
+    lines.append("\\bottomrule")
+    lines.append("\\end{tabular}")
+    _write("t11_reconcile.tex", "\n".join(lines) + "\n")
+    return macros
+
+
+def stability_macros(registry: dict, scored: dict) -> dict[str, str]:
+    """Run-to-run label changes between the two development runs, and V's
+    execution failures by gold class."""
+    macros: dict[str, str] = {}
+    spec = registry["families"]["gpt-6-luna"]
+    first, second = spec.get("dev300") or {}, spec.get("dev300rerun") or {}
+    for condition in ("B1", "B2", "B3", "V"):
+        if not first.get(condition) or not second.get(condition):
+            continue
+        a = _read_rows(ROOT / first[condition] / "predictions.jsonl")
+        b = _read_rows(ROOT / second[condition] / "predictions.jsonl")
+        both = [c for c in a if _is_ok(a[c]) and _is_ok(b.get(c))]
+        flips = sum(a[c]["label"] != b[c]["label"] for c in both)
+        name = _tex_name(condition)
+        macros[f"lunaflips{name}"] = str(flips)
+        macros[f"lunaflips{name}n"] = str(len(both))
+        macros[f"lunaflips{name}pct"] = f"{100 * flips / max(len(both), 1):.0f}"
+    for split_name, split_tag in (("dev300", "dev"), ("heldout300", "held")):
+        directory = (spec.get(split_name) or {}).get("V")
+        gold = _gold_for(scored, "gpt-6-luna", split_name)
+        if not directory or not gold:
+            continue
+        rows = _read_rows(ROOT / directory / "predictions.jsonl")
+        failed = [c for c, row in rows.items() if not _is_ok(row)]
+        for label in ("SUPPORT", "REFUTE", "NEI"):
+            macros[f"luna{split_tag}Vfail{label.lower()}"] = str(
+                sum(gold.get(c) == label for c in failed)
+            )
     return macros
 
 
@@ -1290,8 +1526,9 @@ def main() -> int:
     print("writing LaTeX tables")
     write_main_table(scored, boots, "dev300")
     write_main_table(scored, boots, "heldout300")
-    write_paired_table(boots, "dev300")
-    write_paired_table(boots, "heldout300")
+    paired_macros = write_paired_summary(registry, scored, boots)
+    reconcile_macros = write_reconcile_table(registry, scored)
+    stability = stability_macros(registry, scored)
     write_ablation_table(scored)
     write_cost_table(registry)
     write_confusion_table(scored)
@@ -1300,7 +1537,16 @@ def main() -> int:
     mechanism_macros = write_mechanism_table(registry, scored)
     sweep_macros = write_sweep_table(sweep, registry)
     write_macros(
-        scored, boots, registry, extra={**mechanism_macros, **sweep_macros}
+        scored,
+        boots,
+        registry,
+        extra={
+            **mechanism_macros,
+            **sweep_macros,
+            **paired_macros,
+            **reconcile_macros,
+            **stability,
+        },
     )
     print(f"wrote tables under {PAPER_TABLES}")
     return 0

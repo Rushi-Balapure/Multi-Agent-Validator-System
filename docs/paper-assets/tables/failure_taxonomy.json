@@ -4,6 +4,105 @@
       "B0": {
         "n_rows": 300,
         "n_scored": 300,
+        "n_correct": 167,
+        "n_failed_execution": 0,
+        "n_errors": 133,
+        "error_classes": {
+          "false endorsement": 82,
+          "missed support": 15,
+          "missed contradiction": 4,
+          "other label error": 32
+        },
+        "error_mechanisms": {
+          "no code recorded": 133
+        }
+      },
+      "B1": {
+        "n_rows": 300,
+        "n_scored": 300,
+        "n_correct": 252,
+        "n_failed_execution": 0,
+        "n_errors": 48,
+        "error_classes": {
+          "false endorsement": 9,
+          "missed support": 19,
+          "missed contradiction": 7,
+          "other label error": 13
+        },
+        "error_mechanisms": {
+          "no code recorded": 48
+        }
+      },
+      "B2": {
+        "n_rows": 300,
+        "n_scored": 300,
+        "n_correct": 224,
+        "n_failed_execution": 0,
+        "n_errors": 76,
+        "error_classes": {
+          "false endorsement": 2,
+          "missed support": 55,
+          "missed contradiction": 13,
+          "other label error": 6
+        },
+        "error_mechanisms": {
+          "no code recorded": 76
+        }
+      },
+      "B3": {
+        "n_rows": 300,
+        "n_scored": 300,
+        "n_correct": 237,
+        "n_failed_execution": 0,
+        "n_errors": 63,
+        "error_classes": {
+          "false endorsement": 10,
+          "missed support": 24,
+          "missed contradiction": 10,
+          "other label error": 19
+        },
+        "error_mechanisms": {
+          "no code recorded": 63
+        }
+      },
+      "O": {
+        "n_rows": 300,
+        "n_scored": 300,
+        "n_correct": 257,
+        "n_failed_execution": 0,
+        "n_errors": 43,
+        "error_classes": {
+          "false endorsement": 3,
+          "missed support": 31,
+          "missed contradiction": 9,
+          "other label error": 0
+        },
+        "error_mechanisms": {
+          "no code recorded": 43
+        }
+      },
+      "V": {
+        "n_rows": 300,
+        "n_scored": 268,
+        "n_correct": 181,
+        "n_failed_execution": 32,
+        "n_errors": 87,
+        "error_classes": {
+          "false endorsement": 0,
+          "missed support": 66,
+          "missed contradiction": 19,
+          "other label error": 2
+        },
+        "error_mechanisms": {
+          "scope conflict": 59,
+          "scope agreement": 28
+        }
+      }
+    },
+    "dev300rerun": {
+      "B0": {
+        "n_rows": 300,
+        "n_scored": 300,
         "n_correct": 164,
         "n_failed_execution": 0,
         "n_errors": 136,

@@ -1,14 +1,14 @@
 \footnotesize
 \setlength{\tabcolsep}{5pt}
-\begin{tabular}{@{}llrrrr@{}}
+\begin{tabular}{@{}llrrr@{}}
 \toprule
-Method & measured on & calls/claim & tokens/call & median (s) & p95 (s) \\
+Method & measured on & calls/claim & tokens/call & tokens/claim \\
 \midrule
-\multicolumn{6}{@{}l}{\emph{GPT-6 Luna}} \\[1pt]
-B1 & dev & 1 & 749 & 2.3 & 5.2 \\
-B2 & dev & 2 & 605 & 2.6 & 3.8 \\
-B3 & dev & 1 & 3,064 & 2.6 & 7.9 \\
-V & held & 3 & 2,598 & 12.5 & 23.7 \\
-O & dev & 1 & 379 & 2.1 & 5.5 \\
+\multicolumn{5}{@{}l}{\emph{GPT-6 Luna}} \\[1pt]
+B1 & dev & 1 & 752 & 752 \\
+B2 & dev & 2 & 605 & 1,209 \\
+B3 & dev & 1 & 3,072 & 3,072 \\
+V & dev & 3 & 2,579 & 7,737 \\
+O & dev & 1 & 380 & 380 \\
 \bottomrule
 \end{tabular}
