@@ -1327,7 +1327,7 @@ def write_paired_summary(registry: dict, scored: dict, boots: dict) -> dict[str,
     macros: dict[str, str] = {}
     lines = [
         "\\footnotesize",
-        "\\setlength{\\tabcolsep}{4.5pt}",
+        "\\setlength{\\tabcolsep}{4pt}",
         "\\begin{tabular}{@{}llrrrrrl@{}}",
         "\\toprule",
         "Model & Run & $n$ & non-supp. & B2 only & V only & McNemar $p$ & $\\Delta$FE [95\\% CI] \\\\",
