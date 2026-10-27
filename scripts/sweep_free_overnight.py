@@ -62,7 +62,10 @@ def complete(key: str) -> bool:
 def probe(model: str) -> tuple[bool, str]:
     """One tiny request. True when the tier is answering again."""
     body = json.dumps(
-        {"model": model, "messages": [{"role": "user", "content": "ok?"}]}
+        {
+            "model": model,
+            "messages": [{"role": "user", "content": "Reply with the single word: ok"}],
+        }
     ).encode()
     request = urllib.request.Request(
         f"{BRIDGE}/chat/completions",
@@ -79,7 +82,12 @@ def probe(model: str) -> tuple[bool, str]:
             detail = json.loads(detail)["error"]["message"]
         except Exception:  # noqa: BLE001 - best effort
             pass
-        return False, str(detail)[:120]
+        detail = str(detail)[:120]
+        # A finished generation that invoked a tool instead of replying
+        # still proves the tier is processing requests.
+        if "non-text output parts" in detail:
+            return True, detail
+        return False, detail
     except Exception as exc:  # noqa: BLE001 - transport problems are retryable
         return False, f"{type(exc).__name__}: {exc}"[:120]
 
@@ -99,18 +107,27 @@ def main() -> int:
         if not pending:
             log("all free models complete")
             return 0
-        key = pending[0]
-        model = MODELS[key]
-        log(f"probe {key}; {len(pending)} model(s) pending")
-        okay, detail = probe(model)
-        if not okay:
-            log(f"tier refusing ({detail}); sleeping {int(wait)}s")
+        # Probe every pending model: a dead per-model quota must not block
+        # the models behind it, so take the first one that answers.
+        log(f"probing {len(pending)} pending model(s): {', '.join(pending)}")
+        ready: list[str] = []
+        for key in pending:
+            okay, detail = probe(MODELS[key])
+            if okay:
+                ready.append(key)
+            else:
+                log(f"  {key} refusing ({detail})")
+        if not ready:
+            log(f"all pending models refusing; sleeping {int(wait)}s")
             time.sleep(wait)
             wait = min(wait * 2, args.max_wait)
             continue
 
         wait = args.min_wait
-        log(f"tier answering; running {key}")
+        key = ready[0]
+        model = MODELS[key]
+        other = [k for k in pending if k != key]
+        log(f"tier answering; running {key}" + (f"; waiting on {len(other)}" if other else ""))
         started = time.time()
         try:
             result = subprocess.run(

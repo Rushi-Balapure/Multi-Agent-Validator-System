@@ -151,7 +151,7 @@ class OpenCodeRuntime:
                 "title": self._next_title(),
                 "agent": self.agent,
                 "model": self.model_ref(model),
-                "location": {"directory": self.location},
+                "location": {"directory": os.path.abspath(self.location)},
             },
         )
         session_id = session["data"]["id"]
